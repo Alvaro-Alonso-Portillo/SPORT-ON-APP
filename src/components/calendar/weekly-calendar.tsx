@@ -216,11 +216,7 @@ export default function WeeklyCalendar() {
                           classInfo.attendees.length >= classInfo.capacity && !userBookings.includes(classInfo.id) && "opacity-50 cursor-not-allowed bg-gray-100",
                         )}
                       >
-                         <div className="flex items-center gap-1 text-gray-600 font-medium self-start">
-                           <Users className="w-3.5 h-3.5 mr-1"/>
-                           <span>{classInfo.attendees.length} / {classInfo.capacity}</span>
-                         </div>
-                        {userBookings.includes(classInfo.id) && <UserCheck className="w-4 h-4 text-primary" />}
+                        {userBookings.includes(classInfo.id) && <UserCheck className="w-4 h-4 text-primary self-end" />}
                       </button>
                     )}
                     {isLastSlotOnFriday && <div className="w-full h-full bg-gray-100"></div>}

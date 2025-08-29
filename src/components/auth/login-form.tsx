@@ -30,7 +30,7 @@ export default function LoginForm() {
       const querySnapshot = await getDocs(q);
 
       if (querySnapshot.empty) {
-        throw new Error("User not found");
+        throw new Error("Usuario no encontrado");
       }
 
       const userData = querySnapshot.docs[0].data();
@@ -46,7 +46,7 @@ export default function LoginForm() {
       toast({
         variant: "destructive",
         title: "Fallo de inicio de sesión",
-        description: "Por favor, comprueba tu nombre y contraseña e inténtalo de nuevo.",
+        description: error.message || "Por favor, comprueba tu nombre y contraseña e inténtalo de nuevo.",
       });
     } finally {
       setIsLoading(false);

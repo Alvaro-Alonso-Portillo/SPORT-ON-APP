@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, setDoc, getDocs, query, collection, where } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -25,7 +25,6 @@ export default function SignupForm() {
     e.preventDefault();
     setIsLoading(true);
 
-    // Basic validation to prevent empty fields
     if (!name || !email || !password) {
         toast({
             variant: "destructive",
@@ -37,11 +36,20 @@ export default function SignupForm() {
     }
 
     try {
-      // 1. Create the user in Firebase Authentication
+      // 1. Check if username already exists
+      const usersRef = collection(db, "users");
+      const q = query(usersRef, where("name", "==", name));
+      const querySnapshot = await getDocs(q);
+
+      if (!querySnapshot.empty) {
+        throw new Error("El nombre de usuario ya existe.");
+      }
+
+      // 2. Create the user in Firebase Authentication
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      // 2. Create the user document in Firestore
+      // 3. Create the user document in Firestore
       await setDoc(doc(db, "users", user.uid), {
         uid: user.uid,
         name,
@@ -52,7 +60,7 @@ export default function SignupForm() {
       router.push("/");
 
     } catch (error: any) {
-        let description = "Ha ocurrido un error. Por favor, inténtalo de nuevo.";
+        let description = error.message || "Ha ocurrido un error. Por favor, inténtalo de nuevo.";
         if (error.code === 'auth/email-already-in-use') {
             description = "Este correo electrónico ya está en uso.";
         } else if (error.code === 'auth/weak-password') {

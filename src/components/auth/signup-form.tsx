@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { doc, setDoc, getDocs, query, where, collection } from "firebase/firestore";
+import { doc, setDoc } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -25,41 +25,42 @@ export default function SignupForm() {
     e.preventDefault();
     setIsLoading(true);
 
-    try {
-       // Check if name is already taken
-      const usersRef = collection(db, "users");
-      const q = query(usersRef, where("name", "==", name));
-      const querySnapshot = await getDocs(q);
-
-      if (!querySnapshot.empty) {
+    // Basic validation to prevent empty fields
+    if (!name || !email || !password) {
         toast({
-          variant: "destructive",
-          title: "Fallo de registro",
-          description: "Este nombre de usuario ya está en uso. Por favor, elige otro.",
+            variant: "destructive",
+            title: "Fallo de registro",
+            description: "Por favor, completa todos los campos.",
         });
         setIsLoading(false);
         return;
-      }
+    }
 
+    try {
+      // 1. Create the user in Firebase Authentication
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      // Create a user document in Firestore to store the name
+      // 2. Create the user document in Firestore
       await setDoc(doc(db, "users", user.uid), {
         uid: user.uid,
         name,
         email: user.email,
         createdAt: new Date(),
       });
-
+      
       router.push("/");
+
     } catch (error: any) {
         let description = "Ha ocurrido un error. Por favor, inténtalo de nuevo.";
         if (error.code === 'auth/email-already-in-use') {
             description = "Este correo electrónico ya está en uso.";
         } else if (error.code === 'auth/weak-password') {
             description = "La contraseña es demasiado débil. Debe tener al menos 6 caracteres.";
+        } else if (error.code === 'auth/invalid-email') {
+            description = "El formato del correo electrónico no es válido.";
         }
+        
       toast({
         variant: "destructive",
         title: "Fallo de registro",
@@ -97,7 +98,7 @@ export default function SignupForm() {
             <Input
               id="email"
               type="email"
-              placeholder="m@example.com"
+              placeholder="tu@correo.com"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}

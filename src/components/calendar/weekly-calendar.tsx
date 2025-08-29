@@ -11,18 +11,21 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Info, UserCheck, Loader2, PlusCircle, MinusCircle } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { addDays, startOfWeek, format } from 'date-fns';
+import { es } from 'date-fns/locale';
+
 
 const daysOfWeek = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"];
 const timeSlots = [
-    "08:00 - 09:15", 
-    "09:15 - 10:30", 
-    "10:30 - 11:45", 
-    "11:45 - 13:00", 
-    "13:00 - 14:15", 
-    "14:15 - 15:30", 
-    "17:00 - 18:15", 
-    "18:15 - 19:30", 
-    "19:30 - 20:45", 
+    "08:00 - 09:15",
+    "09:15 - 10:30",
+    "10:30 - 11:45",
+    "11:45 - 13:00",
+    "13:00 - 14:15",
+    "14:15 - 15:30",
+    "17:00 - 18:15",
+    "18:15 - 19:30",
+    "19:30 - 20:45",
     "20:45 - 22:00"
 ];
 
@@ -80,11 +83,11 @@ export default function WeeklyCalendar() {
     setIsBooking(false);
     setIsModalOpen(false);
   };
-  
+
   const handleCancelBooking = async () => {
     setIsBooking(true);
     await new Promise(res => setTimeout(res, 1000));
-    if(selectedClass){
+    if (selectedClass) {
       setUserBookings(prev => prev.filter(id => id !== selectedClass.id));
     }
     setIsBooking(false);
@@ -92,25 +95,24 @@ export default function WeeklyCalendar() {
   }
 
   const getWeekDateRange = (date: Date) => {
-    const start = new Date(date);
-    const day = start.getDay();
-    const diff = start.getDate() - day + (day === 0 ? -6 : 1); 
-    start.setDate(diff);
-
-    const end = new Date(start);
-    end.setDate(start.getDate() + 4); 
-
+    const start = startOfWeek(date, { weekStartsOn: 1 });
+    const end = addDays(start, 4);
     const options: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'long', year: 'numeric' };
     const startDate = start.toLocaleDateString('es-ES', options);
     const endDate = end.toLocaleDateString('es-ES', options);
-    
     return `Semana del ${startDate.split(' de ')[0]} al ${endDate}`;
   };
+
+  const weekDates = useMemo(() => {
+    const start = startOfWeek(currentWeek, { weekStartsOn: 1 });
+    return Array.from({ length: 5 }).map((_, i) => addDays(start, i));
+  }, [currentWeek]);
+
 
   if (isLoading || authLoading) {
     return (
       <div className="container mx-auto p-4 flex justify-center items-center h-[calc(100vh-10rem)]">
-        <Loader2 className="h-12 w-12 animate-spin text-primary"/>
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
       </div>
     );
   }
@@ -124,78 +126,78 @@ export default function WeeklyCalendar() {
 
       <div className="flex justify-center gap-4 mb-6">
         <Button onClick={() => setIsModalOpen(true)}>
-            <PlusCircle className="mr-2"/> Nueva Reserva
+          <PlusCircle className="mr-2" /> Nueva Reserva
         </Button>
         <Button variant="destructive" onClick={() => router.push('/bookings')}>
-            <MinusCircle className="mr-2"/> Anular Reserva
+          <MinusCircle className="mr-2" /> Anular Reserva
         </Button>
       </div>
 
       <div className="flex justify-center gap-4 mb-8">
-        <Button variant="outline" onClick={() => setCurrentWeek(new Date(currentWeek.setDate(currentWeek.getDate() - 7)))}>
-            &lt; Semana Anterior
+        <Button variant="ghost" className="bg-primary/10 hover:bg-primary/20" onClick={() => setCurrentWeek(new Date(currentWeek.setDate(currentWeek.getDate() - 7)))}>
+          &lt; Semana Anterior
         </Button>
-        <Button variant="outline" onClick={() => setCurrentWeek(new Date(currentWeek.setDate(currentWeek.getDate() + 7)))}>
-            Semana Siguiente &gt;
+        <Button variant="ghost" className="bg-primary/10 hover:bg-primary/20" onClick={() => setCurrentWeek(new Date(currentWeek.setDate(currentWeek.getDate() + 7)))}>
+          Semana Siguiente &gt;
         </Button>
       </div>
-     
+
       <div className="bg-white rounded-lg shadow-lg overflow-hidden">
         {!user && (
-            <div className="p-4">
-                <Alert>
-                <Info className="h-4 w-4" />
-                <AlertTitle>¡Bienvenido, Invitado!</AlertTitle>
-                <AlertDescription>
-                    Por favor, <Link href="/login" className="font-bold underline text-primary">inicia sesión</Link> o <Link href="/signup" className="font-bold underline text-primary">regístrate</Link> para reservar clases.
-                </AlertDescription>
-                </Alert>
-            </div>
+          <div className="p-4">
+            <Alert>
+              <Info className="h-4 w-4" />
+              <AlertTitle>¡Bienvenido, Invitado!</AlertTitle>
+              <AlertDescription>
+                Por favor, <Link href="/login" className="font-bold underline text-primary">inicia sesión</Link> o <Link href="/signup" className="font-bold underline text-primary">regístrate</Link> para reservar clases.
+              </AlertDescription>
+            </Alert>
+          </div>
         )}
         <div className="grid grid-cols-[100px_repeat(5,1fr)] border-t border-gray-200">
-            <div className="p-3 text-center font-semibold bg-primary text-primary-foreground border-b border-r border-primary/20">Horario</div>
-            {daysOfWeek.map(day => (
-              <div key={day} className="p-3 text-center font-semibold bg-primary text-primary-foreground border-b border-r border-primary/20 text-sm md:text-base">
-                {day}
+          <div className="p-3 text-center font-semibold bg-primary text-primary-foreground border-b border-r border-primary/20">Horario</div>
+          {daysOfWeek.map((day, index) => (
+            <div key={day} className="p-3 text-center font-semibold bg-primary text-primary-foreground border-b border-r border-primary/20 text-sm md:text-base capitalize">
+              {format(weekDates[index], 'eeee d', { locale: es })}
+            </div>
+          ))}
+
+          {timeSlots.map((time, timeIndex) => (
+            <React.Fragment key={time}>
+              <div className={cn("p-2 h-20 flex items-center justify-center text-xs md:text-sm text-gray-700 border-r border-gray-200 bg-primary/10", timeIndex < timeSlots.length - 1 ? "border-b" : "")}>
+                {time.split(' - ')[0]}
               </div>
-            ))}
+              {daysOfWeek.map((day, dayIndex) => {
+                const classTime = time.split(' - ')[0];
+                const classInfo = classesMap.get(`${day}-${classTime}`);
 
-            {timeSlots.map((time, timeIndex) => (
-              <React.Fragment key={time}>
-                <div className={cn("p-2 h-20 flex items-center justify-center text-xs md:text-sm text-gray-700 border-r border-gray-200 bg-primary/10", timeIndex < timeSlots.length -1 ? "border-b" : "")}>
-                  {time.split(' - ')[0]}
-                </div>
-                {daysOfWeek.map((day, dayIndex) => {
-                  const classTime = time.split(' - ')[0];
-                  const classInfo = classesMap.get(`${day}-${classTime}`);
-                  
-                  // Disable last slot on Friday
-                  const isLastSlotOnFriday = day === 'Viernes' && timeIndex === timeSlots.length - 1;
+                // Disable last slot on Friday
+                const isLastSlotOnFriday = day === 'Viernes' && timeIndex === timeSlots.length - 1;
 
-                  return (
-                    <div key={day} className={cn("p-1 border-r border-gray-200 h-20", timeIndex < timeSlots.length - 1 ? "border-b" : "", dayIndex === daysOfWeek.length -1 ? "border-r-0" : "")}>
-                       {classInfo && !isLastSlotOnFriday && (
-                        <button
-                          onClick={() => handleClassClick(classInfo)}
-                          disabled={classInfo.attendees.length >= classInfo.capacity && !userBookings.includes(classInfo.id)}
-                          className={cn(
-                            "w-full h-full rounded-md p-1.5 text-left transition-all text-xs md:text-sm flex flex-col justify-center",
-                            userBookings.includes(classInfo.id) ? "bg-primary/20 ring-1 ring-primary text-primary-foreground" : "bg-white hover:bg-gray-50",
-                            userBookings.includes(classInfo.id) && "text-gray-800 font-semibold",
-                             classInfo.attendees.length >= classInfo.capacity && !userBookings.includes(classInfo.id) && "opacity-50 cursor-not-allowed bg-gray-100",
-                          )}
-                        >
-                          <p className="font-semibold truncate text-gray-700">{classInfo.instructor}</p>
-                          {userBookings.includes(classInfo.id) && <UserCheck className="w-4 h-4 text-primary self-end mt-1" />}
-                        </button>
-                      )}
-                      {isLastSlotOnFriday && <div className="w-full h-full bg-gray-100"></div>}
-                    </div>
-                  );
-                })}
-              </React.Fragment>
-            ))}
-          </div>
+                return (
+                  <div key={day} className={cn("p-1 border-r border-gray-200 h-20", timeIndex < timeSlots.length - 1 ? "border-b" : "", dayIndex === daysOfWeek.length - 1 ? "border-r-0" : "")}>
+                    {classInfo && !isLastSlotOnFriday && (
+                      <button
+                        onClick={() => handleClassClick(classInfo)}
+                        disabled={classInfo.attendees.length >= classInfo.capacity && !userBookings.includes(classInfo.id)}
+                        className={cn(
+                          "w-full h-full rounded-md p-1.5 text-left transition-all text-xs md:text-sm flex flex-col justify-center",
+                          userBookings.includes(classInfo.id) ? "bg-primary/20 ring-1 ring-primary text-primary-foreground" : "bg-white hover:bg-gray-50",
+                          userBookings.includes(classInfo.id) && "text-gray-800 font-semibold",
+                          classInfo.attendees.length >= classInfo.capacity && !userBookings.includes(classInfo.id) && "opacity-50 cursor-not-allowed bg-gray-100",
+                        )}
+                      >
+                        <p className="font-semibold truncate text-gray-700">{classInfo.instructor}</p>
+                        {userBookings.includes(classInfo.id) && <UserCheck className="w-4 h-4 text-primary self-end mt-1" />}
+                      </button>
+                    )}
+                    {isLastSlotOnFriday && <div className="w-full h-full bg-gray-100"></div>}
+                  </div>
+                );
+              })}
+            </React.Fragment>
+          ))}
+        </div>
       </div>
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
@@ -209,22 +211,20 @@ export default function WeeklyCalendar() {
                 </DialogDescription>
               </DialogHeader>
               <div className="py-4 space-y-2">
-                <p>{selectedClass.description}</p>
-                <p className="text-sm text-muted-foreground">Duración: {selectedClass.duration} minutos</p>
                 <p className="text-sm text-muted-foreground">Plazas restantes: {selectedClass.capacity - selectedClass.attendees.length}</p>
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cerrar</Button>
                 {user && (userBookings.includes(selectedClass.id) ? (
-                    <Button variant="destructive" onClick={handleCancelBooking} disabled={isBooking}>
-                        {isBooking && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Cancelar Reserva
-                    </Button>
+                  <Button variant="destructive" onClick={handleCancelBooking} disabled={isBooking}>
+                    {isBooking && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Cancelar Reserva
+                  </Button>
                 ) : (
-                    <Button onClick={handleBooking} disabled={isBooking || (selectedClass.capacity - selectedClass.attendees.length === 0)}>
-                        {isBooking && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Reservar Ahora
-                    </Button>
+                  <Button onClick={handleBooking} disabled={isBooking || (selectedClass.capacity - selectedClass.attendees.length === 0)}>
+                    {isBooking && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Reservar Ahora
+                  </Button>
                 ))}
               </DialogFooter>
             </>
@@ -237,7 +237,7 @@ export default function WeeklyCalendar() {
                 </DialogDescription>
               </DialogHeader>
               <DialogFooter>
-                  <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cerrar</Button>
+                <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cerrar</Button>
               </DialogFooter>
             </>
           )}
@@ -246,5 +246,3 @@ export default function WeeklyCalendar() {
     </div>
   );
 }
-
-    

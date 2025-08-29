@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Info, Loader2, PlusCircle, MinusCircle, ChevronLeft, ChevronRight } from "lucide-react";
+import { Info, Loader2, PlusCircle, MinusCircle, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { addDays, startOfWeek, format } from 'date-fns';
@@ -189,7 +189,7 @@ export default function WeeklyCalendar() {
           <div className="p-2 text-center font-semibold bg-primary text-primary-foreground border-b border-r border-primary/20 sticky left-0 z-10">Horario</div>
           {daysOfWeek.map((day, index) => (
             <div key={day} className="p-2 text-center font-semibold bg-primary text-primary-foreground border-b border-r border-primary/20 text-xs sm:text-sm md:text-base capitalize">
-              <span className="hidden md:inline">{format(weekDates[index], 'eeee', { locale: es })} </span>
+              <span className="hidden md:inline">{format(weekDates[index], 'eeee', { locale: es })} </span> 
               <span className="md:hidden">{format(weekDates[index], 'eee', { locale: es })} </span>
               {format(weekDates[index], 'd', { locale: es })}
             </div>
@@ -204,20 +204,25 @@ export default function WeeklyCalendar() {
                 const classTime = time.split(' - ')[0];
                 const classInfo = classesMap.get(`${day}-${classTime}`);
                 const isLastSlotOnFriday = day === 'Viernes' && timeIndex === timeSlots.length - 1;
+                const isBookedByUser = user && classInfo && userBookings.includes(classInfo.id);
 
                 return (
                   <div key={day} className={cn("p-1 border-r border-gray-200 h-16 sm:h-20", timeIndex < timeSlots.length - 1 ? "border-b" : "", dayIndex === daysOfWeek.length - 1 ? "border-r-0" : "")}>
                     {classInfo && !isLastSlotOnFriday ? (
                       <button
                         onClick={() => handleClassClick(classInfo)}
-                        disabled={!user || classInfo.attendees.length >= classInfo.capacity && !userBookings.includes(classInfo.id)}
+                        disabled={!user || classInfo.attendees.length >= classInfo.capacity && !isBookedByUser}
                         className={cn(
-                          "w-full h-full rounded-md p-1 text-left transition-all text-[10px] sm:text-xs md:text-sm flex flex-col justify-center items-center text-center",
-                          userBookings.includes(classInfo.id) ? "bg-accent/80 text-accent-foreground font-semibold" : "bg-white hover:bg-gray-100",
-                           (!user || (classInfo.attendees.length >= classInfo.capacity && !userBookings.includes(classInfo.id))) && "opacity-50 cursor-not-allowed bg-gray-100",
+                          "w-full h-full rounded-md p-1 text-left transition-all text-[10px] sm:text-xs md:text-sm flex flex-col justify-center items-center text-center group",
+                          isBookedByUser ? "bg-accent/80 text-accent-foreground font-semibold" : "bg-white hover:bg-gray-100",
+                          (!user || (classInfo.attendees.length >= classInfo.capacity && !isBookedByUser)) && "opacity-50 cursor-not-allowed bg-gray-100",
                         )}
                       >
-                         {userBookings.includes(classInfo.id) ? user?.displayName || user?.email : ''}
+                         {isBookedByUser ? (
+                            <span>{user?.displayName || user?.email?.split('@')[0]}</span>
+                         ) : (
+                            <Plus className="h-4 w-4 text-gray-400 group-hover:scale-125 group-hover:text-primary transition-transform" />
+                         )}
                       </button>
                     ) : (
                       <div className="w-full h-full bg-gray-100 rounded-md"></div>

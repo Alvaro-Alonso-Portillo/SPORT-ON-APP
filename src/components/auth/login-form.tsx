@@ -4,7 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { collection, query, where, getDocs } from "firebase/firestore";
+import { auth, db } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
 
 export default function LoginForm() {
-  const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
@@ -23,13 +24,29 @@ export default function LoginForm() {
     e.preventDefault();
     setIsLoading(true);
     try {
+      // Find user by name to get their email
+      const usersRef = collection(db, "users");
+      const q = query(usersRef, where("name", "==", name));
+      const querySnapshot = await getDocs(q);
+
+      if (querySnapshot.empty) {
+        throw new Error("User not found");
+      }
+
+      const userData = querySnapshot.docs[0].data();
+      const email = userData.email;
+
+      if (!email) {
+        throw new Error("Email not found for this user");
+      }
+
       await signInWithEmailAndPassword(auth, email, password);
       router.push("/");
     } catch (error: any) {
       toast({
         variant: "destructive",
         title: "Fallo de inicio de sesión",
-        description: "Por favor, comprueba tus credenciales e inténtalo de nuevo.",
+        description: "Por favor, comprueba tu nombre y contraseña e inténtalo de nuevo.",
       });
     } finally {
       setIsLoading(false);
@@ -41,20 +58,20 @@ export default function LoginForm() {
       <CardHeader>
         <CardTitle className="text-2xl font-headline">Iniciar Sesión</CardTitle>
         <CardDescription>
-          Introduce tu correo electrónico para acceder a tu cuenta.
+          Introduce tu nombre de usuario para acceder a tu cuenta.
         </CardDescription>
       </CardHeader>
       <form onSubmit={handleLogin}>
         <CardContent className="grid gap-4">
           <div className="grid gap-2">
-            <Label htmlFor="email">Correo Electrónico</Label>
+            <Label htmlFor="name">Nombre de Usuario</Label>
             <Input
-              id="email"
-              type="email"
-              placeholder="m@example.com"
+              id="name"
+              type="text"
+              placeholder="Tu Nombre"
               required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
               disabled={isLoading}
             />
           </div>

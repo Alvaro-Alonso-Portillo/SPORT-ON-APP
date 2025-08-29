@@ -89,7 +89,7 @@ export default function BookingsList() {
           <CardHeader>
             <CardTitle className="font-headline text-xl">{booking.classInfo.name}</CardTitle>
             <CardDescription>
-              {booking.classInfo.day} a las {booking.classInfo.time} con {booking.classInfo.instructor}
+              {booking.classInfo.day} a las {booking.classInfo.time}
             </CardDescription>
           </CardHeader>
           <CardFooter className="p-4 md:p-6 flex gap-2 w-full md:w-auto">

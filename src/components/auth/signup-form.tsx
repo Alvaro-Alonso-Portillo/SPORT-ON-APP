@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, setDoc, getDocs, query, where, collection } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
 
 export default function SignupForm() {
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -23,22 +24,46 @@ export default function SignupForm() {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+
     try {
+       // Check if name is already taken
+      const usersRef = collection(db, "users");
+      const q = query(usersRef, where("name", "==", name));
+      const querySnapshot = await getDocs(q);
+
+      if (!querySnapshot.empty) {
+        toast({
+          variant: "destructive",
+          title: "Fallo de registro",
+          description: "Este nombre de usuario ya está en uso. Por favor, elige otro.",
+        });
+        setIsLoading(false);
+        return;
+      }
+
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
       // Create a user document in Firestore
       await setDoc(doc(db, "users", user.uid), {
+        uid: user.uid,
+        name,
         email: user.email,
         createdAt: new Date(),
       });
 
       router.push("/");
     } catch (error: any) {
+        let description = "Ha ocurrido un error. Por favor, inténtalo de nuevo.";
+        if (error.code === 'auth/email-already-in-use') {
+            description = "Este correo electrónico ya está en uso.";
+        } else if (error.code === 'auth/weak-password') {
+            description = "La contraseña es demasiado débil. Debe tener al menos 6 caracteres.";
+        }
       toast({
         variant: "destructive",
         title: "Fallo de registro",
-        description: "Este correo electrónico ya podría estar en uso o la contraseña es demasiado débil.",
+        description,
       });
     } finally {
       setIsLoading(false);
@@ -55,6 +80,18 @@ export default function SignupForm() {
       </CardHeader>
       <form onSubmit={handleSignup}>
         <CardContent className="grid gap-4">
+           <div className="grid gap-2">
+            <Label htmlFor="name">Nombre de Usuario</Label>
+            <Input
+              id="name"
+              type="text"
+              placeholder="Elige un nombre de usuario"
+              required
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              disabled={isLoading}
+            />
+          </div>
           <div className="grid gap-2">
             <Label htmlFor="email">Correo Electrónico</Label>
             <Input

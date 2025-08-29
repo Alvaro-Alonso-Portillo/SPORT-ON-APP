@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Info, UserCheck, Loader2, PlusCircle, MinusCircle, Users } from "lucide-react";
+import { Info, UserCheck, Loader2, PlusCircle, MinusCircle } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { addDays, startOfWeek, format } from 'date-fns';
@@ -36,13 +36,12 @@ const generateAllPossibleClasses = (): ClassInfo[] => {
       allClasses.push({
         id: classId,
         name: 'Entrenamiento',
-        instructor: '', // Dynamic
         description: 'Clase de Entrenamiento.',
         time: timeStart,
         day: day,
         duration: 75,
         capacity: 24,
-        attendees: [], // Initially empty
+        attendees: [],
       });
     });
   });
@@ -60,6 +59,9 @@ export default function WeeklyCalendar() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isBooking, setIsBooking] = useState(false);
   const [currentWeek, setCurrentWeek] = useState(new Date());
+  
+  // This state will store user info (name) to display on the calendar
+  const [usersInfo, setUsersInfo] = useState<{[key: string]: string}>({});
 
   const classesMap = useMemo(() => {
     const map = new Map<string, ClassInfo>();
@@ -71,9 +73,8 @@ export default function WeeklyCalendar() {
     const fetchData = async () => {
       setIsLoading(true);
       await new Promise(res => setTimeout(res, 500));
-      setClasses(generateAllPossibleClasses()); // Use generated classes
+      setClasses(generateAllPossibleClasses()); 
       if (user) {
-        // Here you would fetch real user bookings. For now, it's empty.
         setUserBookings([]);
       } else {
         setUserBookings([]);
@@ -101,7 +102,6 @@ export default function WeeklyCalendar() {
     await new Promise(res => setTimeout(res, 1000));
     if (selectedClass) {
       setUserBookings(prev => [...prev, selectedClass.id]);
-      // Also update the attendees count in the main classes list for immediate UI feedback
       setClasses(prevClasses => prevClasses.map(c => 
         c.id === selectedClass.id ? { ...c, attendees: [...c.attendees, user.uid] } : c
       ));
@@ -115,7 +115,6 @@ export default function WeeklyCalendar() {
     await new Promise(res => setTimeout(res, 1000));
     if (selectedClass) {
       setUserBookings(prev => prev.filter(id => id !== selectedClass.id));
-       // Also update the attendees count in the main classes list
       setClasses(prevClasses => prevClasses.map(c => 
         c.id === selectedClass.id ? { ...c, attendees: c.attendees.filter(uid => uid !== user?.uid) } : c
       ));
@@ -127,10 +126,10 @@ export default function WeeklyCalendar() {
   const getWeekDateRange = (date: Date) => {
     const start = startOfWeek(date, { weekStartsOn: 1 });
     const end = addDays(start, 4);
-    const options: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'long', year: 'numeric' };
-    const startDate = start.toLocaleString('es-ES', options);
-    const endDate = end.toLocaleString('es-ES', options);
-    return `Semana del ${startDate.split(' de ')[0]} al ${endDate}`;
+    const options: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'long' };
+    const startDate = start.toLocaleDateString('es-ES', options);
+    const endDate = end.toLocaleDateString('es-ES', { ...options, year: 'numeric' });
+    return `Semana del ${startDate} al ${endDate}`;
   };
 
   const weekDates = useMemo(() => {
@@ -150,8 +149,8 @@ export default function WeeklyCalendar() {
   return (
     <div className="container mx-auto p-4 md:p-8">
       <div className="text-center mb-8">
-        <h1 className="text-2xl font-bold text-gray-700">Calendario de Clases</h1>
-        <p className="text-gray-500">{getWeekDateRange(currentWeek)}</p>
+        <h1 className="text-3xl font-bold font-headline text-gray-800">Calendario de Clases</h1>
+        <p className="text-gray-500 mt-2">{getWeekDateRange(currentWeek)}</p>
       </div>
 
       <div className="flex justify-center gap-4 mb-6">
@@ -177,7 +176,7 @@ export default function WeeklyCalendar() {
           <div className="p-4">
             <Alert>
               <Info className="h-4 w-4" />
-              <AlertTitle>¡Bienvenido, Invitado!</AlertTitle>
+              <AlertTitle>¡Bienvenido!</AlertTitle>
               <AlertDescription>
                 Por favor, <Link href="/login" className="font-bold underline text-primary">inicia sesión</Link> o <Link href="/signup" className="font-bold underline text-primary">regístrate</Link> para reservar clases.
               </AlertDescription>
@@ -200,26 +199,25 @@ export default function WeeklyCalendar() {
               {daysOfWeek.map((day, dayIndex) => {
                 const classTime = time.split(' - ')[0];
                 const classInfo = classesMap.get(`${day}-${classTime}`);
-
                 const isLastSlotOnFriday = day === 'Viernes' && timeIndex === timeSlots.length - 1;
 
                 return (
                   <div key={day} className={cn("p-1 border-r border-gray-200 h-20", timeIndex < timeSlots.length - 1 ? "border-b" : "", dayIndex === daysOfWeek.length - 1 ? "border-r-0" : "")}>
-                    {classInfo && !isLastSlotOnFriday && (
+                    {classInfo && !isLastSlotOnFriday ? (
                       <button
                         onClick={() => handleClassClick(classInfo)}
-                        disabled={classInfo.attendees.length >= classInfo.capacity && !userBookings.includes(classInfo.id)}
+                        disabled={!user || classInfo.attendees.length >= classInfo.capacity && !userBookings.includes(classInfo.id)}
                         className={cn(
-                          "w-full h-full rounded-md p-1.5 text-left transition-all text-xs md:text-sm flex flex-col justify-between items-end",
-                          userBookings.includes(classInfo.id) ? "bg-primary/20 ring-1 ring-primary text-primary-foreground" : "bg-white hover:bg-gray-50",
-                          userBookings.includes(classInfo.id) && "text-gray-800 font-semibold",
-                          classInfo.attendees.length >= classInfo.capacity && !userBookings.includes(classInfo.id) && "opacity-50 cursor-not-allowed bg-gray-100",
+                          "w-full h-full rounded-md p-1.5 text-left transition-all text-xs md:text-sm flex flex-col justify-center items-center text-center",
+                          userBookings.includes(classInfo.id) ? "bg-accent/80 text-accent-foreground font-semibold" : "bg-white hover:bg-gray-100",
+                           (!user || (classInfo.attendees.length >= classInfo.capacity && !userBookings.includes(classInfo.id))) && "opacity-50 cursor-not-allowed bg-gray-100",
                         )}
                       >
-                        {userBookings.includes(classInfo.id) && <UserCheck className="w-4 h-4 text-primary self-end" />}
+                         {userBookings.includes(classInfo.id) ? user?.displayName || user?.email : ''}
                       </button>
+                    ) : (
+                      <div className="w-full h-full bg-gray-100 rounded-md"></div>
                     )}
-                    {isLastSlotOnFriday && <div className="w-full h-full bg-gray-100"></div>}
                   </div>
                 );
               })}
@@ -239,7 +237,7 @@ export default function WeeklyCalendar() {
                 </DialogDescription>
               </DialogHeader>
               <div className="py-4 space-y-2">
-                <p className="text-sm text-muted-foreground">Plazas restantes: {selectedClass.capacity - selectedClass.attendees.length}</p>
+                <p>Plazas restantes: {selectedClass.capacity - selectedClass.attendees.length}</p>
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cerrar</Button>
@@ -255,8 +253,8 @@ export default function WeeklyCalendar() {
                   </Button>
                 ))}
                 {!user && (
-                    <Button onClick={handleBooking}>
-                        Reservar Ahora
+                    <Button onClick={() => router.push('/login')}>
+                        Iniciar Sesión para Reservar
                     </Button>
                 )}
               </DialogFooter>

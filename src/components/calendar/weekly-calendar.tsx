@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Info, Loader2, PlusCircle, MinusCircle, ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { Info, Loader2, PlusCircle, MinusCircle, ChevronLeft, ChevronRight, Plus, Users } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { addDays, startOfWeek, format } from 'date-fns';
@@ -41,7 +41,7 @@ const generateAllPossibleClasses = (): ClassInfo[] => {
         time: timeStart,
         day: day,
         duration: 75,
-        capacity: 24,
+        capacity: 24, // CORRECCIÓN: Se establece la capacidad correcta
         attendees: [],
       });
     });
@@ -211,18 +211,23 @@ export default function WeeklyCalendar() {
                     {classInfo && !isLastSlotOnFriday ? (
                       <button
                         onClick={() => handleClassClick(classInfo)}
-                        disabled={!user || classInfo.attendees.length >= classInfo.capacity && !isBookedByUser}
+                        disabled={!user || (classInfo.attendees.length >= classInfo.capacity && !isBookedByUser)}
                         className={cn(
-                          "w-full h-full rounded-md p-1 text-left transition-all text-[10px] sm:text-xs md:text-sm flex flex-col justify-center items-center text-center group",
+                          "w-full h-full rounded-md p-1 text-left transition-all text-[10px] sm:text-xs md:text-sm flex flex-col justify-between items-center text-center group",
                           isBookedByUser ? "bg-accent/80 text-accent-foreground font-semibold" : "bg-white hover:bg-gray-100",
                           (!user || (classInfo.attendees.length >= classInfo.capacity && !isBookedByUser)) && "opacity-50 cursor-not-allowed bg-gray-100",
                         )}
                       >
+                         <div className="w-full"></div>
                          {isBookedByUser ? (
-                            <span>{user?.displayName || user?.email?.split('@')[0]}</span>
+                            <span className="font-bold">{user?.displayName || user?.email?.split('@')[0]}</span>
                          ) : (
                             <Plus className="h-4 w-4 text-gray-400 group-hover:scale-125 group-hover:text-primary transition-transform" />
                          )}
+                         <div className="w-full flex justify-end items-center gap-1 text-gray-500">
+                           <Users className="h-3 w-3" />
+                           <span>{classInfo.attendees.length}/{classInfo.capacity}</span>
+                         </div>
                       </button>
                     ) : (
                       <div className="w-full h-full bg-gray-100 rounded-md"></div>

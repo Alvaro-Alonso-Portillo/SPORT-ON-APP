@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
@@ -7,7 +8,7 @@ import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Info, UserCheck, Loader2, PlusCircle, MinusCircle } from "lucide-react";
+import { Info, Loader2, PlusCircle, MinusCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { addDays, startOfWeek, format } from 'date-fns';
@@ -60,7 +61,6 @@ export default function WeeklyCalendar() {
   const [isBooking, setIsBooking] = useState(false);
   const [currentWeek, setCurrentWeek] = useState(new Date());
   
-  // This state will store user info (name) to display on the calendar
   const [usersInfo, setUsersInfo] = useState<{[key: string]: string}>({});
 
   const classesMap = useMemo(() => {
@@ -147,31 +147,33 @@ export default function WeeklyCalendar() {
   }
 
   return (
-    <div className="container mx-auto p-4 md:p-8">
-      <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold font-headline text-gray-800">Calendario de Clases</h1>
-        <p className="text-gray-500 mt-2">{getWeekDateRange(currentWeek)}</p>
+    <div className="container mx-auto p-2 sm:p-4 md:p-8">
+      <div className="text-center mb-6 md:mb-8">
+        <h1 className="text-2xl md:text-3xl font-bold font-headline text-gray-800">Calendario de Clases</h1>
+        <p className="text-sm md:text-base text-gray-500 mt-2">{getWeekDateRange(currentWeek)}</p>
       </div>
 
-      <div className="flex justify-center gap-4 mb-6">
-        <Button onClick={() => setIsModalOpen(true)}>
+      <div className="flex flex-col sm:flex-row justify-center items-center gap-2 sm:gap-4 mb-6">
+        <Button onClick={() => setIsModalOpen(true)} className="w-full sm:w-auto">
           <PlusCircle className="mr-2" /> Nueva Reserva
         </Button>
-        <Button variant="destructive" onClick={() => router.push('/bookings')}>
+        <Button variant="destructive" onClick={() => router.push('/bookings')} className="w-full sm:w-auto">
           <MinusCircle className="mr-2" /> Anular Reserva
         </Button>
       </div>
 
-      <div className="flex justify-center gap-4 mb-8">
+      <div className="flex justify-between items-center gap-4 mb-6">
         <Button variant="ghost" className="bg-primary/10 hover:bg-primary/20" onClick={() => setCurrentWeek(new Date(currentWeek.setDate(currentWeek.getDate() - 7)))}>
-          &lt; Semana Anterior
+          <ChevronLeft className="h-5 w-5" />
+          <span className="hidden sm:inline ml-2">Semana Anterior</span>
         </Button>
         <Button variant="ghost" className="bg-primary/10 hover:bg-primary/20" onClick={() => setCurrentWeek(new Date(currentWeek.setDate(currentWeek.getDate() + 7)))}>
-          Semana Siguiente &gt;
+          <span className="hidden sm:inline mr-2">Semana Siguiente</span>
+          <ChevronRight className="h-5 w-5" />
         </Button>
       </div>
 
-      <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+      <div className="bg-white rounded-lg shadow-lg overflow-x-auto">
         {!user && (
           <div className="p-4">
             <Alert>
@@ -183,17 +185,19 @@ export default function WeeklyCalendar() {
             </Alert>
           </div>
         )}
-        <div className="grid grid-cols-[100px_repeat(5,1fr)] border-t border-gray-200">
-          <div className="p-3 text-center font-semibold bg-primary text-primary-foreground border-b border-r border-primary/20">Horario</div>
+        <div className="grid grid-cols-[80px_repeat(5,minmax(100px,1fr))] min-w-[600px] md:min-w-full border-t border-gray-200">
+          <div className="p-2 text-center font-semibold bg-primary text-primary-foreground border-b border-r border-primary/20 sticky left-0 z-10">Horario</div>
           {daysOfWeek.map((day, index) => (
-            <div key={day} className="p-3 text-center font-semibold bg-primary text-primary-foreground border-b border-r border-primary/20 text-sm md:text-base capitalize">
-              {format(weekDates[index], 'eeee d', { locale: es })}
+            <div key={day} className="p-2 text-center font-semibold bg-primary text-primary-foreground border-b border-r border-primary/20 text-xs sm:text-sm md:text-base capitalize">
+              <span className="hidden md:inline">{format(weekDates[index], 'eeee', { locale: es })} </span>
+              <span className="md:hidden">{format(weekDates[index], 'eee', { locale: es })} </span>
+              {format(weekDates[index], 'd', { locale: es })}
             </div>
           ))}
 
           {timeSlots.map((time, timeIndex) => (
             <React.Fragment key={time}>
-              <div className={cn("p-2 h-20 flex items-center justify-center text-xs md:text-sm text-gray-700 border-r border-gray-200 bg-primary/10", timeIndex < timeSlots.length - 1 ? "border-b" : "")}>
+              <div className={cn("p-1 h-16 sm:h-20 flex items-center justify-center text-xs md:text-sm text-gray-700 border-r border-gray-200 bg-primary/10 sticky left-0 z-10", timeIndex < timeSlots.length - 1 ? "border-b" : "")}>
                 {time.split(' - ')[0]}
               </div>
               {daysOfWeek.map((day, dayIndex) => {
@@ -202,13 +206,13 @@ export default function WeeklyCalendar() {
                 const isLastSlotOnFriday = day === 'Viernes' && timeIndex === timeSlots.length - 1;
 
                 return (
-                  <div key={day} className={cn("p-1 border-r border-gray-200 h-20", timeIndex < timeSlots.length - 1 ? "border-b" : "", dayIndex === daysOfWeek.length - 1 ? "border-r-0" : "")}>
+                  <div key={day} className={cn("p-1 border-r border-gray-200 h-16 sm:h-20", timeIndex < timeSlots.length - 1 ? "border-b" : "", dayIndex === daysOfWeek.length - 1 ? "border-r-0" : "")}>
                     {classInfo && !isLastSlotOnFriday ? (
                       <button
                         onClick={() => handleClassClick(classInfo)}
                         disabled={!user || classInfo.attendees.length >= classInfo.capacity && !userBookings.includes(classInfo.id)}
                         className={cn(
-                          "w-full h-full rounded-md p-1.5 text-left transition-all text-xs md:text-sm flex flex-col justify-center items-center text-center",
+                          "w-full h-full rounded-md p-1 text-left transition-all text-[10px] sm:text-xs md:text-sm flex flex-col justify-center items-center text-center",
                           userBookings.includes(classInfo.id) ? "bg-accent/80 text-accent-foreground font-semibold" : "bg-white hover:bg-gray-100",
                            (!user || (classInfo.attendees.length >= classInfo.capacity && !userBookings.includes(classInfo.id))) && "opacity-50 cursor-not-allowed bg-gray-100",
                         )}
@@ -231,7 +235,7 @@ export default function WeeklyCalendar() {
           {selectedClass ? (
             <>
               <DialogHeader>
-                <DialogTitle className="font-headline text-2xl">{selectedClass.name}</DialogTitle>
+                <DialogTitle className="font-headline text-xl md:text-2xl">{selectedClass.name}</DialogTitle>
                 <DialogDescription>
                   {format(weekDates[daysOfWeek.indexOf(selectedClass.day)], 'eeee d \'de\' MMMM', { locale: es })} a las {selectedClass.time}
                 </DialogDescription>
@@ -239,21 +243,21 @@ export default function WeeklyCalendar() {
               <div className="py-4 space-y-2">
                 <p>Plazas restantes: {selectedClass.capacity - selectedClass.attendees.length}</p>
               </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cerrar</Button>
+              <DialogFooter className="flex flex-col sm:flex-row gap-2">
+                <Button variant="outline" onClick={() => setIsModalOpen(false)} className="w-full sm:w-auto">Cerrar</Button>
                 {user && (userBookings.includes(selectedClass.id) ? (
-                  <Button variant="destructive" onClick={handleCancelBooking} disabled={isBooking}>
+                  <Button variant="destructive" onClick={handleCancelBooking} disabled={isBooking} className="w-full sm:w-auto">
                     {isBooking && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Cancelar Reserva
                   </Button>
                 ) : (
-                  <Button onClick={handleBooking} disabled={isBooking || (selectedClass.capacity - selectedClass.attendees.length <= 0)}>
+                  <Button onClick={handleBooking} disabled={isBooking || (selectedClass.capacity - selectedClass.attendees.length <= 0)} className="w-full sm:w-auto">
                     {isBooking && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Reservar Ahora
                   </Button>
                 ))}
                 {!user && (
-                    <Button onClick={() => router.push('/login')}>
+                    <Button onClick={() => router.push('/login')} className="w-full sm:w-auto">
                         Iniciar Sesión para Reservar
                     </Button>
                 )}
@@ -277,3 +281,5 @@ export default function WeeklyCalendar() {
     </div>
   );
 }
+
+    

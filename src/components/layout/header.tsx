@@ -1,9 +1,10 @@
+
 "use client";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { signOut } from "firebase/auth";
-import { LogIn, LogOut, User } from "lucide-react";
+import { LogIn, LogOut, User, CalendarDays } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
@@ -24,38 +25,41 @@ export default function Header() {
       <nav className="container mx-auto flex h-20 items-center justify-between px-4">
         <div className="flex-1"></div>
         <div className="flex-1 text-center">
-            <Link href="/" className="text-4xl font-headline font-bold text-gray-800">
+            <Link href="/" className="text-3xl md:text-4xl font-headline font-bold text-gray-800">
               Sport <span className="text-primary">ON</span>
             </Link>
         </div>
-        <div className="flex flex-1 items-center justify-end gap-2 md:gap-4">
+        <div className="flex flex-1 items-center justify-end gap-1 md:gap-4">
           {loading ? (
-            <div className="flex items-center gap-4">
-              <Skeleton className="h-10 w-24" />
-              <Skeleton className="h-10 w-24" />
+            <div className="flex items-center gap-2 md:gap-4">
+              <Skeleton className="h-10 w-10 md:w-24" />
+              <Skeleton className="h-10 w-10 md:w-24" />
             </div>
           ) : user ? (
             <>
                <Button variant="ghost" asChild>
                 <Link href="/bookings">
-                  Mis Reservas
+                  <CalendarDays className="h-5 w-5 md:mr-2" />
+                  <span className="hidden md:inline">Mis Reservas</span>
                 </Link>
               </Button>
               <Button variant="destructive" onClick={handleSignOut}>
-                <LogOut className="mr-0 md:mr-2 h-4 w-4" />
-                <span className="hidden md:inline">Anular Reserva</span>
+                <LogOut className="h-5 w-5 md:mr-2" />
+                <span className="hidden md:inline">Salir</span>
               </Button>
             </>
           ) : (
             <>
               <Button variant="ghost" asChild>
                 <Link href="/login">
-                  <LogIn className="mr-2 h-4 w-4" /> Iniciar Sesión
+                  <LogIn className="h-5 w-5 md:mr-2" />
+                  <span className="hidden md:inline"> Iniciar Sesión</span>
                 </Link>
               </Button>
               <Button asChild>
                 <Link href="/signup">
-                  <User className="mr-2 h-4 w-4" /> Registrarse
+                  <User className="h-5 w-5 md:mr-2" />
+                  <span className="hidden md:inline">Registrarse</span>
                 </Link>
               </Button>
             </>

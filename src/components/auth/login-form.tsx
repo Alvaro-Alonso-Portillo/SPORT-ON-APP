@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -54,7 +55,7 @@ export default function LoginForm() {
   };
 
   return (
-    <Card className="w-full max-w-sm">
+    <Card className="w-full max-w-sm mx-auto">
       <CardHeader>
         <CardTitle className="text-2xl font-headline">Iniciar Sesión</CardTitle>
         <CardDescription>
@@ -103,3 +104,5 @@ export default function LoginForm() {
     </Card>
   );
 }
+
+    

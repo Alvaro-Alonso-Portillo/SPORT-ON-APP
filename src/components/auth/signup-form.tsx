@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -80,7 +81,7 @@ export default function SignupForm() {
   };
 
   return (
-    <Card className="w-full max-w-sm">
+    <Card className="w-full max-w-sm mx-auto">
       <CardHeader>
         <CardTitle className="text-2xl font-headline">Regístrate</CardTitle>
         <CardDescription>
@@ -142,3 +143,5 @@ export default function SignupForm() {
     </Card>
   );
 }
+
+    

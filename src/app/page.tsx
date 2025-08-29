@@ -1,3 +1,9 @@
+import WeeklyCalendar from "@/components/calendar/weekly-calendar";
+
 export default function Home() {
-  return <></>;
+  return (
+    <main>
+      <WeeklyCalendar />
+    </main>
+  );
 }

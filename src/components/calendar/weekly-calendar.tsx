@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import type { ClassInfo } from "@/types";
 import { useAuth } from "@/hooks/use-auth";
-import { MOCK_CLASSES, MOCK_USER_BOOKINGS } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -13,7 +12,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { addDays, startOfWeek, format } from 'date-fns';
 import { es } from 'date-fns/locale';
-
 
 const daysOfWeek = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"];
 const timeSlots = [
@@ -28,6 +26,28 @@ const timeSlots = [
     "19:30 - 20:45",
     "20:45 - 22:00"
 ];
+
+const generateAllPossibleClasses = (): ClassInfo[] => {
+  const allClasses: ClassInfo[] = [];
+  daysOfWeek.forEach(day => {
+    timeSlots.forEach(time => {
+      const timeStart = time.split(' - ')[0];
+      const classId = `${day.toLowerCase().substring(0,3)}-${timeStart.replace(':', '')}`;
+      allClasses.push({
+        id: classId,
+        name: 'Entrenamiento',
+        instructor: '', // Dynamic
+        description: 'Clase de Entrenamiento.',
+        time: timeStart,
+        day: day,
+        duration: 75,
+        capacity: 24,
+        attendees: [], // Initially empty
+      });
+    });
+  });
+  return allClasses;
+};
 
 
 export default function WeeklyCalendar() {
@@ -51,9 +71,10 @@ export default function WeeklyCalendar() {
     const fetchData = async () => {
       setIsLoading(true);
       await new Promise(res => setTimeout(res, 500));
-      setClasses(MOCK_CLASSES);
+      setClasses(generateAllPossibleClasses()); // Use generated classes
       if (user) {
-        setUserBookings(MOCK_USER_BOOKINGS.map(b => b.classId));
+        // Here you would fetch real user bookings. For now, it's empty.
+        setUserBookings([]);
       } else {
         setUserBookings([]);
       }
@@ -64,6 +85,7 @@ export default function WeeklyCalendar() {
       fetchData();
     }
   }, [user, authLoading]);
+
 
   const handleClassClick = (classInfo: ClassInfo) => {
     setSelectedClass(classInfo);
@@ -106,8 +128,8 @@ export default function WeeklyCalendar() {
     const start = startOfWeek(date, { weekStartsOn: 1 });
     const end = addDays(start, 4);
     const options: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'long', year: 'numeric' };
-    const startDate = start.toLocaleDateString('es-ES', options);
-    const endDate = end.toLocaleDateString('es-ES', options);
+    const startDate = start.toLocaleString('es-ES', options);
+    const endDate = end.toLocaleString('es-ES', options);
     return `Semana del ${startDate.split(' de ')[0]} al ${endDate}`;
   };
 
@@ -179,7 +201,6 @@ export default function WeeklyCalendar() {
                 const classTime = time.split(' - ')[0];
                 const classInfo = classesMap.get(`${day}-${classTime}`);
 
-                // Disable last slot on Friday
                 const isLastSlotOnFriday = day === 'Viernes' && timeIndex === timeSlots.length - 1;
 
                 return (
@@ -196,7 +217,7 @@ export default function WeeklyCalendar() {
                         )}
                       >
                          <div className="flex items-center gap-1 text-gray-600 font-medium self-start">
-                           <Users className="w-3 h-3"/>
+                           <Users className="w-3.5 h-3.5 mr-1"/>
                            <span>{classInfo.attendees.length} / {classInfo.capacity}</span>
                          </div>
                         {userBookings.includes(classInfo.id) && <UserCheck className="w-4 h-4 text-primary" />}
@@ -232,11 +253,16 @@ export default function WeeklyCalendar() {
                     Cancelar Reserva
                   </Button>
                 ) : (
-                  <Button onClick={handleBooking} disabled={isBooking || (selectedClass.capacity - selectedClass.attendees.length === 0)}>
+                  <Button onClick={handleBooking} disabled={isBooking || (selectedClass.capacity - selectedClass.attendees.length <= 0)}>
                     {isBooking && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Reservar Ahora
                   </Button>
                 ))}
+                {!user && (
+                    <Button onClick={handleBooking}>
+                        Reservar Ahora
+                    </Button>
+                )}
               </DialogFooter>
             </>
           ) : (

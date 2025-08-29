@@ -7,14 +7,17 @@ import { MOCK_CLASSES, MOCK_USER_BOOKINGS } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Info, UserCheck, Loader2 } from "lucide-react";
+import { Info, UserCheck, Loader2, PlusCircle, MinusCircle } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 const daysOfWeek = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
-const timeSlots = Array.from({ length: 14 }, (_, i) => `${(i + 7).toString().padStart(2, '0')}:00`);
+const timeSlots = Array.from({ length: 14 }, (_, i) => {
+    const hour = i + 7;
+    return `${hour.toString().padStart(2, '0')}:00 - ${(hour + 1).toString().padStart(2,'0')}:15`;
+});
+
 
 export default function WeeklyCalendar() {
   const { user, loading: authLoading } = useAuth();
@@ -25,6 +28,7 @@ export default function WeeklyCalendar() {
   const [selectedClass, setSelectedClass] = useState<ClassInfo | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isBooking, setIsBooking] = useState(false);
+  const [currentWeek, setCurrentWeek] = useState(new Date());
 
   const classesMap = useMemo(() => {
     const map = new Map<string, ClassInfo>();
@@ -79,6 +83,22 @@ export default function WeeklyCalendar() {
     setIsModalOpen(false);
   }
 
+  const getWeekDateRange = (date: Date) => {
+    const start = new Date(date);
+    const day = start.getDay();
+    const diff = start.getDate() - day + (day === 0 ? -6 : 1); 
+    start.setDate(diff);
+
+    const end = new Date(start);
+    end.setDate(start.getDate() + 4); 
+
+    const options: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'long', year: 'numeric' };
+    const startDate = start.toLocaleDateString('es-ES', options);
+    const endDate = end.toLocaleDateString('es-ES', options);
+    
+    return `Semana del ${startDate.split(' de ')[0]} al ${endDate}`;
+  };
+
   if (isLoading || authLoading) {
     return (
       <div className="container mx-auto p-4 flex justify-center items-center h-[calc(100vh-10rem)]">
@@ -89,71 +109,85 @@ export default function WeeklyCalendar() {
 
   return (
     <div className="container mx-auto p-4 md:p-8">
-      <Card className="overflow-hidden">
-        <CardHeader>
-          <CardTitle className="font-headline text-3xl md:text-4xl">Horario Semanal de Clases</CardTitle>
-          <CardDescription>Haz clic en una clase para ver los detalles y reservar tu plaza.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {!user && (
-            <Alert className="mb-6">
-              <Info className="h-4 w-4" />
-              <AlertTitle>¡Bienvenido, Invitado!</AlertTitle>
-              <AlertDescription>
-                Por favor, <Link href="/login" className="font-bold underline text-primary">inicia sesión</Link> o <Link href="/signup" className="font-bold underline text-primary">regístrate</Link> para reservar clases.
-              </AlertDescription>
-            </Alert>
-          )}
-          <div className="grid grid-cols-[auto_repeat(7,minmax(0,1fr))] border-t border-l border-border rounded-t-lg overflow-x-auto">
-            <div className="p-2 border-b border-r bg-muted sticky left-0 z-10"></div>
+      <div className="text-center mb-8">
+        <h1 className="text-2xl font-bold text-gray-700">Calendario de Clases</h1>
+        <p className="text-gray-500">{getWeekDateRange(currentWeek)}</p>
+      </div>
+
+      <div className="flex justify-center gap-4 mb-6">
+        <Button onClick={() => setIsModalOpen(true)}>
+            <PlusCircle className="mr-2"/> Nueva Reserva
+        </Button>
+        <Button variant="destructive" onClick={() => router.push('/bookings')}>
+            <MinusCircle className="mr-2"/> Anular Reserva
+        </Button>
+      </div>
+
+      <div className="flex justify-center gap-4 mb-8">
+        <Button variant="outline" onClick={() => setCurrentWeek(new Date(currentWeek.setDate(currentWeek.getDate() - 7)))}>
+            &lt; Semana Anterior
+        </Button>
+        <Button variant="outline" onClick={() => setCurrentWeek(new Date(currentWeek.setDate(currentWeek.getDate() + 7)))}>
+            Semana Siguiente &gt;
+        </Button>
+      </div>
+     
+      <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+        {!user && (
+            <div className="p-4">
+                <Alert>
+                <Info className="h-4 w-4" />
+                <AlertTitle>¡Bienvenido, Invitado!</AlertTitle>
+                <AlertDescription>
+                    Por favor, <Link href="/login" className="font-bold underline text-primary">inicia sesión</Link> o <Link href="/signup" className="font-bold underline text-primary">regístrate</Link> para reservar clases.
+                </AlertDescription>
+                </Alert>
+            </div>
+        )}
+        <div className="grid grid-cols-[100px_repeat(7,1fr)] border-t border-gray-200">
+            <div className="p-3 text-center font-semibold bg-primary text-primary-foreground border-b border-r border-primary/20">Horario</div>
             {daysOfWeek.map(day => (
-              <div key={day} className="p-2 text-center font-headline border-b border-r bg-muted text-sm md:text-base">
+              <div key={day} className="p-3 text-center font-semibold bg-primary text-primary-foreground border-b border-r border-primary/20 text-sm md:text-base">
                 {day}
               </div>
             ))}
 
-            {timeSlots.map(time => (
+            {timeSlots.map((time, timeIndex) => (
               <React.Fragment key={time}>
-                <div className="p-2 h-24 flex items-center justify-center text-xs md:text-sm text-muted-foreground border-b border-r bg-muted sticky left-0 z-10">
-                  {time}
+                <div className={cn("p-2 h-20 flex items-center justify-center text-xs md:text-sm text-gray-500 border-r border-gray-200", timeIndex < timeSlots.length -1 ? "border-b" : "")}>
+                  {time.split(' - ')[0]}
                 </div>
-                {daysOfWeek.map(day => {
-                  const classInfo = classesMap.get(`${day}-${time}`);
-                  if (classInfo) {
-                    const isBooked = userBookings.includes(classInfo.id);
-                    const isFull = classInfo.attendees.length >= classInfo.capacity;
-                    return (
-                      <div key={day} className="p-1 border-b border-r h-24">
+                {daysOfWeek.map((day, dayIndex) => {
+                  const classTime = `${(timeIndex + 7).toString().padStart(2, '0')}:00`;
+                  const classInfo = classesMap.get(`${day}-${classTime}`);
+                  return (
+                    <div key={day} className={cn("p-1 border-r border-gray-200 h-20", timeIndex < timeSlots.length - 1 ? "border-b" : "", dayIndex === daysOfWeek.length -1 ? "border-r-0" : "")}>
+                       {classInfo && (
                         <button
                           onClick={() => handleClassClick(classInfo)}
-                          disabled={isFull && !isBooked}
+                          disabled={classInfo.attendees.length >= classInfo.capacity && !userBookings.includes(classInfo.id)}
                           className={cn(
-                            "w-full h-full rounded-md p-1.5 md:p-2 text-left transition-all text-xs md:text-sm flex flex-col justify-between",
-                            isBooked ? "bg-accent/20 ring-2 ring-accent text-accent-foreground" : "bg-card hover:bg-muted",
-                            isBooked && "text-accent-foreground font-semibold",
-                            isFull && !isBooked && "opacity-50 cursor-not-allowed bg-muted/50",
+                            "w-full h-full rounded-md p-1.5 text-left transition-all text-xs md:text-sm flex flex-col justify-center",
+                            userBookings.includes(classInfo.id) ? "bg-primary/20 ring-1 ring-primary text-primary-foreground" : "bg-white hover:bg-gray-50",
+                            userBookings.includes(classInfo.id) && "text-gray-800 font-semibold",
+                             classInfo.attendees.length >= classInfo.capacity && !userBookings.includes(classInfo.id) && "opacity-50 cursor-not-allowed bg-gray-100",
                           )}
                         >
-                          <div>
-                            <p className="font-bold truncate">{classInfo.instructor}</p>
-                          </div>
-                          {isFull && !isBooked && <span className="text-destructive font-semibold text-xs">Completo</span>}
-                          {isBooked && <UserCheck className="w-4 h-4 text-accent self-end" />}
+                          <p className="font-semibold truncate text-gray-700">{classInfo.instructor}</p>
+                          {userBookings.includes(classInfo.id) && <UserCheck className="w-4 h-4 text-primary self-end mt-1" />}
                         </button>
-                      </div>
-                    );
-                  }
-                  return <div key={day} className="border-b border-r h-24"></div>;
+                      )}
+                    </div>
+                  );
                 })}
               </React.Fragment>
             ))}
           </div>
-        </CardContent>
-      </Card>
+      </div>
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent>
-          {selectedClass && (
+          {selectedClass ? (
             <>
               <DialogHeader>
                 <DialogTitle className="font-headline text-2xl">{selectedClass.name}</DialogTitle>
@@ -174,11 +208,23 @@ export default function WeeklyCalendar() {
                         Cancelar Reserva
                     </Button>
                 ) : (
-                    <Button onClick={handleBooking} disabled={isBooking}>
+                    <Button onClick={handleBooking} disabled={isBooking || (selectedClass.capacity - selectedClass.attendees.length === 0)}>
                         {isBooking && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         Reservar Ahora
                     </Button>
                 ))}
+              </DialogFooter>
+            </>
+          ) : (
+            <>
+              <DialogHeader>
+                <DialogTitle className="font-headline text-2xl">Nueva Reserva</DialogTitle>
+                <DialogDescription>
+                  Selecciona una clase del calendario para reservar.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                  <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cerrar</Button>
               </DialogFooter>
             </>
           )}

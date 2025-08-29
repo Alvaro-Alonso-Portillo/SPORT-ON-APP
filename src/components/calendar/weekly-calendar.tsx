@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Info, UserCheck, Loader2, PlusCircle, MinusCircle } from "lucide-react";
+import { Info, UserCheck, Loader2, PlusCircle, MinusCircle, Users } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { addDays, startOfWeek, format } from 'date-fns';
@@ -79,6 +79,10 @@ export default function WeeklyCalendar() {
     await new Promise(res => setTimeout(res, 1000));
     if (selectedClass) {
       setUserBookings(prev => [...prev, selectedClass.id]);
+      // Also update the attendees count in the main classes list for immediate UI feedback
+      setClasses(prevClasses => prevClasses.map(c => 
+        c.id === selectedClass.id ? { ...c, attendees: [...c.attendees, user.uid] } : c
+      ));
     }
     setIsBooking(false);
     setIsModalOpen(false);
@@ -89,6 +93,10 @@ export default function WeeklyCalendar() {
     await new Promise(res => setTimeout(res, 1000));
     if (selectedClass) {
       setUserBookings(prev => prev.filter(id => id !== selectedClass.id));
+       // Also update the attendees count in the main classes list
+      setClasses(prevClasses => prevClasses.map(c => 
+        c.id === selectedClass.id ? { ...c, attendees: c.attendees.filter(uid => uid !== user?.uid) } : c
+      ));
     }
     setIsBooking(false);
     setIsModalOpen(false);
@@ -181,14 +189,17 @@ export default function WeeklyCalendar() {
                         onClick={() => handleClassClick(classInfo)}
                         disabled={classInfo.attendees.length >= classInfo.capacity && !userBookings.includes(classInfo.id)}
                         className={cn(
-                          "w-full h-full rounded-md p-1.5 text-left transition-all text-xs md:text-sm flex flex-col justify-center",
+                          "w-full h-full rounded-md p-1.5 text-left transition-all text-xs md:text-sm flex flex-col justify-between items-end",
                           userBookings.includes(classInfo.id) ? "bg-primary/20 ring-1 ring-primary text-primary-foreground" : "bg-white hover:bg-gray-50",
                           userBookings.includes(classInfo.id) && "text-gray-800 font-semibold",
                           classInfo.attendees.length >= classInfo.capacity && !userBookings.includes(classInfo.id) && "opacity-50 cursor-not-allowed bg-gray-100",
                         )}
                       >
-                        <p className="font-semibold truncate text-gray-700">{classInfo.instructor}</p>
-                        {userBookings.includes(classInfo.id) && <UserCheck className="w-4 h-4 text-primary self-end mt-1" />}
+                         <div className="flex items-center gap-1 text-gray-600 font-medium self-start">
+                           <Users className="w-3 h-3"/>
+                           <span>{classInfo.attendees.length} / {classInfo.capacity}</span>
+                         </div>
+                        {userBookings.includes(classInfo.id) && <UserCheck className="w-4 h-4 text-primary" />}
                       </button>
                     )}
                     {isLastSlotOnFriday && <div className="w-full h-full bg-gray-100"></div>}
@@ -207,7 +218,7 @@ export default function WeeklyCalendar() {
               <DialogHeader>
                 <DialogTitle className="font-headline text-2xl">{selectedClass.name}</DialogTitle>
                 <DialogDescription>
-                  {selectedClass.day} a las {selectedClass.time} con {selectedClass.instructor}
+                  {format(weekDates[daysOfWeek.indexOf(selectedClass.day)], 'eeee d \'de\' MMMM', { locale: es })} a las {selectedClass.time}
                 </DialogDescription>
               </DialogHeader>
               <div className="py-4 space-y-2">

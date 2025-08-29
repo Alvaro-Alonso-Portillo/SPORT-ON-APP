@@ -22,10 +22,13 @@ export default function Header() {
     <header className="bg-background shadow-sm sticky top-0 z-50">
       <div className="h-2 bg-teal-800"></div>
       <nav className="container mx-auto flex h-20 items-center justify-between px-4">
-        <Link href="/" className="text-4xl font-headline font-bold text-gray-800">
-          Sport <span className="text-primary">ON</span>
-        </Link>
-        <div className="flex items-center gap-2 md:gap-4">
+        <div className="flex-1"></div>
+        <div className="flex-1 text-center">
+            <Link href="/" className="text-4xl font-headline font-bold text-gray-800">
+              Sport <span className="text-primary">ON</span>
+            </Link>
+        </div>
+        <div className="flex flex-1 items-center justify-end gap-2 md:gap-4">
           {loading ? (
             <div className="flex items-center gap-4">
               <Skeleton className="h-10 w-24" />
@@ -62,3 +65,5 @@ export default function Header() {
     </header>
   );
 }
+
+    

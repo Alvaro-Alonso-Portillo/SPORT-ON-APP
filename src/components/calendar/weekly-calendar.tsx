@@ -12,11 +12,19 @@ import { Info, UserCheck, Loader2, PlusCircle, MinusCircle } from "lucide-react"
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-const daysOfWeek = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
-const timeSlots = Array.from({ length: 14 }, (_, i) => {
-    const hour = i + 7;
-    return `${hour.toString().padStart(2, '0')}:00 - ${(hour + 1).toString().padStart(2,'0')}:15`;
-});
+const daysOfWeek = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"];
+const timeSlots = [
+    "08:00 - 09:15", 
+    "09:15 - 10:30", 
+    "10:30 - 11:45", 
+    "11:45 - 13:00", 
+    "13:00 - 14:15", 
+    "14:15 - 15:30", 
+    "17:00 - 18:15", 
+    "18:15 - 19:30", 
+    "19:30 - 20:45", 
+    "20:45 - 22:00"
+];
 
 
 export default function WeeklyCalendar() {
@@ -144,7 +152,7 @@ export default function WeeklyCalendar() {
                 </Alert>
             </div>
         )}
-        <div className="grid grid-cols-[100px_repeat(7,1fr)] border-t border-gray-200">
+        <div className="grid grid-cols-[100px_repeat(5,1fr)] border-t border-gray-200">
             <div className="p-3 text-center font-semibold bg-primary text-primary-foreground border-b border-r border-primary/20">Horario</div>
             {daysOfWeek.map(day => (
               <div key={day} className="p-3 text-center font-semibold bg-primary text-primary-foreground border-b border-r border-primary/20 text-sm md:text-base">
@@ -154,15 +162,19 @@ export default function WeeklyCalendar() {
 
             {timeSlots.map((time, timeIndex) => (
               <React.Fragment key={time}>
-                <div className={cn("p-2 h-20 flex items-center justify-center text-xs md:text-sm text-gray-500 border-r border-gray-200", timeIndex < timeSlots.length -1 ? "border-b" : "")}>
+                <div className={cn("p-2 h-20 flex items-center justify-center text-xs md:text-sm text-gray-700 border-r border-gray-200 bg-primary/10", timeIndex < timeSlots.length -1 ? "border-b" : "")}>
                   {time.split(' - ')[0]}
                 </div>
                 {daysOfWeek.map((day, dayIndex) => {
-                  const classTime = `${(timeIndex + 7).toString().padStart(2, '0')}:00`;
+                  const classTime = time.split(' - ')[0];
                   const classInfo = classesMap.get(`${day}-${classTime}`);
+                  
+                  // Disable last slot on Friday
+                  const isLastSlotOnFriday = day === 'Viernes' && timeIndex === timeSlots.length - 1;
+
                   return (
                     <div key={day} className={cn("p-1 border-r border-gray-200 h-20", timeIndex < timeSlots.length - 1 ? "border-b" : "", dayIndex === daysOfWeek.length -1 ? "border-r-0" : "")}>
-                       {classInfo && (
+                       {classInfo && !isLastSlotOnFriday && (
                         <button
                           onClick={() => handleClassClick(classInfo)}
                           disabled={classInfo.attendees.length >= classInfo.capacity && !userBookings.includes(classInfo.id)}
@@ -177,6 +189,7 @@ export default function WeeklyCalendar() {
                           {userBookings.includes(classInfo.id) && <UserCheck className="w-4 h-4 text-primary self-end mt-1" />}
                         </button>
                       )}
+                      {isLastSlotOnFriday && <div className="w-full h-full bg-gray-100"></div>}
                     </div>
                   );
                 })}
@@ -233,3 +246,5 @@ export default function WeeklyCalendar() {
     </div>
   );
 }
+
+    

@@ -6,8 +6,8 @@ export default function BookingsPage() {
     <div className="container mx-auto p-4 md:p-8">
         <Card>
             <CardHeader>
-                <CardTitle className="font-headline text-3xl md:text-4xl">My Bookings</CardTitle>
-                <CardDescription>View and manage your upcoming classes.</CardDescription>
+                <CardTitle className="font-headline text-3xl md:text-4xl">Mis Reservas</CardTitle>
+                <CardDescription>Ver y gestionar tus próximas clases.</CardDescription>
             </CardHeader>
             <CardContent>
                 <BookingsList />

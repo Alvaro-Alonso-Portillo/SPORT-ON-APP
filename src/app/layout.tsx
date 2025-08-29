@@ -5,8 +5,8 @@ import { Toaster } from "@/components/ui/toaster";
 import Header from '@/components/layout/header';
 
 export const metadata: Metadata = {
-  title: 'Class Commander',
-  description: 'Manage your class bookings with ease.',
+  title: 'Calendario de Clases',
+  description: 'Gestiona tus reservas de clases con facilidad.',
 };
 
 export default function RootLayout({
@@ -15,7 +15,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="es">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />

@@ -22,7 +22,7 @@ export default function Header() {
     <header className="bg-card shadow-sm sticky top-0 z-50">
       <nav className="container mx-auto flex h-16 items-center justify-between px-4">
         <Link href="/" className="text-2xl font-headline font-bold text-primary">
-          Class Commander
+          Calendario de Clases
         </Link>
         <div className="flex items-center gap-2 md:gap-4">
           {loading ? (
@@ -35,30 +35,30 @@ export default function Header() {
               <Button variant="ghost" asChild>
                 <Link href="/">
                   <Calendar className="mr-0 md:mr-2 h-4 w-4" /> 
-                  <span className="hidden md:inline">Calendar</span>
+                  <span className="hidden md:inline">Calendario</span>
                 </Link>
               </Button>
               <Button variant="ghost" asChild>
                 <Link href="/bookings">
                   <History className="mr-0 md:mr-2 h-4 w-4" /> 
-                  <span className="hidden md:inline">My Bookings</span>
+                  <span className="hidden md:inline">Mis Reservas</span>
                 </Link>
               </Button>
               <Button variant="outline" onClick={handleSignOut}>
                 <LogOut className="mr-0 md:mr-2 h-4 w-4" /> 
-                <span className="hidden md:inline">Logout</span>
+                <span className="hidden md:inline">Cerrar Sesión</span>
               </Button>
             </>
           ) : (
             <>
               <Button variant="ghost" asChild>
                 <Link href="/login">
-                  <LogIn className="mr-2 h-4 w-4" /> Login
+                  <LogIn className="mr-2 h-4 w-4" /> Iniciar Sesión
                 </Link>
               </Button>
               <Button asChild>
                 <Link href="/signup">
-                  <User className="mr-2 h-4 w-4" /> Sign Up
+                  <User className="mr-2 h-4 w-4" /> Registrarse
                 </Link>
               </Button>
             </>

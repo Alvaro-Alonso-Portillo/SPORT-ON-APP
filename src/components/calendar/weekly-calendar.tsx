@@ -13,7 +13,7 @@ import { Info, UserCheck, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-const daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+const daysOfWeek = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 const timeSlots = Array.from({ length: 14 }, (_, i) => `${(i + 7).toString().padStart(2, '0')}:00`);
 
 export default function WeeklyCalendar() {
@@ -91,16 +91,16 @@ export default function WeeklyCalendar() {
     <div className="container mx-auto p-4 md:p-8">
       <Card className="overflow-hidden">
         <CardHeader>
-          <CardTitle className="font-headline text-3xl md:text-4xl">Weekly Class Schedule</CardTitle>
-          <CardDescription>Click on a class to see details and book your spot.</CardDescription>
+          <CardTitle className="font-headline text-3xl md:text-4xl">Horario Semanal de Clases</CardTitle>
+          <CardDescription>Haz clic en una clase para ver los detalles y reservar tu plaza.</CardDescription>
         </CardHeader>
         <CardContent>
           {!user && (
             <Alert className="mb-6">
               <Info className="h-4 w-4" />
-              <AlertTitle>Welcome, Guest!</AlertTitle>
+              <AlertTitle>¡Bienvenido, Invitado!</AlertTitle>
               <AlertDescription>
-                Please <Link href="/login" className="font-bold underline text-primary">log in</Link> or <Link href="/signup" className="font-bold underline text-primary">sign up</Link> to book classes.
+                Por favor, <Link href="/login" className="font-bold underline text-primary">inicia sesión</Link> o <Link href="/signup" className="font-bold underline text-primary">regístrate</Link> para reservar clases.
               </AlertDescription>
             </Alert>
           )}
@@ -135,10 +135,9 @@ export default function WeeklyCalendar() {
                           )}
                         >
                           <div>
-                            <p className="font-bold truncate">{classInfo.name}</p>
-                            <p className="text-muted-foreground truncate">{classInfo.instructor}</p>
+                            <p className="font-bold truncate">{classInfo.instructor}</p>
                           </div>
-                          {isFull && !isBooked && <span className="text-destructive font-semibold text-xs">Full</span>}
+                          {isFull && !isBooked && <span className="text-destructive font-semibold text-xs">Completo</span>}
                           {isBooked && <UserCheck className="w-4 h-4 text-accent self-end" />}
                         </button>
                       </div>
@@ -159,25 +158,25 @@ export default function WeeklyCalendar() {
               <DialogHeader>
                 <DialogTitle className="font-headline text-2xl">{selectedClass.name}</DialogTitle>
                 <DialogDescription>
-                  {selectedClass.day} at {selectedClass.time} with {selectedClass.instructor}
+                  {selectedClass.day} a las {selectedClass.time} con {selectedClass.instructor}
                 </DialogDescription>
               </DialogHeader>
               <div className="py-4 space-y-2">
                 <p>{selectedClass.description}</p>
-                <p className="text-sm text-muted-foreground">Duration: {selectedClass.duration} minutes</p>
-                <p className="text-sm text-muted-foreground">Spots remaining: {selectedClass.capacity - selectedClass.attendees.length}</p>
+                <p className="text-sm text-muted-foreground">Duración: {selectedClass.duration} minutos</p>
+                <p className="text-sm text-muted-foreground">Plazas restantes: {selectedClass.capacity - selectedClass.attendees.length}</p>
               </div>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setIsModalOpen(false)}>Close</Button>
+                <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cerrar</Button>
                 {user && (userBookings.includes(selectedClass.id) ? (
                     <Button variant="destructive" onClick={handleCancelBooking} disabled={isBooking}>
                         {isBooking && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Cancel Booking
+                        Cancelar Reserva
                     </Button>
                 ) : (
                     <Button onClick={handleBooking} disabled={isBooking}>
                         {isBooking && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Book Now
+                        Reservar Ahora
                     </Button>
                 ))}
               </DialogFooter>

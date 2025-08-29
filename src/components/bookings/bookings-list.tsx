@@ -69,13 +69,13 @@ export default function BookingsList() {
     return (
         <Alert className="text-center p-8">
             <CalendarX className="h-6 w-6 mx-auto mb-2" />
-            <AlertTitle className="font-headline text-lg">No Upcoming Bookings</AlertTitle>
+            <AlertTitle className="font-headline text-lg">No hay próximas reservas</AlertTitle>
             <AlertDescription>
-                You haven't booked any classes yet.
+                Aún no has reservado ninguna clase.
             </AlertDescription>
             <Button asChild className="mt-4">
                 <Link href="/">
-                    <CalendarPlus className="mr-2 h-4 w-4" /> Book a Class
+                    <CalendarPlus className="mr-2 h-4 w-4" /> Reservar una clase
                 </Link>
             </Button>
         </Alert>
@@ -89,30 +89,30 @@ export default function BookingsList() {
           <CardHeader>
             <CardTitle className="font-headline text-xl">{booking.classInfo.name}</CardTitle>
             <CardDescription>
-              {booking.classInfo.day} at {booking.classInfo.time} with {booking.classInfo.instructor}
+              {booking.classInfo.day} a las {booking.classInfo.time} con {booking.classInfo.instructor}
             </CardDescription>
           </CardHeader>
           <CardFooter className="p-4 md:p-6 flex gap-2 w-full md:w-auto">
             <Button variant="outline" className="w-full md:w-auto" disabled>
-                <Edit className="mr-2 h-4 w-4"/> Modify
+                <Edit className="mr-2 h-4 w-4"/> Modificar
             </Button>
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="destructive" className="w-full md:w-auto">
-                    <Trash2 className="mr-2 h-4 w-4"/> Cancel
+                    <Trash2 className="mr-2 h-4 w-4"/> Cancelar
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                  <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    This will permanently cancel your booking for {booking.classInfo.name}. This action cannot be undone.
+                    Esto cancelará permanentemente tu reserva para {booking.classInfo.name}. Esta acción no se puede deshacer.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel>Go Back</AlertDialogCancel>
+                  <AlertDialogCancel>Volver</AlertDialogCancel>
                   <AlertDialogAction onClick={() => handleCancel(booking.id)}>
-                    Yes, Cancel Booking
+                    Sí, Cancelar Reserva
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>

@@ -28,8 +28,8 @@ export default function SignupForm() {
     } catch (error: any) {
       toast({
         variant: "destructive",
-        title: "Signup Failed",
-        description: "This email may already be in use.",
+        title: "Fallo de registro",
+        description: "Este correo electrónico ya podría estar en uso.",
       });
     } finally {
       setIsLoading(false);
@@ -39,15 +39,15 @@ export default function SignupForm() {
   return (
     <Card className="w-full max-w-sm">
       <CardHeader>
-        <CardTitle className="text-2xl font-headline">Sign Up</CardTitle>
+        <CardTitle className="text-2xl font-headline">Regístrate</CardTitle>
         <CardDescription>
-          Create an account to start booking classes.
+          Crea una cuenta para empezar a reservar clases.
         </CardDescription>
       </CardHeader>
       <form onSubmit={handleSignup}>
         <CardContent className="grid gap-4">
           <div className="grid gap-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">Correo Electrónico</Label>
             <Input
               id="email"
               type="email"
@@ -59,7 +59,7 @@ export default function SignupForm() {
             />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="password">Contraseña</Label>
             <Input
               id="password"
               type="password"
@@ -67,19 +67,19 @@ export default function SignupForm() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               disabled={isLoading}
-              placeholder="Must be at least 6 characters"
+              placeholder="Debe tener al menos 6 caracteres"
             />
           </div>
         </CardContent>
         <CardFooter className="flex flex-col gap-4">
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Create Account
+            Crear Cuenta
           </Button>
           <div className="text-center text-sm">
-            Already have an account?{" "}
+            ¿Ya tienes una cuenta?{" "}
             <Link href="/login" className="underline text-primary">
-              Login
+              Iniciar Sesión
             </Link>
           </div>
         </CardFooter>

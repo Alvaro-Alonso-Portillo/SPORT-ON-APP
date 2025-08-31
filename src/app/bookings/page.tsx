@@ -3,16 +3,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 
 export default function BookingsPage() {
   return (
-    <div className="container mx-auto p-4 md:p-8">
-        <Card>
-            <CardHeader>
-                <CardTitle className="font-headline text-3xl md:text-4xl">Mis Reservas</CardTitle>
-                <CardDescription>Ver y gestionar tus próximas clases.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <BookingsList />
-            </CardContent>
-        </Card>
+    <div className="space-y-6">
+        <div>
+            <h1 className="font-headline text-3xl md:text-4xl font-bold">Mis Reservas</h1>
+            <p className="text-muted-foreground">Ver y gestionar tus próximas clases.</p>
+        </div>
+        <BookingsList />
     </div>
   );
 }

@@ -41,7 +41,7 @@ const generateAllPossibleClasses = (): ClassInfo[] => {
         time: timeStart,
         day: day,
         duration: 75,
-        capacity: 24, // CORRECCIÓN: Se establece la capacidad correcta
+        capacity: 24,
         attendees: [],
       });
     });
@@ -129,7 +129,7 @@ export default function WeeklyCalendar() {
     const options: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'long' };
     const startDate = start.toLocaleDateString('es-ES', options);
     const endDate = end.toLocaleDateString('es-ES', { ...options, year: 'numeric' });
-    return `Semana del ${startDate} al ${endDate}`;
+    return `${format(start, 'MMMM yyyy', { locale: es })}`;
   };
 
   const weekDates = useMemo(() => {
@@ -147,50 +147,39 @@ export default function WeeklyCalendar() {
   }
 
   return (
-    <div className="container mx-auto p-2 sm:p-4 md:p-8">
-      <div className="text-center mb-6 md:mb-8">
-        <h1 className="text-2xl md:text-3xl font-bold font-headline text-gray-800">Calendario de Clases</h1>
-        <p className="text-sm md:text-base text-gray-500 mt-2">{getWeekDateRange(currentWeek)}</p>
+    <div className="flex flex-col h-full">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold font-headline text-gray-800 capitalize">{getWeekDateRange(currentWeek)}</h1>
+          <p className="text-sm md:text-base text-gray-500 mt-1">Selecciona una clase para reservar</p>
+        </div>
+        <div className="flex items-center gap-2">
+            <Button variant="outline" size="icon" onClick={() => setCurrentWeek(new Date(currentWeek.setDate(currentWeek.getDate() - 7)))}>
+              <ChevronLeft className="h-5 w-5" />
+            </Button>
+            <Button variant="outline" size="icon" onClick={() => setCurrentWeek(new Date(currentWeek.setDate(currentWeek.getDate() + 7)))}>
+              <ChevronRight className="h-5 w-5" />
+            </Button>
+        </div>
       </div>
+      
+      {!user && (
+        <Alert className="mb-6">
+          <Info className="h-4 w-4" />
+          <AlertTitle>¡Bienvenido!</AlertTitle>
+          <AlertDescription>
+            Por favor, <Link href="/login" className="font-bold underline text-primary">inicia sesión</Link> o <Link href="/signup" className="font-bold underline text-primary">regístrate</Link> para reservar clases.
+          </AlertDescription>
+        </Alert>
+      )}
 
-      <div className="flex flex-col sm:flex-row justify-center items-center gap-2 sm:gap-4 mb-6">
-        <Button onClick={() => setIsModalOpen(true)} className="w-full sm:w-auto">
-          <PlusCircle className="mr-2" /> Nueva Reserva
-        </Button>
-        <Button variant="destructive" onClick={() => router.push('/bookings')} className="w-full sm:w-auto">
-          <MinusCircle className="mr-2" /> Anular Reserva
-        </Button>
-      </div>
-
-      <div className="flex justify-between items-center gap-4 mb-6">
-        <Button variant="ghost" className="bg-primary/10 hover:bg-primary/20" onClick={() => setCurrentWeek(new Date(currentWeek.setDate(currentWeek.getDate() - 7)))}>
-          <ChevronLeft className="h-5 w-5" />
-          <span className="hidden sm:inline ml-2">Semana Anterior</span>
-        </Button>
-        <Button variant="ghost" className="bg-primary/10 hover:bg-primary/20" onClick={() => setCurrentWeek(new Date(currentWeek.setDate(currentWeek.getDate() + 7)))}>
-          <span className="hidden sm:inline mr-2">Semana Siguiente</span>
-          <ChevronRight className="h-5 w-5" />
-        </Button>
-      </div>
-
-      <div className="bg-white rounded-lg shadow-lg overflow-x-auto">
-        {!user && (
-          <div className="p-4">
-            <Alert>
-              <Info className="h-4 w-4" />
-              <AlertTitle>¡Bienvenido!</AlertTitle>
-              <AlertDescription>
-                Por favor, <Link href="/login" className="font-bold underline text-primary">inicia sesión</Link> o <Link href="/signup" className="font-bold underline text-primary">regístrate</Link> para reservar clases.
-              </AlertDescription>
-            </Alert>
-          </div>
-        )}
-        <div className="grid grid-cols-[80px_repeat(5,minmax(100px,1fr))] min-w-[600px] md:min-w-full border-t border-gray-200">
+      <div className="bg-white rounded-lg shadow-lg overflow-x-auto flex-1">
+        <div className="grid grid-cols-[80px_repeat(5,minmax(120px,1fr))] min-w-[680px]">
           <div className="p-2 text-center font-semibold bg-primary text-primary-foreground border-b border-r border-primary/20 sticky left-0 z-10">Horario</div>
           {daysOfWeek.map((day, index) => (
             <div key={day} className="p-2 text-center font-semibold bg-primary text-primary-foreground border-b border-r border-primary/20 text-xs sm:text-sm md:text-base capitalize">
-              <span className="hidden md:inline">{format(weekDates[index], 'eeee', { locale: es })} </span> 
               <span className="md:hidden">{format(weekDates[index], 'eee', { locale: es })} </span>
+              <span className="hidden md:inline">{format(weekDates[index], 'eeee', { locale: es })} </span> 
               {format(weekDates[index], 'd', { locale: es })}
             </div>
           ))}
@@ -203,12 +192,11 @@ export default function WeeklyCalendar() {
               {daysOfWeek.map((day, dayIndex) => {
                 const classTime = time.split(' - ')[0];
                 const classInfo = classesMap.get(`${day}-${classTime}`);
-                const isLastSlotOnFriday = day === 'Viernes' && timeIndex === timeSlots.length - 1;
                 const isBookedByUser = user && classInfo && userBookings.includes(classInfo.id);
 
                 return (
                   <div key={day} className={cn("p-1 border-r border-gray-200 h-16 sm:h-20", timeIndex < timeSlots.length - 1 ? "border-b" : "", dayIndex === daysOfWeek.length - 1 ? "border-r-0" : "")}>
-                    {classInfo && !isLastSlotOnFriday ? (
+                    {classInfo ? (
                       <button
                         onClick={() => handleClassClick(classInfo)}
                         disabled={!user || (classInfo.attendees.length >= classInfo.capacity && !isBookedByUser)}
@@ -230,7 +218,7 @@ export default function WeeklyCalendar() {
                          </div>
                       </button>
                     ) : (
-                      <div className="w-full h-full bg-gray-100 rounded-md"></div>
+                      <div className="w-full h-full bg-gray-50 rounded-md"></div>
                     )}
                   </div>
                 );
@@ -291,5 +279,3 @@ export default function WeeklyCalendar() {
     </div>
   );
 }
-
-    

@@ -3,6 +3,7 @@ import './globals.css';
 import { AuthProvider } from '@/hooks/use-auth';
 import { Toaster } from "@/components/ui/toaster";
 import Header from '@/components/layout/header';
+import Sidebar from '@/components/layout/sidebar';
 
 export const metadata: Metadata = {
   title: 'Calendario de Clases',
@@ -24,8 +25,15 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased bg-background">
         <AuthProvider>
-          <Header />
-          <main>{children}</main>
+          <div className="flex min-h-screen">
+            <Sidebar />
+            <div className="flex-1 flex flex-col">
+              <Header />
+              <main className="flex-1 p-4 md:p-8 overflow-y-auto">
+                {children}
+              </main>
+            </div>
+          </div>
           <Toaster />
         </AuthProvider>
       </body>

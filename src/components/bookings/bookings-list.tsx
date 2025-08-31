@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -7,9 +8,8 @@ import { useAuth } from "@/hooks/use-auth";
 import type { Booking, ClassInfo } from "@/types";
 import { MOCK_CLASSES, MOCK_USER_BOOKINGS } from "@/lib/mock-data";
 import { Button } from "@/components/ui/button";
-import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Loader2, CalendarX, Edit, Trash2, CalendarPlus } from "lucide-react";
+import { Loader2, CalendarX, Edit, Trash2, CalendarPlus, Clock, Calendar } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -67,10 +67,10 @@ export default function BookingsList() {
 
   if (bookings.length === 0) {
     return (
-        <Alert className="text-center p-8">
-            <CalendarX className="h-6 w-6 mx-auto mb-2" />
+        <Alert className="text-center p-8 border-dashed">
+            <CalendarX className="h-8 w-8 mx-auto mb-4 text-muted-foreground" />
             <AlertTitle className="font-headline text-lg">No hay próximas reservas</AlertTitle>
-            <AlertDescription>
+            <AlertDescription className="text-muted-foreground">
                 Aún no has reservado ninguna clase.
             </AlertDescription>
             <Button asChild className="mt-4">
@@ -84,21 +84,28 @@ export default function BookingsList() {
 
   return (
     <div className="space-y-4">
-      {bookings.map(booking => (
-        <Card key={booking.id} className="flex flex-col md:flex-row items-start md:items-center justify-between">
-          <CardHeader>
-            <CardTitle className="font-headline text-xl">{booking.classInfo.name}</CardTitle>
-            <CardDescription>
-              {booking.classInfo.day} a las {booking.classInfo.time}
-            </CardDescription>
-          </CardHeader>
-          <CardFooter className="p-4 md:p-6 flex gap-2 w-full md:w-auto">
-            <Button variant="outline" className="w-full md:w-auto" disabled>
+      {bookings.map((booking, index) => (
+        <div key={booking.id} className="bg-card rounded-lg border-l-4 border-primary p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex-1 grid gap-1">
+                <p className="font-headline text-lg font-semibold">{booking.classInfo.name}</p>
+                <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4" />
+                        <span>{booking.classInfo.day}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4" />
+                        <span>{booking.classInfo.time}</span>
+                    </div>
+                </div>
+            </div>
+          <div className="flex gap-2 w-full sm:w-auto">
+            <Button variant="outline" size="sm" className="w-full sm:w-auto" disabled>
                 <Edit className="mr-2 h-4 w-4"/> Modificar
             </Button>
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="destructive" className="w-full md:w-auto">
+                <Button variant="destructive" size="sm" className="w-full sm:w-auto">
                     <Trash2 className="mr-2 h-4 w-4"/> Cancelar
                 </Button>
               </AlertDialogTrigger>
@@ -117,8 +124,8 @@ export default function BookingsList() {
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
-          </CardFooter>
-        </Card>
+          </div>
+        </div>
       ))}
     </div>
   );

@@ -26,7 +26,7 @@ export default function Header() {
   };
 
   return (
-    <header className="bg-background shadow-sm sticky top-0 z-40 h-20 flex items-center px-4 md:px-8 border-b">
+    <header className="bg-card shadow-sm sticky top-0 z-40 h-20 flex items-center px-4 md:px-8 border-b md:hidden">
       <div className="md:hidden">
         <Sheet>
           <SheetTrigger asChild>
@@ -40,40 +40,11 @@ export default function Header() {
         </Sheet>
       </div>
       <div className="flex-1 text-center">
-          <Link href="/" className="text-3xl md:text-4xl font-headline font-bold text-gray-800">
+          <Link href="/" className="text-3xl font-headline font-bold text-gray-800">
             Sport <span className="text-primary">ON</span>
           </Link>
       </div>
-      <div className="flex items-center justify-end gap-1 md:gap-4 w-20 md:w-auto">
-        {loading ? (
-          <div className="flex items-center gap-2 md:gap-4">
-            <Skeleton className="h-10 w-10 rounded-full" />
-            <Skeleton className="h-10 w-24 hidden md:block" />
-          </div>
-        ) : user ? (
-          <>
-            <Button variant="destructive" onClick={handleSignOut} size="sm">
-              <LogOut className="h-5 w-5 md:mr-2" />
-              <span className="hidden md:inline">Salir</span>
-            </Button>
-          </>
-        ) : (
-          <>
-            <Button variant="ghost" asChild size="sm">
-              <Link href="/login">
-                <LogIn className="h-5 w-5 md:mr-2" />
-                <span className="hidden md:inline"> Iniciar Sesión</span>
-              </Link>
-            </Button>
-            <Button asChild size="sm">
-              <Link href="/signup">
-                <User className="h-5 w-5 md:mr-2" />
-                <span className="hidden md:inline">Registrarse</span>
-              </Link>
-            </Button>
-          </>
-        )}
-      </div>
+      <div className="w-10"></div>
     </header>
   );
 }

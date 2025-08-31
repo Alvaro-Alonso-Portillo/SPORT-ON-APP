@@ -1,5 +1,4 @@
 import BookingsList from "@/components/bookings/bookings-list";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function BookingsPage() {
   return (

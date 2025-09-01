@@ -6,8 +6,7 @@ import type { User } from 'firebase/auth';
 import type { ClassInfo, Attendee } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, Clock, Loader2, Trash2 } from 'lucide-react';
+import { Users, Loader2 } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -42,7 +41,10 @@ export default function ClassListItem({ classInfo, user, isBookedByUser, onBooki
       name: user.displayName || user.email?.split('@')[0] || "Usuario",
       photoURL: user.photoURL || `https://api.dicebear.com/8.x/bottts/svg?seed=${user.uid}`
     };
-    await onBookingUpdate(classInfo, newAttendee);
+    
+    const oldClassId = changingBookingId || undefined;
+    
+    await onBookingUpdate(classInfo, newAttendee, oldClassId);
     setIsBooking(false);
   };
 
@@ -65,7 +67,7 @@ export default function ClassListItem({ classInfo, user, isBookedByUser, onBooki
       if (attendee) {
         return (
           <div key={attendee.uid} className="flex flex-col items-center text-center">
-            <Avatar className="h-10 w-10 rounded-md">
+            <Avatar className="h-12 w-12 rounded-md">
               <AvatarImage src={attendee.photoURL} alt={attendee.name} />
               <AvatarFallback className="rounded-md">{attendee.name.charAt(0)}</AvatarFallback>
             </Avatar>
@@ -73,7 +75,7 @@ export default function ClassListItem({ classInfo, user, isBookedByUser, onBooki
           </div>
         );
       }
-      return <div key={index} className="h-10 w-10 bg-muted rounded-md" />;
+      return <div key={index} className="h-12 w-12 bg-muted rounded-md" />;
     });
   };
 
@@ -92,9 +94,9 @@ export default function ClassListItem({ classInfo, user, isBookedByUser, onBooki
 
     if (isBookedByUser) {
       return (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 w-full">
-            <Button onClick={handleStartChange} disabled={isBooking || isCancelling || !!changingBookingId}>
-                {isChangingThis ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Cambiando...</> : "Cambiar Reserva"}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 w-full md:w-auto">
+            <Button onClick={handleStartChange} disabled={isBooking || isCancelling || !!changingBookingId} className="md:w-32">
+                {isChangingThis ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Cambiando...</> : "Cambiar"}
             </Button>
             <Button variant="destructive" onClick={() => setShowCancelConfirm(true)} disabled={isBooking || isCancelling || !!changingBookingId}>
                 Cancelar
@@ -104,43 +106,42 @@ export default function ClassListItem({ classInfo, user, isBookedByUser, onBooki
     }
 
     if (isFull) {
-      return <Button disabled>Clase Completa</Button>;
+      return <Button disabled>Completo</Button>;
     }
 
     return (
-      <Button onClick={handleBookClass} disabled={isBooking || !!changingBookingId} className="w-full">
-        {isBooking ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Reservando...</> : "Reservar esta clase"}
+      <Button onClick={handleBookClass} disabled={isBooking || !!changingBookingId}>
+        {isBooking ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Reservando...</> : "Reservar"}
       </Button>
     );
   };
 
   return (
     <>
-      <Card className="w-full">
-        <CardHeader>
-          <div className="flex items-center justify-between gap-4 mb-4">
-            <div>
-              <CardTitle className="text-xl font-headline">{classInfo.name}</CardTitle>
-              <CardDescription>{classInfo.time}</CardDescription>
-            </div>
+      <div className="w-full bg-card p-4 rounded-lg shadow-sm">
+        <div className="flex items-center justify-between gap-4 mb-4 pb-2 border-b-2 border-primary/20">
+            <h3 className="text-lg font-bold text-primary font-headline">{classInfo.name}</h3>
+            <span className="text-lg font-bold text-foreground">{classInfo.time}</span>
+        </div>
+        
+        <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 mb-4">
+            {renderAttendees()}
+        </div>
+
+        <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Users className="h-4 w-4 text-primary" />
+              <Users className="h-4 w-4" />
               <span>{classInfo.attendees.length} / {classInfo.capacity}</span>
             </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-4 sm:grid-cols-6 gap-4">
-            {renderAttendees()}
-          </div>
-        </CardContent>
-        <CardFooter className="flex-col gap-4">
-          {renderButton()}
-           {changingBookingId && !isBookedByUser && (
-             <Button variant="ghost" onClick={() => setChangingBookingId(null)}>Cancelar cambio</Button>
-           )}
-        </CardFooter>
-      </Card>
+            <div className="flex items-center gap-2">
+                {renderButton()}
+                {changingBookingId && !isBookedByUser && (
+                 <Button variant="ghost" onClick={() => setChangingBookingId(null)}>Cancelar</Button>
+               )}
+            </div>
+        </div>
+
+      </div>
       
        <AlertDialog open={showCancelConfirm} onOpenChange={setShowCancelConfirm}>
         <AlertDialogContent>
@@ -162,3 +163,5 @@ export default function ClassListItem({ classInfo, user, isBookedByUser, onBooki
     </>
   );
 }
+
+    

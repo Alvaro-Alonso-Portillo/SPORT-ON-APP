@@ -13,10 +13,9 @@ import { format, startOfWeek, addDays, isBefore, subDays, parseISO, isToday, isT
 import { es } from 'date-fns/locale';
 
 import DaySelector from "./day-selector";
-import ClassCard from "./class-card";
+import ClassListItem from "./class-list-item";
 import { Button } from "../ui/button";
 import { useToast } from "@/hooks/use-toast";
-import TimeSelector from "./time-selector";
 import { Separator } from "../ui/separator";
 
 
@@ -79,7 +78,6 @@ function WeeklyCalendarInternal() {
   const [allClasses, setAllClasses] = useState<ClassInfo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [currentDate, setCurrentDate] = useState(getInitialDate);
-  const [selectedClass, setSelectedClass] = useState<ClassInfo | null>(null);
   const [changingBookingId, setChangingBookingId] = useState<string | null>(null);
   
   const startOfCurrentWeek = useMemo(() => startOfWeek(currentDate, { weekStartsOn: 1 }), [currentDate]);
@@ -138,20 +136,17 @@ function WeeklyCalendarInternal() {
 
   const handleNextWeek = () => {
     setCurrentDate(addDays(startOfCurrentWeek, 7));
-    setSelectedClass(null);
     setChangingBookingId(null);
   };
 
   const handlePreviousWeek = () => {
     if (isPastWeek) return;
     setCurrentDate(subDays(startOfCurrentWeek, 7));
-    setSelectedClass(null);
     setChangingBookingId(null);
   };
   
   const handleSetCurrentDate = (date: Date) => {
       setCurrentDate(date);
-      setSelectedClass(null);
       setChangingBookingId(null);
   };
 
@@ -183,30 +178,14 @@ function WeeklyCalendarInternal() {
     return generated.sort((a,b) => a.time.localeCompare(b.time));
   }, [currentDate, allClasses]);
 
-  const handleTimeSelect = useCallback((classInfo: ClassInfo) => {
-      if (!user) {
-        toast({
+  const handleBookingUpdate = async (classInfo: ClassInfo, newAttendee: Attendee | null, oldClassId?: string) => {
+    if (!user) {
+         toast({
             title: "Acción requerida",
             description: "Debes iniciar sesión para reservar una clase.",
         });
         return;
-      }
-
-      if (changingBookingId && changingBookingId !== classInfo.id) {
-          const oldClassId = changingBookingId;
-          const newAttendee: Attendee = {
-              uid: user.uid,
-              name: user.displayName || user.email?.split('@')[0] || "Usuario",
-              photoURL: user.photoURL || `https://api.dicebear.com/8.x/bottts/svg?seed=${user.uid}`
-          };
-          handleBookingUpdate(classInfo, newAttendee, oldClassId);
-      } else {
-        setSelectedClass(classInfo);
-      }
-  }, [user, toast, changingBookingId]);
-
-  const handleBookingUpdate = async (classInfo: ClassInfo, newAttendee: Attendee | null, oldClassId?: string) => {
-    if (!user) return;
+    }
     
     if (newAttendee) {
       const userHasBookingOnThisDay = userBookings.some(bookingId => 
@@ -282,7 +261,6 @@ function WeeklyCalendarInternal() {
         });
         await fetchClasses();
     } finally {
-        setSelectedClass(null);
         setChangingBookingId(null);
     }
   };
@@ -325,27 +303,19 @@ function WeeklyCalendarInternal() {
       
       <Separator />
 
-      <div className="flex-1 overflow-y-auto scroll-smooth">
-        { selectedClass ? (
-            <ClassCard
-              classInfo={selectedClass}
-              user={user}
-              onBack={() => {
-                  setSelectedClass(null);
-                  setChangingBookingId(null);
-              }}
-              isBookedByUser={userBookings.includes(selectedClass.id)}
-              onBookingUpdate={handleBookingUpdate}
-              changingBookingId={changingBookingId}
-              setChangingBookingId={setChangingBookingId}
-            />
-        ) : dailyClasses.length > 0 ? (
-            <TimeSelector 
-                classes={dailyClasses}
-                onTimeSelect={handleTimeSelect}
-                userBookings={userBookings}
-                changingBookingId={changingBookingId}
-            />
+      <div className="flex-1 overflow-y-auto scroll-smooth space-y-4">
+        { dailyClasses.length > 0 ? (
+            dailyClasses.map(classInfo => (
+                <ClassListItem 
+                    key={classInfo.id}
+                    classInfo={classInfo}
+                    user={user}
+                    isBookedByUser={userBookings.includes(classInfo.id)}
+                    onBookingUpdate={handleBookingUpdate}
+                    changingBookingId={changingBookingId}
+                    setChangingBookingId={setChangingBookingId}
+                />
+            ))
          ) : (
           <div className="text-center py-10">
             <p className="text-muted-foreground">No hay clases programadas o disponibles para este día.</p>
@@ -363,3 +333,5 @@ export default function WeeklyCalendar() {
     </React.Suspense>
   );
 }
+
+    

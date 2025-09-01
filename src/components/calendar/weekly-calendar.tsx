@@ -88,33 +88,34 @@ function WeeklyCalendarInternal() {
   const startOfCurrentWeek = useMemo(() => startOfWeek(currentDate, { weekStartsOn: 1 }), [currentDate]);
   const endOfCurrentWeek = useMemo(() => endOfWeek(currentDate, { weekStartsOn: 1 }), [currentDate]);
 
+  const fetchClasses = useCallback(async () => {
+    setIsLoading(true);
+    try {
+        const classesRef = collection(db, 'classes');
+        const q = query(classesRef, 
+            where('date', '>=', format(startOfCurrentWeek, 'yyyy-MM-dd')),
+            where('date', '<=', format(endOfCurrentWeek, 'yyyy-MM-dd'))
+        );
+        const querySnapshot = await getDocs(q);
+        const fetchedClasses = querySnapshot.docs.map(doc => doc.data() as ClassInfo);
+        setAllClasses(fetchedClasses);
+    } catch (error) {
+        console.error("Error fetching classes:", error);
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: "No se pudieron cargar las clases. Inténtalo de nuevo más tarde."
+        });
+    } finally {
+        setIsLoading(false);
+    }
+  }, [startOfCurrentWeek, endOfCurrentWeek, toast]);
+
+
   useEffect(() => {
     if (authLoading) return;
-    
-    const fetchClasses = async () => {
-        setIsLoading(true);
-        try {
-            const classesRef = collection(db, 'classes');
-            const q = query(classesRef, 
-                where('date', '>=', format(startOfCurrentWeek, 'yyyy-MM-dd')),
-                where('date', '<=', format(endOfCurrentWeek, 'yyyy-MM-dd'))
-            );
-            const querySnapshot = await getDocs(q);
-            const fetchedClasses = querySnapshot.docs.map(doc => doc.data() as ClassInfo);
-            setAllClasses(fetchedClasses);
-        } catch (error) {
-            console.error("Error fetching classes:", error);
-            toast({
-                variant: "destructive",
-                title: "Error",
-                description: "No se pudieron cargar las clases. Inténtalo de nuevo más tarde."
-            });
-        }
-        setIsLoading(false);
-    };
-
     fetchClasses();
-  }, [user, authLoading, startOfCurrentWeek, endOfCurrentWeek, toast]);
+  }, [user, authLoading, fetchClasses]);
 
 
   const userBookings = useMemo(() => {
@@ -263,16 +264,7 @@ function WeeklyCalendarInternal() {
             }
         });
         
-        // After transaction succeeds, optimistically update the UI
-        // This is a complex state update, so a refetch might be simpler/safer
-        const classesRef = collection(db, 'classes');
-        const q = query(classesRef, 
-            where('date', '>=', format(startOfCurrentWeek, 'yyyy-MM-dd')),
-            where('date', '<=', format(endOfCurrentWeek, 'yyyy-MM-dd'))
-        );
-        const querySnapshot = await getDocs(q);
-        const fetchedClasses = querySnapshot.docs.map(doc => doc.data() as ClassInfo);
-        setAllClasses(fetchedClasses);
+        await fetchClasses();
 
     } catch (error: any) {
         console.error("Transaction failed: ", error);
@@ -281,11 +273,7 @@ function WeeklyCalendarInternal() {
             title: "Error en la reserva",
             description: error.message || "No se pudo actualizar la reserva. Por favor, inténtalo de nuevo.",
         });
-        // On error, refetch to ensure UI consistency
-        const refetchedDoc = await getDoc(newClassDocRef);
-        if (refetchedDoc.exists()) {
-            setAllClasses(prev => prev.map(c => c.id === classInfo.id ? refetchedDoc.data() as ClassInfo : c));
-        }
+        await fetchClasses();
     }
   };
 

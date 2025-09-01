@@ -81,18 +81,18 @@ export default function ClassCard({ classInfo, user, userBookings, onBookingUpda
             <span className="text-xl font-bold font-headline">{classInfo.time}</span>
         </div>
         
-        <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2 mb-4">
+        <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-1 mb-4">
             {classInfo.attendees.map((attendee) => (
                 <div key={attendee.uid} className="flex flex-col items-center justify-center p-1 text-center">
-                    <Avatar className="h-10 w-10 mb-1">
+                    <Avatar className="h-12 w-12 mb-1">
                       <AvatarImage src={attendee.photoURL} />
                       <AvatarFallback>{attendee.name.charAt(0)}</AvatarFallback>
                     </Avatar>
-                    <p className="text-xs font-semibold text-primary truncate w-full">{attendee.name}</p>
+                    <p className="text-sm font-semibold text-primary truncate w-full">{attendee.name}</p>
                 </div>
             ))}
              {Array.from({ length: classInfo.capacity - classInfo.attendees.length }).map((_, i) => (
-                <div key={`empty-${i}`} className="h-16 w-12 bg-muted/50 border-2 border-dashed border-muted-foreground/30 rounded-md"></div>
+                <div key={`empty-${i}`} className="flex items-center justify-center h-[76px] w-full bg-muted/50 border-2 border-dashed border-muted-foreground/30 rounded-md"></div>
             ))}
         </div>
 

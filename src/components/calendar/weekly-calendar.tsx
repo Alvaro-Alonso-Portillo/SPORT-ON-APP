@@ -16,7 +16,8 @@ import DaySelector from "./day-selector";
 import ClassCard from "./class-card";
 import { Button } from "../ui/button";
 import { useToast } from "@/hooks/use-toast";
-import ClassListItem from "./class-list-item";
+import TimeSelector from "./time-selector";
+import { Separator } from "../ui/separator";
 
 
 const allTimeSlots = [
@@ -122,12 +123,16 @@ function WeeklyCalendarInternal() {
   }, [allClasses, user]);
 
   const weekDates = useMemo(() => {
-    return Array.from({ length: 5 }).map((_, i) => addDays(startOfCurrentWeek, i));
+    return Array.from({ length: 7 }).map((_, i) => addDays(startOfCurrentWeek, i));
   }, [startOfCurrentWeek]);
 
   const isPastWeek = isBefore(startOfCurrentWeek, startOfWeek(new Date(), { weekStartsOn: 1 }));
   
   const isDateDisabled = (date: Date) => {
+    const dayName = format(date, 'eeee', { locale: es });
+    if (dayName === 'sábado' || dayName === 'domingo') {
+        return true;
+    }
     return isBefore(date, startOfDay(new Date()));
   };
 
@@ -175,7 +180,7 @@ function WeeklyCalendarInternal() {
       });
     }
     
-    return generated;
+    return generated.sort((a,b) => a.time.localeCompare(b.time));
   }, [currentDate, allClasses]);
 
   const handleTimeSelect = useCallback((classInfo: ClassInfo) => {
@@ -291,9 +296,9 @@ function WeeklyCalendarInternal() {
   }
 
   return (
-    <div className="flex flex-col h-full bg-transparent p-0 text-foreground">
-      <div className="flex-shrink-0 sticky top-0 z-10 bg-background/95 backdrop-blur-sm">
-        <div className="flex items-center justify-between gap-4 mb-4 p-4 md:p-0 md:pt-4">
+    <div className="flex flex-col h-full bg-transparent p-0 text-foreground space-y-6">
+      <div className="flex-shrink-0 z-10 bg-background/95">
+        <div className="flex items-center justify-between gap-4 mb-4">
           <div className="flex items-center gap-4">
               <CalendarIcon className="h-6 w-6 text-primary" />
               <div>
@@ -317,8 +322,10 @@ function WeeklyCalendarInternal() {
           isDateDisabled={isDateDisabled}
         />
       </div>
+      
+      <Separator />
 
-      <div className="mt-6 flex-1 overflow-y-auto scroll-smooth p-4 md:p-0 space-y-4">
+      <div className="flex-1 overflow-y-auto scroll-smooth">
         { selectedClass ? (
             <ClassCard
               classInfo={selectedClass}
@@ -333,17 +340,12 @@ function WeeklyCalendarInternal() {
               setChangingBookingId={setChangingBookingId}
             />
         ) : dailyClasses.length > 0 ? (
-            dailyClasses.map(classInfo => (
-                <ClassListItem
-                    key={classInfo.id}
-                    classInfo={classInfo}
-                    user={user}
-                    isBookedByUser={userBookings.includes(classInfo.id)}
-                    onBookingUpdate={handleBookingUpdate}
-                    changingBookingId={changingBookingId}
-                    setChangingBookingId={setChangingBookingId}
-                />
-            ))
+            <TimeSelector 
+                classes={dailyClasses}
+                onTimeSelect={handleTimeSelect}
+                userBookings={userBookings}
+                changingBookingId={changingBookingId}
+            />
          ) : (
           <div className="text-center py-10">
             <p className="text-muted-foreground">No hay clases programadas o disponibles para este día.</p>

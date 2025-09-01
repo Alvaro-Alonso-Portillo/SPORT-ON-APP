@@ -130,7 +130,7 @@ export default function ClassCard({ classInfo, user, userBookings, onBookingUpda
                   </Dialog>
               ))}
                {Array.from({ length: classInfo.capacity - classInfo.attendees.length }).map((_, i) => (
-                  <div key={`empty-${i}`} className="h-12 w-12 bg-muted rounded-full"></div>
+                  <div key={`empty-${i}`} className="h-12 w-12 bg-muted rounded-md"></div>
               ))}
           </div>
 

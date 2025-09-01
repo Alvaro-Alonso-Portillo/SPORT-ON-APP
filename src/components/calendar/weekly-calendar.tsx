@@ -13,10 +13,11 @@ import { format, startOfWeek, addDays, isBefore, subDays, parseISO, isToday, isT
 import { es } from 'date-fns/locale';
 
 import DaySelector from "./day-selector";
-import TimeSelector from "./time-selector";
 import ClassCard from "./class-card";
 import { Button } from "../ui/button";
 import { useToast } from "@/hooks/use-toast";
+import ClassListItem from "./class-list-item";
+
 
 const allTimeSlots = [
     "08:00", "09:15", "10:30", "11:45", "13:00", 
@@ -317,7 +318,7 @@ function WeeklyCalendarInternal() {
         />
       </div>
 
-      <div className="mt-6 flex-1 overflow-y-auto scroll-smooth p-4 md:p-0">
+      <div className="mt-6 flex-1 overflow-y-auto scroll-smooth p-4 md:p-0 space-y-4">
         { selectedClass ? (
             <ClassCard
               classInfo={selectedClass}
@@ -332,12 +333,17 @@ function WeeklyCalendarInternal() {
               setChangingBookingId={setChangingBookingId}
             />
         ) : dailyClasses.length > 0 ? (
-            <TimeSelector 
-                classes={dailyClasses} 
-                onTimeSelect={handleTimeSelect}
-                userBookings={userBookings}
-                changingBookingId={changingBookingId}
-             />
+            dailyClasses.map(classInfo => (
+                <ClassListItem
+                    key={classInfo.id}
+                    classInfo={classInfo}
+                    user={user}
+                    isBookedByUser={userBookings.includes(classInfo.id)}
+                    onBookingUpdate={handleBookingUpdate}
+                    changingBookingId={changingBookingId}
+                    setChangingBookingId={setChangingBookingId}
+                />
+            ))
          ) : (
           <div className="text-center py-10">
             <p className="text-muted-foreground">No hay clases programadas o disponibles para este día.</p>

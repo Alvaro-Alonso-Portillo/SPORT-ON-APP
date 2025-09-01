@@ -13,12 +13,9 @@ import { format, startOfWeek, addDays, isBefore, subDays, parseISO, isToday, isT
 import { es } from 'date-fns/locale';
 
 import DaySelector from "./day-selector";
-import TimeSelector from "./time-selector";
 import ClassListItem from "./class-list-item";
 import { Button } from "../ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Separator } from "../ui/separator";
-
 
 const allTimeSlots = [
     "08:00", "09:15", "10:30", "11:45", "13:00", 
@@ -292,7 +289,7 @@ function WeeklyCalendarInternal() {
 
   return (
     <div className="flex flex-col h-full bg-transparent p-0 text-foreground space-y-6">
-      <div className="flex-shrink-0 z-10 bg-background/95 space-y-4">
+      <header className="sticky top-0 bg-background/95 backdrop-blur-sm z-10 py-4 space-y-4">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-4">
               <CalendarIcon className="h-6 w-6 text-primary" />
@@ -316,32 +313,27 @@ function WeeklyCalendarInternal() {
           weekDates={weekDates}
           isDateDisabled={isDateDisabled}
         />
-        
-         {dailyClasses.length > 0 && <TimeSelector classes={dailyClasses} />}
-      </div>
+      </header>
       
-      <Separator />
-
-      <div className="flex-1 overflow-y-auto scroll-smooth space-y-4">
+      <main className="flex-1 space-y-4">
         { dailyClasses.length > 0 ? (
             dailyClasses.map(classInfo => (
-                <div key={classInfo.id} id={`class-${classInfo.time.replace(':', '')}`}>
-                    <ClassListItem 
-                        classInfo={classInfo}
-                        user={user}
-                        isBookedByUser={userBookings.includes(classInfo.id)}
-                        onBookingUpdate={handleBookingUpdate}
-                        changingBookingId={changingBookingId}
-                        setChangingBookingId={setChangingBookingId}
-                    />
-                </div>
+                <ClassListItem 
+                    key={classInfo.id}
+                    classInfo={classInfo}
+                    user={user}
+                    isBookedByUser={userBookings.includes(classInfo.id)}
+                    onBookingUpdate={handleBookingUpdate}
+                    changingBookingId={changingBookingId}
+                    setChangingBookingId={setChangingBookingId}
+                />
             ))
          ) : (
-          <div className="text-center py-10">
+          <div className="text-center py-10 bg-card rounded-lg shadow-sm">
             <p className="text-muted-foreground">No hay clases programadas o disponibles para este día.</p>
           </div>
         )}
-      </div>
+      </main>
     </div>
   );
 }

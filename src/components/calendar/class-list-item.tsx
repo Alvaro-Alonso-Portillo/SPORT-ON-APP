@@ -121,17 +121,17 @@ export default function ClassListItem({ classInfo, user, isBookedByUser, onBooki
 
   return (
     <>
-      <div className="w-full bg-card p-4 rounded-lg shadow-sm">
-        <div className="flex items-center justify-between gap-4 mb-4 pb-2 border-b-2 border-primary/20">
-            <h3 className="text-lg font-bold text-primary font-headline">{classInfo.name}</h3>
+      <div className="w-full bg-card p-4 rounded-lg shadow-sm border-t-4 border-primary">
+        <div className="flex items-center justify-between gap-4 mb-4">
+            <h3 className="text-lg font-bold text-primary-dark font-headline uppercase">{classInfo.name}</h3>
             <span className="text-lg font-bold text-foreground">{classInfo.time}</span>
         </div>
         
-        <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 mb-4">
+        <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2 mb-4">
             {renderAttendees()}
         </div>
 
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center justify-between gap-4 pt-4 border-t">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Users className="h-4 w-4" />
               <span>{classInfo.attendees.length} / {classInfo.capacity}</span>

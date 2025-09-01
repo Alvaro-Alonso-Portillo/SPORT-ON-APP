@@ -23,7 +23,6 @@ const generateClassesForDate = (date: Date, existingClasses: ClassInfo[]): Class
     const dayName = format(date, 'eeee', { locale: es });
     const capitalizedDayName = dayName.charAt(0).toUpperCase() + dayName.slice(1);
 
-    // No generar clases para Sábado y Domingo
     if (capitalizedDayName === "Sábado" || capitalizedDayName === "Domingo") return [];
 
     return timeSlots.map(time => {
@@ -132,15 +131,12 @@ export default function WeeklyCalendar() {
       };
 
       if (classIndex !== -1) {
-          // If class exists, update it
           if (newAttendees.length > 0) {
               updatedClasses[classIndex] = updatedClass;
           } else {
-              // If no more attendees, remove the class to save space
               updatedClasses.splice(classIndex, 1);
           }
       } else if (newAttendees.length > 0) {
-          // If class doesn't exist and has attendees, add it
           updatedClasses.push(updatedClass);
       }
 

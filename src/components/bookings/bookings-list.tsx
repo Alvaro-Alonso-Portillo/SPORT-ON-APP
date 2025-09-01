@@ -36,6 +36,14 @@ type PopulatedBooking = {
     classInfo: ClassInfo;
 };
 
+const motivationalQuotes = [
+  "El primer paso no te lleva a donde quieres ir, pero te saca de donde estás.",
+  "La disciplina es el puente entre las metas y los logros.",
+  "No te detengas hasta que te sientas orgulloso.",
+  "El dolor que sientes hoy será la fuerza que sentirás mañana."
+];
+
+
 export default function BookingsList() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
@@ -43,6 +51,12 @@ export default function BookingsList() {
   const [bookings, setBookings] = useState<PopulatedBooking[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [bookingToCancel, setBookingToCancel] = useState<PopulatedBooking | null>(null);
+  const [quote, setQuote] = useState("");
+
+  useEffect(() => {
+    // Generate random quote only on the client-side after mount
+    setQuote(motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]);
+  }, []);
 
   useEffect(() => {
     if (authLoading) return;
@@ -155,8 +169,13 @@ export default function BookingsList() {
       <Alert className="text-center p-8 border-dashed bg-card shadow-sm">
         <CalendarX className="h-8 w-8 mx-auto mb-4 text-muted-foreground" />
         <AlertTitle className="font-headline text-lg">No hay próximas reservas</AlertTitle>
-        <AlertDescription className="text-muted-foreground mb-4">
-          Aún no has reservado ninguna clase.
+        <AlertDescription className="text-muted-foreground mb-4 space-y-4">
+          <p>Aún no has reservado ninguna clase.</p>
+          {quote && (
+            <p className="text-sm italic text-muted-foreground/80">
+              "{quote}"
+            </p>
+          )}
         </AlertDescription>
         <Button asChild>
           <Link href="/">

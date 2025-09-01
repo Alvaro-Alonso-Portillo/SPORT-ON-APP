@@ -7,7 +7,7 @@ import { useSearchParams } from 'next/navigation'
 import type { ClassInfo, Attendee } from "@/types";
 import { useAuth } from "@/hooks/use-auth";
 import { db } from "@/lib/firebase";
-import { collection, doc, getDoc, getDocs, query, runTransaction, where, arrayRemove, arrayUnion } from "firebase/firestore";
+import { collection, doc, getDocs, query, runTransaction, where, arrayRemove, arrayUnion } from "firebase/firestore";
 import { Loader2, Calendar as CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react";
 import { format, startOfWeek, addDays, isBefore, subDays, parseISO, isToday, isTomorrow, endOfWeek, startOfDay, isValid } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -67,7 +67,7 @@ function WeeklyCalendarInternal() {
   const getInitialDate = () => {
     if (dateParam) {
       const dateFromURL = parseISO(dateParam);
-      if (isValid(dateFromURL)) {
+      if (isValid(dateFromURL) && !isBefore(dateFromURL, startOfDay(new Date()))) {
         return dateFromURL;
       }
     }
@@ -235,27 +235,39 @@ function WeeklyCalendarInternal() {
   }, []);
 
   const handleBookingUpdate = async (classInfo: ClassInfo, newAttendee: Attendee | null, oldClassId?: string) => {
-    if (!user) return;
+    if (!user || !newAttendee) return;
+    
+    // --- ONE BOOKING PER DAY LOGIC ---
+    const userHasBookingOnThisDay = userBookings.some(bookingId => 
+        bookingId.startsWith(classInfo.date) && bookingId !== oldClassId
+    );
+
+    if (userHasBookingOnThisDay) {
+        toast({
+            variant: "destructive",
+            title: "Límite de reservas alcanzado",
+            description: "Ya tienes una reserva para este día. No puedes reservar más de una clase diaria.",
+        });
+        return;
+    }
     
     try {
         await runTransaction(db, async (transaction) => {
             const newClassDocRef = doc(db, "classes", classInfo.id);
-            let oldClassDocRef;
-            let oldClassDoc;
-            let newClassDoc;
-
+            
             // --- ALL READS FIRST ---
-            newClassDoc = await transaction.get(newClassDocRef);
-
+            const newClassDoc = await transaction.get(newClassDocRef);
+            let oldClassDoc;
             if (oldClassId) {
-                oldClassDocRef = doc(db, "classes", oldClassId);
+                const oldClassDocRef = doc(db, "classes", oldClassId);
                 oldClassDoc = await transaction.get(oldClassDocRef);
             }
             
             // --- THEN ALL WRITES ---
 
             // 1. Handle cancellation of the old class if it's a booking change
-            if (oldClassId && oldClassDocRef && oldClassDoc?.exists()) {
+            if (oldClassId && oldClassDoc?.exists()) {
+                const oldClassDocRef = doc(db, "classes", oldClassId);
                 const oldClassData = oldClassDoc.data() as ClassInfo;
                 const attendeeToRemove = oldClassData.attendees.find(a => a.uid === user.uid);
                 if (attendeeToRemove) {
@@ -263,33 +275,28 @@ function WeeklyCalendarInternal() {
                 }
             }
             
-            // 2. Handle the new booking or cancellation
+            // 2. Handle the new booking
             if (!newClassDoc.exists()) {
-                // If class doesn't exist, create it (only if booking, not cancelling)
-                if (newAttendee) {
-                    const newClassData = { ...classInfo, attendees: [newAttendee] };
-                    transaction.set(newClassDocRef, newClassData);
-                }
-                return;
-            }
-
-            const currentClassData = newClassDoc.data() as ClassInfo;
-            
-            if (newAttendee) { // Add attendee (new booking)
+                const newClassData = { ...classInfo, attendees: [newAttendee] };
+                transaction.set(newClassDocRef, newClassData);
+            } else {
+                const currentClassData = newClassDoc.data() as ClassInfo;
                 if (currentClassData.attendees.length >= currentClassData.capacity) {
                     throw new Error("La clase está llena. No se pudo completar la reserva.");
                 }
                 if (currentClassData.attendees.some(a => a.uid === newAttendee.uid)) {
-                    return; // Already booked, do nothing.
+                    // This case should ideally not happen if logic is correct, but as a safeguard.
+                    return;
                 }
                 transaction.update(newClassDocRef, { attendees: arrayUnion(newAttendee) });
-            } else { // Remove attendee (cancellation)
-                const attendeeToRemove = currentClassData.attendees.find(a => a.uid === user.uid);
-                if (attendeeToRemove) {
-                    transaction.update(newClassDocRef, { attendees: arrayRemove(attendeeToRemove) });
-                }
             }
         });
+
+        if (oldClassId) {
+            toast({ title: "¡Reserva modificada!", description: `Has cambiado tu reserva a ${classInfo.name} a las ${classInfo.time}.` });
+        } else {
+            toast({ title: "¡Reserva confirmada!", description: `Has reservado tu plaza para ${classInfo.name} a las ${classInfo.time}.` });
+        }
         
         await fetchClasses();
 
@@ -339,11 +346,13 @@ function WeeklyCalendarInternal() {
           isDateDisabled={isDateDisabled}
         />
         
-        <TimeSelector
-          timeSlots={timeSlots}
-          selectedTime={selectedTime}
-          onTimeSelect={handleTimeSelect}
-        />
+        {timeSlots.length > 0 && (
+            <TimeSelector
+              timeSlots={timeSlots}
+              selectedTime={selectedTime}
+              onTimeSelect={handleTimeSelect}
+            />
+        )}
       </div>
 
       <div ref={scrollContainerRef} className="mt-6 flex-1 overflow-y-auto scroll-smooth p-4 md:p-0">
@@ -357,7 +366,6 @@ function WeeklyCalendarInternal() {
               key={classInfo.id} 
               ref={el => classCardRefs.current[classInfo.time] = el}
               data-time={classInfo.time}
-              className="mb-4"
             >
               <ClassCard 
                 classInfo={classInfo}
@@ -373,7 +381,7 @@ function WeeklyCalendarInternal() {
           ))
         ) : (
           <div className="text-center py-10">
-            <p className="text-muted-foreground">No hay clases disponibles para hoy.</p>
+            <p className="text-muted-foreground">No hay más clases disponibles para hoy.</p>
           </div>
         )}
       </div>

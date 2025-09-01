@@ -19,16 +19,6 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { isPast, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
 
@@ -117,7 +107,10 @@ export default function ClassCard({
 
   const processBooking = async (isUpdate: boolean, oldClassId?: string) => {
     if (!user || !auth.currentUser) return;
-    if (!onBookingUpdate) return;
+    if (!onBookingUpdate) {
+        console.error("onBookingUpdate function is not defined");
+        return;
+    };
 
     setIsBooking(true);
 
@@ -131,15 +124,14 @@ export default function ClassCard({
         };
         await onBookingUpdate(classInfo, newAttendee, oldClassId);
         
+        // Toasts are now handled in the parent component for better state management
         if (isUpdate) {
-            toast({ title: "¡Reserva modificada!", description: `Has cambiado tu reserva a ${classInfo.name} a las ${classInfo.time}.` });
             setChangingBookingId(null);
-        } else {
-            toast({ title: "¡Reserva confirmada!", description: `Has reservado tu plaza para ${classInfo.name} a las ${classInfo.time}.` });
         }
 
     } catch (error: any) {
-        toast({ variant: "destructive", title: "Error", description: error.message || "Ha ocurrido un error al procesar tu solicitud." });
+        // Errors are now caught and toasted in the parent component
+        console.error("Error processing booking:", error);
     } finally {
         setIsBooking(false);
     }
@@ -203,7 +195,7 @@ export default function ClassCard({
   return (
     <>
       <div className={cn(
-        "bg-card p-2 rounded-lg shadow-sm text-card-foreground border-t-4 border-primary transition-all",
+        "bg-card p-4 rounded-lg shadow-sm text-card-foreground border-t-4 border-primary transition-all mb-4",
         isSelectableForChange && "border-2 border-green-500 ring-2 ring-green-500/20"
       )}>
           <div className="flex justify-between items-center mb-4">
@@ -235,7 +227,7 @@ export default function ClassCard({
                   </Dialog>
               ))}
                {Array.from({ length: classInfo.capacity - classInfo.attendees.length }).map((_, i) => (
-                  <div key={`empty-${i}`} className="h-14 w-14 sm:h-16 sm:w-16 bg-muted rounded-md"></div>
+                  <div key={`empty-${i}`} className="h-14 w-14 sm:h-16 sm:w-16 bg-muted rounded-full"></div>
               ))}
           </div>
 

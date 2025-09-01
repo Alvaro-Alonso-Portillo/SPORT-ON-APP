@@ -3,7 +3,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { LogIn, Menu, UserPlus } from "lucide-react";
+import { LogIn, Menu, UserPlus, Power } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -13,6 +13,7 @@ import {
 import SidebarContent from "./sidebar-content";
 import { useAuth } from "@/hooks/use-auth";
 import UserMenu from "./user-menu";
+import { cn } from "@/lib/utils";
 
 export default function Header() {
   const { user, loading } = useAuth();
@@ -34,13 +35,23 @@ export default function Header() {
             </Sheet>
           </div>
            <Link href="/" className="text-xl md:text-3xl font-headline font-bold text-foreground hidden sm:block">
-             Sport <span className="text-primary">ON</span>
+             <span className="flex items-center">
+                Sport
+                <span className="text-primary flex items-center">
+                  <Power className="mx-1 h-8 w-8" />N
+                </span>
+              </span>
           </Link>
       </div>
 
       <div className="flex-1 text-center sm:hidden">
           <Link href="/" className="text-2xl font-headline font-bold text-foreground">
-            Sport <span className="text-primary">ON</span>
+            <span className="flex items-center justify-center">
+              Sport
+              <span className="text-primary flex items-center">
+                <Power className="mx-1 h-7 w-7" />N
+              </span>
+            </span>
           </Link>
       </div>
       

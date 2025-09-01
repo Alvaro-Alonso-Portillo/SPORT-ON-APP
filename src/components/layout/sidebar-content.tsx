@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { usePathname } from 'next/navigation'
-import { Home, CalendarDays, User as UserIcon, LogOut, LogIn } from "lucide-react";
+import { Home, CalendarDays, User as UserIcon, LogOut, LogIn, Power } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -89,12 +89,21 @@ export default function SidebarContent({ onLinkClick }: SidebarContentProps) {
     )
   }
 
+  const logo = (
+    <span className="flex items-center text-3xl font-headline font-bold">
+      Sport
+      <span className="text-primary flex items-center">
+        <Power className="mx-1 h-8 w-8" />N
+      </span>
+    </span>
+  );
+
   if (!user) {
     return (
        <div className="flex flex-col h-full bg-card text-card-foreground p-4 items-center justify-center text-center">
           <div className="p-6 border-b">
-             <Link href="/" className="text-3xl font-headline font-bold">
-                Sport <span className="text-primary">ON</span>
+             <Link href="/" onClick={onLinkClick}>
+                {logo}
             </Link>
           </div>
           <div className="p-6">
@@ -113,8 +122,8 @@ export default function SidebarContent({ onLinkClick }: SidebarContentProps) {
   return (
     <div className="flex flex-col h-full bg-card text-card-foreground">
         <div className="p-6 border-b">
-             <Link href="/" onClick={onLinkClick} className="text-3xl font-headline font-bold">
-                Sport <span className="text-primary">ON</span>
+             <Link href="/" onClick={onLinkClick}>
+                {logo}
             </Link>
         </div>
         <div className="p-6 border-b">

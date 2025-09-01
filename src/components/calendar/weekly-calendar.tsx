@@ -14,7 +14,7 @@ import { es } from 'date-fns/locale';
 
 import DaySelector from "./day-selector";
 import TimeSelector from "./time-selector";
-import BookingConfirmationModal from "./booking-confirmation-modal";
+import ClassCard from "./class-card";
 import { Button } from "../ui/button";
 import { useToast } from "@/hooks/use-toast";
 
@@ -77,7 +77,8 @@ function WeeklyCalendarInternal() {
   const [allClasses, setAllClasses] = useState<ClassInfo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [currentDate, setCurrentDate] = useState(getInitialDate);
-  const [classToBook, setClassToBook] = useState<ClassInfo | null>(null);
+  const [selectedClass, setSelectedClass] = useState<ClassInfo | null>(null);
+  const [changingBookingId, setChangingBookingId] = useState<string | null>(null);
   
   const startOfCurrentWeek = useMemo(() => startOfWeek(currentDate, { weekStartsOn: 1 }), [currentDate]);
   const endOfCurrentWeek = useMemo(() => endOfWeek(currentDate, { weekStartsOn: 1 }), [currentDate]);
@@ -131,11 +132,21 @@ function WeeklyCalendarInternal() {
 
   const handleNextWeek = () => {
     setCurrentDate(addDays(startOfCurrentWeek, 7));
+    setSelectedClass(null);
+    setChangingBookingId(null);
   };
 
   const handlePreviousWeek = () => {
     if (isPastWeek) return;
     setCurrentDate(subDays(startOfCurrentWeek, 7));
+    setSelectedClass(null);
+    setChangingBookingId(null);
+  };
+  
+  const handleSetCurrentDate = (date: Date) => {
+      setCurrentDate(date);
+      setSelectedClass(null);
+      setChangingBookingId(null);
   };
 
   const formattedSelectedDate = useMemo(() => {
@@ -174,8 +185,19 @@ function WeeklyCalendarInternal() {
         });
         return;
       }
-      setClassToBook(classInfo);
-  }, [user, toast]);
+
+      if (changingBookingId && changingBookingId !== classInfo.id) {
+          const oldClassId = changingBookingId;
+          const newAttendee: Attendee = {
+              uid: user.uid,
+              name: user.displayName || user.email?.split('@')[0] || "Usuario",
+              photoURL: user.photoURL || `https://api.dicebear.com/8.x/bottts/svg?seed=${user.uid}`
+          };
+          handleBookingUpdate(classInfo, newAttendee, oldClassId);
+      } else {
+        setSelectedClass(classInfo);
+      }
+  }, [user, toast, changingBookingId]);
 
   const handleBookingUpdate = async (classInfo: ClassInfo, newAttendee: Attendee | null, oldClassId?: string) => {
     if (!user) return;
@@ -191,16 +213,29 @@ function WeeklyCalendarInternal() {
               title: "Límite de reservas alcanzado",
               description: "Ya tienes una reserva para este día. No puedes reservar más de una clase diaria.",
           });
+          setChangingBookingId(null);
           return;
       }
     }
     
     try {
         await runTransaction(db, async (transaction) => {
+            // Remove from old class if it's a change
+            if (oldClassId) {
+                const oldClassDocRef = doc(db, "classes", oldClassId);
+                const oldClassDoc = await transaction.get(oldClassDocRef);
+                if (oldClassDoc.exists()) {
+                    const attendeeToRemove = oldClassDoc.data().attendees.find((a: Attendee) => a.uid === user.uid);
+                    if (attendeeToRemove) {
+                        transaction.update(oldClassDocRef, { attendees: arrayRemove(attendeeToRemove) });
+                    }
+                }
+            }
+            
             const classDocRef = doc(db, "classes", classInfo.id);
             const classDoc = await transaction.get(classDocRef);
             
-            if (newAttendee) { 
+            if (newAttendee) { // Add or update
                 if (!classDoc.exists()) {
                     const newClassData = { ...classInfo, attendees: [newAttendee] };
                     transaction.set(classDocRef, newClassData);
@@ -210,15 +245,24 @@ function WeeklyCalendarInternal() {
                         throw new Error("La clase está llena. No se pudo completar la reserva.");
                     }
                     if (currentClassData.attendees.some(a => a.uid === newAttendee.uid)) {
-                        return;
+                        return; // Already in this class, do nothing
                     }
                     transaction.update(classDocRef, { attendees: arrayUnion(newAttendee) });
+                }
+            } else { // Cancel
+                 if (classDoc.exists()) {
+                    const attendeeToRemove = classDoc.data().attendees.find((a: Attendee) => a.uid === user.uid);
+                    if (attendeeToRemove) {
+                        transaction.update(classDocRef, { attendees: arrayRemove(attendeeToRemove) });
+                    }
                 }
             }
         });
 
         if (newAttendee) {
-            toast({ title: "¡Reserva confirmada!", description: `Has reservado tu plaza para ${classInfo.name} a las ${classInfo.time}.` });
+            toast({ title: oldClassId ? "¡Reserva cambiada!" : "¡Reserva confirmada!", description: `Has reservado tu plaza para ${classInfo.name} a las ${classInfo.time}.` });
+        } else {
+            toast({ title: "Reserva cancelada", description: `Tu plaza para ${classInfo.name} ha sido cancelada.` });
         }
         
         await fetchClasses();
@@ -232,7 +276,8 @@ function WeeklyCalendarInternal() {
         });
         await fetchClasses();
     } finally {
-        setClassToBook(null);
+        setSelectedClass(null);
+        setChangingBookingId(null);
     }
   };
 
@@ -246,7 +291,7 @@ function WeeklyCalendarInternal() {
 
   return (
     <div className="flex flex-col h-full bg-transparent p-0 text-foreground">
-      <div className="flex-shrink-0 sticky top-0 z-40 bg-background/95 backdrop-blur-sm">
+      <div className="flex-shrink-0 sticky top-0 z-10 bg-background/95 backdrop-blur-sm">
         <div className="flex items-center justify-between gap-4 mb-4 p-4 md:p-0 md:pt-4">
           <div className="flex items-center gap-4">
               <CalendarIcon className="h-6 w-6 text-primary" />
@@ -266,19 +311,33 @@ function WeeklyCalendarInternal() {
 
         <DaySelector
           currentDate={currentDate}
-          setCurrentDate={setCurrentDate}
+          setCurrentDate={handleSetCurrentDate}
           weekDates={weekDates}
           isDateDisabled={isDateDisabled}
         />
       </div>
 
       <div className="mt-6 flex-1 overflow-y-auto scroll-smooth p-4 md:p-0">
-         {dailyClasses.length > 0 ? (
+        { selectedClass ? (
+            <ClassCard
+              classInfo={selectedClass}
+              user={user}
+              onBack={() => {
+                  setSelectedClass(null);
+                  setChangingBookingId(null);
+              }}
+              isBookedByUser={userBookings.includes(selectedClass.id)}
+              onBookingUpdate={handleBookingUpdate}
+              changingBookingId={changingBookingId}
+              setChangingBookingId={setChangingBookingId}
+            />
+        ) : dailyClasses.length > 0 ? (
             <TimeSelector
               dailyClasses={dailyClasses}
               onTimeSelect={handleTimeSelect}
               userBookings={userBookings}
               user={user}
+              changingBookingId={changingBookingId}
             />
          ) : (
           <div className="text-center py-10">
@@ -286,16 +345,6 @@ function WeeklyCalendarInternal() {
           </div>
         )}
       </div>
-
-      {classToBook && (
-          <BookingConfirmationModal
-            classInfo={classToBook}
-            isOpen={!!classToBook}
-            onClose={() => setClassToBook(null)}
-            onConfirm={handleBookingUpdate}
-            user={user}
-          />
-      )}
     </div>
   );
 }

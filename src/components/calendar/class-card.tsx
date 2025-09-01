@@ -219,7 +219,7 @@ export default function ClassCard({ classInfo, user, userBookings, onBookingUpda
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setShowChangeBookingDialog(false)}>No, mantener la actual</AlertDialogCancel>
-            <AlertDialogAction onClick={() => processBooking(existingBooking || undefined)}>Sí, cambiar reserva</AlertDialogAction>
+            <AlertDialogAction onClick={() => processBooking(existingBooking ?? undefined)}>Sí, cambiar reserva</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

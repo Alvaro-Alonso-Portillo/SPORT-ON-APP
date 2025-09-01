@@ -5,7 +5,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/hooks/use-auth";
-import type { Booking, ClassInfo, Attendee } from "@/types";
+import type { ClassInfo } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2, CalendarX, CalendarPlus, MoreHorizontal, Trash2 } from "lucide-react";
@@ -25,47 +25,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-
-const timeSlots = [
-    "08:00", "09:15", "10:30", "11:45", "13:00", 
-    "14:15", "17:00", "18:15", "19:30", "20:45"
-];
-
-const daysOfWeek = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"];
-
-// NOTE: This is a simplified, temporary state management. 
-// In a real app, this should come from a shared state (like Context or Zustand) or be fetched from the DB.
-const generateAllPossibleClasses = (): ClassInfo[] => {
-  const allClasses: ClassInfo[] = [];
-  daysOfWeek.forEach(day => {
-    timeSlots.forEach(time => {
-      const classId = `${day.toLowerCase().substring(0,3)}-${time.replace(':', '')}`;
-      allClasses.push({
-        id: classId,
-        name: 'Entrenamiento',
-        description: 'Clase de Entrenamiento.',
-        time: time,
-        day: day,
-        duration: 75,
-        capacity: 24,
-        attendees: [],
-      });
-    });
-  });
-  // Simulate some attendees for initial state
-  if (typeof window !== 'undefined' && !sessionStorage.getItem('classesInitialized')) {
-    allClasses[0].attendees.push({uid: 'user-xxx', name: 'Alex', photoURL: `https://api.dicebear.com/8.x/bottts/svg?seed=alex`});
-    allClasses[5].attendees.push({uid: 'user-yyy', name: 'Sara', photoURL: `https://api.dicebear.com/8.x/bottts/svg?seed=sara`});
-    sessionStorage.setItem('classesInitialized', 'true');
-  }
-  return allClasses;
-};
-
+import { format, parseISO } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 type PopulatedBooking = {
-    id: string;
-    userId: string;
-    classId: string;
+    id: string; // This will just be the classId for simplicity
     classInfo: ClassInfo;
 };
 
@@ -73,8 +37,8 @@ export default function BookingsList() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [bookings, setBookings] = useState<PopulatedBooking[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [allClasses, setAllClasses] = useState<ClassInfo[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [bookingToCancel, setBookingToCancel] = useState<PopulatedBooking | null>(null);
 
   useEffect(() => {
@@ -87,20 +51,16 @@ export default function BookingsList() {
     const fetchBookings = async () => {
       setIsLoading(true);
 
-      // In a real app, this would be a fetch call. Here we simulate it.
-      // We retrieve the state from sessionStorage to reflect calendar changes.
       const storedClasses = sessionStorage.getItem('allClasses');
-      const currentClasses = storedClasses ? JSON.parse(storedClasses) : generateAllPossibleClasses();
+      const currentClasses: ClassInfo[] = storedClasses ? JSON.parse(storedClasses) : [];
       setAllClasses(currentClasses);
 
       const userBookings = currentClasses
-        .filter((classInfo: ClassInfo) => 
-            classInfo.attendees.some((attendee: Attendee) => attendee.uid === user.uid)
+        .filter((classInfo) => 
+            classInfo.attendees.some((attendee) => attendee.uid === user.uid)
         )
-        .map((classInfo: ClassInfo, index: number) => ({
-            id: `booking-${user.uid}-${classInfo.id}-${index}`,
-            userId: user.uid,
-            classId: classInfo.id,
+        .map((classInfo) => ({
+            id: classInfo.id, // Use classId as the unique booking identifier
             classInfo: classInfo,
         }));
       
@@ -112,19 +72,16 @@ export default function BookingsList() {
   }, [user, authLoading, router]);
 
   const groupedBookings = useMemo(() => {
-    const sortedBookings = [...bookings].sort((a, b) => {
-        const dayA = daysOfWeek.indexOf(a.classInfo.day);
-        const dayB = daysOfWeek.indexOf(b.classInfo.day);
-        if (dayA !== dayB) return dayA - dayB;
-        return a.classInfo.time.localeCompare(b.classInfo.time);
-    });
+    const sortedBookings = [...bookings].sort((a, b) => 
+        a.classInfo.date.localeCompare(b.classInfo.date) || a.classInfo.time.localeCompare(b.classInfo.time)
+    );
 
     return sortedBookings.reduce((acc, booking) => {
-      const day = booking.classInfo.day;
-      if (!acc[day]) {
-        acc[day] = [];
+      const dateKey = booking.classInfo.date;
+      if (!acc[dateKey]) {
+        acc[dateKey] = [];
       }
-      acc[day].push(booking);
+      acc[dateKey].push(booking);
       return acc;
     }, {} as Record<string, PopulatedBooking[]>);
   }, [bookings]);
@@ -132,14 +89,15 @@ export default function BookingsList() {
   const handleCancel = () => {
     if (bookingToCancel && user) {
         const updatedClasses = allClasses.map(c => {
-            if (c.id === bookingToCancel.classId) {
+            if (c.id === bookingToCancel.classInfo.id) {
                 return {
                     ...c,
                     attendees: c.attendees.filter(a => a.uid !== user.uid)
                 }
             }
             return c;
-        });
+        }).filter(c => c.attendees.length > 0); // Remove classes with no attendees
+      
       setAllClasses(updatedClasses);
       sessionStorage.setItem('allClasses', JSON.stringify(updatedClasses));
 
@@ -147,6 +105,12 @@ export default function BookingsList() {
       setBookingToCancel(null);
     }
   };
+
+  const formatDate = (dateString: string) => {
+    const date = parseISO(dateString);
+    return format(date, "eeee, d 'de' MMMM 'de' yyyy", { locale: es });
+  };
+
 
   if (isLoading || authLoading) {
     return (
@@ -176,11 +140,11 @@ export default function BookingsList() {
   return (
     <AlertDialog open={!!bookingToCancel} onOpenChange={(open) => !open && setBookingToCancel(null)}>
       <div className="space-y-8">
-        {Object.entries(groupedBookings).map(([day, dayBookings]) => (
-          <div key={day} className="bg-card rounded-lg shadow-sm">
+        {Object.entries(groupedBookings).map(([date, dayBookings]) => (
+          <div key={date} className="bg-card rounded-lg shadow-sm">
             <div className="p-4 border-b-4 border-primary/80 flex justify-between items-center">
               <div>
-                <h2 className="font-headline text-lg font-bold">{day}</h2>
+                <h2 className="font-headline text-lg font-bold capitalize">{formatDate(date)}</h2>
               </div>
             </div>
             <div className="p-4 space-y-4">
@@ -219,7 +183,7 @@ export default function BookingsList() {
         <AlertDialogHeader>
           <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
           <AlertDialogDescription>
-            Esto cancelará permanentemente tu reserva para {bookingToCancel?.classInfo.name} el {bookingToCancel?.classInfo.day} a las {bookingToCancel?.classInfo.time}. Esta acción no se puede deshacer.
+            Esto cancelará permanentemente tu reserva para {bookingToCancel?.classInfo.name} el {bookingToCancel ? formatDate(bookingToCancel.classInfo.date) : ''} a las {bookingToCancel?.classInfo.time}. Esta acción no se puede deshacer.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

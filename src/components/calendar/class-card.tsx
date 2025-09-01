@@ -14,7 +14,7 @@ interface ClassCardProps {
   classInfo: ClassInfo;
   user: User | null;
   userBookings: string[];
-  onBookingUpdate: (classId: string, attendees: Attendee[], bookings: string[]) => void;
+  onBookingUpdate: (classId: string, attendees: Attendee[]) => void;
 }
 
 export default function ClassCard({ classInfo, user, userBookings, onBookingUpdate }: ClassCardProps) {
@@ -26,24 +26,26 @@ export default function ClassCard({ classInfo, user, userBookings, onBookingUpda
   const isFull = classInfo.attendees.length >= classInfo.capacity;
 
   const handleBookingAction = async () => {
-    if (!user) {
+    if (!user || !auth.currentUser) {
       router.push('/login');
       return;
     }
 
-    const userName = user.displayName || user.email?.split('@')[0] || "Usuario";
+    // Ensure the user object is the most up-to-date one from auth
+    const currentUser = auth.currentUser;
+    await currentUser.reload(); // Refresh to get latest profile data like photoURL
+    const userName = currentUser.displayName || currentUser.email?.split('@')[0] || "Usuario";
+
 
     setIsBooking(true);
     await new Promise(res => setTimeout(res, 700)); // Simulate API call
 
     try {
       let updatedAttendees: Attendee[];
-      let updatedBookings: string[];
       
       if (isBookedByUser) {
         // Cancel booking
         updatedAttendees = classInfo.attendees.filter(attendee => attendee.uid !== user.uid);
-        updatedBookings = userBookings.filter(id => id !== classInfo.id);
         toast({ title: "Reserva cancelada", description: `Has cancelado tu plaza en ${classInfo.name}.` });
       } else {
         // Create booking
@@ -55,14 +57,13 @@ export default function ClassCard({ classInfo, user, userBookings, onBookingUpda
         const newAttendee: Attendee = {
           uid: user.uid,
           name: userName,
-          photoURL: user.photoURL || `https://api.dicebear.com/8.x/bottts/svg?seed=${user.uid}`
+          photoURL: currentUser.photoURL || `https://api.dicebear.com/8.x/bottts/svg?seed=${user.uid}`
         };
         updatedAttendees = [...classInfo.attendees, newAttendee];
-        updatedBookings = [...userBookings, classInfo.id];
         toast({ title: "¡Reserva confirmada!", description: `Has reservado tu plaza para ${classInfo.name} a las ${classInfo.time}.` });
       }
 
-      onBookingUpdate(classInfo.id, updatedAttendees, updatedBookings);
+      onBookingUpdate(classInfo.id, updatedAttendees);
 
     } catch (error) {
       toast({ variant: "destructive", title: "Error", description: "Ha ocurrido un error al procesar tu solicitud." });

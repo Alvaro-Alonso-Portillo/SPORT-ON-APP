@@ -8,14 +8,15 @@ export interface Attendee {
 }
 
 export interface ClassInfo {
-  id: string;
+  id: string; // Will now be in 'YYYY-MM-DD-HHmm' format
   name: string;
   description: string;
   time: string;
-  day: string;
+  day: string; // Day of the week name, e.g., "Lunes"
+  date: string; // Full date in 'YYYY-MM-DD' format
   duration: number;
   capacity: number;
-  attendees: Attendee[]; // Array of Attendee objects
+  attendees: Attendee[]; 
 }
 
 export interface Booking {

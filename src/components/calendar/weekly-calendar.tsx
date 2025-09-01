@@ -5,49 +5,53 @@ import React, { useState, useEffect, useMemo } from "react";
 import type { ClassInfo, Attendee } from "@/types";
 import { useAuth } from "@/hooks/use-auth";
 import { Loader2, Calendar as CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react";
-import { format, startOfWeek, addDays, isSameDay, isBefore, endOfWeek, subDays } from 'date-fns';
+import { format, startOfWeek, addDays, isBefore, endOfWeek, subDays, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 import DaySelector from "./day-selector";
 import TimeSelector from "./time-selector";
 import ClassCard from "./class-card";
 import { Button } from "../ui/button";
-import { cn } from "@/lib/utils";
 
 const timeSlots = [
     "08:00", "09:15", "10:30", "11:45", "13:00", 
     "14:15", "17:00", "18:15", "19:30", "20:45"
 ];
 
-const daysOfWeek = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
+const generateClassesForDate = (date: Date, existingClasses: ClassInfo[]): ClassInfo[] => {
+    const dateString = format(date, 'yyyy-MM-dd');
+    const dayName = format(date, 'eeee', { locale: es });
+    const capitalizedDayName = dayName.charAt(0).toUpperCase() + dayName.slice(1);
 
-const generateAllPossibleClasses = (): ClassInfo[] => {
-  const allClasses: ClassInfo[] = [];
-  daysOfWeek.forEach(day => {
     // No generar clases para Sábado y Domingo
-    if (day === "Sábado" || day === "Domingo") return;
-    
-    timeSlots.forEach(time => {
-      const classId = `${day.toLowerCase().substring(0,3)}-${time.replace(':', '')}`;
-      allClasses.push({
-        id: classId,
-        name: 'Entrenamiento',
-        description: 'Clase de Entrenamiento.',
-        time: time,
-        day: day,
-        duration: 75,
-        capacity: 24,
-        attendees: [],
-      });
+    if (capitalizedDayName === "Sábado" || capitalizedDayName === "Domingo") return [];
+
+    return timeSlots.map(time => {
+        const classId = `${dateString}-${time.replace(':', '')}`;
+        const existingClass = existingClasses.find(c => c.id === classId);
+        
+        if (existingClass) {
+            return existingClass;
+        }
+
+        return {
+            id: classId,
+            name: 'Entrenamiento',
+            description: 'Clase de Entrenamiento.',
+            time: time,
+            day: capitalizedDayName,
+            date: dateString,
+            duration: 75,
+            capacity: 24,
+            attendees: [],
+        };
     });
-  });
-  return allClasses;
 };
+
 
 export default function WeeklyCalendar() {
   const { user, loading: authLoading } = useAuth();
   const [allClasses, setAllClasses] = useState<ClassInfo[]>([]);
-  const [userBookings, setUserBookings] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -58,25 +62,43 @@ export default function WeeklyCalendar() {
       setIsLoading(true);
       
       const storedClasses = sessionStorage.getItem('allClasses');
+      let currentClasses: ClassInfo[] = [];
       if (storedClasses) {
-        setAllClasses(JSON.parse(storedClasses));
+        currentClasses = JSON.parse(storedClasses);
       } else {
-        const generatedClasses = generateAllPossibleClasses();
-        generatedClasses[0].attendees.push({uid: 'user-xxx', name: 'Alex', photoURL: `https://api.dicebear.com/8.x/bottts/svg?seed=alex`});
-        generatedClasses[5].attendees.push({uid: 'user-yyy', name: 'Sara', photoURL: `https://api.dicebear.com/8.x/bottts/svg?seed=sara`});
-        setAllClasses(generatedClasses);
-        sessionStorage.setItem('allClasses', JSON.stringify(generatedClasses));
-      }
-      
-      if (user) {
-        const currentUserBookings = (JSON.parse(sessionStorage.getItem('allClasses') || '[]') as ClassInfo[])
-            .filter(c => c.attendees.some(a => a.uid === user.uid))
-            .map(c => c.id);
-        setUserBookings(currentUserBookings);
-      } else {
-        setUserBookings([]);
-      }
+        // Add some initial mock data for demonstration
+        const today = new Date();
+        const monday = startOfWeek(today, { weekStartsOn: 1 });
+        const initialDate = format(monday, 'yyyy-MM-dd');
+        const initialClassId = `${initialDate}-0800`;
+        const anotherClassId = `${format(addDays(monday, 2), 'yyyy-MM-dd')}-0915`;
 
+        currentClasses.push({
+          id: initialClassId,
+          name: 'Entrenamiento',
+          description: 'Clase de Entrenamiento.',
+          time: '08:00',
+          day: 'Lunes',
+          date: initialDate,
+          duration: 75,
+          capacity: 24,
+          attendees: [{uid: 'user-xxx', name: 'Alex', photoURL: `https://api.dicebear.com/8.x/bottts/svg?seed=alex`}]
+        });
+        currentClasses.push({
+          id: anotherClassId,
+          name: 'Entrenamiento',
+          description: 'Clase de Entrenamiento.',
+          time: '09:15',
+          day: 'Miércoles',
+          date: format(addDays(monday, 2), 'yyyy-MM-dd'),
+          duration: 75,
+          capacity: 24,
+          attendees: [{uid: 'user-yyy', name: 'Sara', photoURL: `https://api.dicebear.com/8.x/bottts/svg?seed=sara`}]
+        });
+
+        sessionStorage.setItem('allClasses', JSON.stringify(currentClasses));
+      }
+      setAllClasses(currentClasses);
       setIsLoading(false);
     };
 
@@ -84,6 +106,14 @@ export default function WeeklyCalendar() {
       fetchData();
     }
   }, [user, authLoading]);
+
+  const userBookings = useMemo(() => {
+    if (!user) return [];
+    return allClasses
+        .filter(c => c.attendees.some(a => a.uid === user.uid))
+        .map(c => c.id);
+  }, [allClasses, user]);
+
 
   const startOfCurrentWeek = useMemo(() => startOfWeek(currentDate, { weekStartsOn: 1 }), [currentDate]);
 
@@ -102,7 +132,6 @@ export default function WeeklyCalendar() {
     setCurrentDate(subDays(startOfCurrentWeek, 7));
   };
 
-
   const selectedDayName = useMemo(() => {
       const day = format(currentDate, 'eeee', { locale: es });
       return day.charAt(0).toUpperCase() + day.slice(1);
@@ -110,18 +139,46 @@ export default function WeeklyCalendar() {
 
 
   const filteredClasses = useMemo(() => {
-    // No mostrar clases para Sábado o Domingo
-    if (selectedDayName === "Sábado" || selectedDayName === "Domingo") return [];
+    return generateClassesForDate(currentDate, allClasses).filter(c => c.time === selectedTime);
+  }, [currentDate, allClasses, selectedTime]);
 
-    return allClasses.filter(c => c.day.toLowerCase() === selectedDayName.toLowerCase() && c.time === selectedTime);
-  }, [allClasses, selectedDayName, selectedTime]);
+  const handleBookingUpdate = (classId: string, newAttendees: Attendee[]) => {
+      const updatedClasses = [...allClasses];
+      const classIndex = updatedClasses.findIndex(c => c.id === classId);
+      
+      const date = parseISO(classId.substring(0, 10));
+      const dayName = format(date, 'eeee', { locale: es });
+      const capitalizedDayName = dayName.charAt(0).toUpperCase() + dayName.slice(1);
 
-  const handleBookingUpdate = (classId: string, newAttendees: Attendee[], newBookings: string[]) => {
-      const updatedClasses = allClasses.map(c => c.id === classId ? { ...c, attendees: newAttendees } : c);
+      const updatedClass: ClassInfo = {
+          id: classId,
+          name: 'Entrenamiento',
+          description: 'Clase de Entrenamiento.',
+          time: classId.substring(11, 13) + ':' + classId.substring(13, 15),
+          day: capitalizedDayName,
+          date: classId.substring(0, 10),
+          duration: 75,
+          capacity: 24,
+          attendees: newAttendees,
+      };
+
+      if (classIndex !== -1) {
+          // If class exists, update it
+          if (newAttendees.length > 0) {
+              updatedClasses[classIndex] = updatedClass;
+          } else {
+              // If no more attendees, remove the class to save space
+              updatedClasses.splice(classIndex, 1);
+          }
+      } else if (newAttendees.length > 0) {
+          // If class doesn't exist and has attendees, add it
+          updatedClasses.push(updatedClass);
+      }
+
       setAllClasses(updatedClasses);
-      setUserBookings(newBookings);
       sessionStorage.setItem('allClasses', JSON.stringify(updatedClasses));
   };
+
 
   if (isLoading || authLoading) {
     return (
@@ -164,7 +221,11 @@ export default function WeeklyCalendar() {
       />
 
       <div className="mt-6 flex-1 overflow-y-auto">
-        {filteredClasses.length > 0 ? (
+        {selectedDayName === "Sábado" || selectedDayName === "Domingo" ? (
+             <div className="text-center py-10">
+                <p className="text-muted-foreground">No hay clases programadas para el {selectedDayName}.</p>
+             </div>
+        ) : filteredClasses.length > 0 ? (
           filteredClasses.map(classInfo => (
             <ClassCard 
               key={classInfo.id}
@@ -176,12 +237,10 @@ export default function WeeklyCalendar() {
           ))
         ) : (
           <div className="text-center py-10">
-            <p className="text-muted-foreground">{selectedDayName === "Sábado" || selectedDayName === "Domingo" ? `No hay clases programadas para el ${selectedDayName}.` : "No hay clases para esta selección."}</p>
+            <p className="text-muted-foreground">No hay clases para esta selección.</p>
           </div>
         )}
       </div>
     </div>
   );
 }
-
-    

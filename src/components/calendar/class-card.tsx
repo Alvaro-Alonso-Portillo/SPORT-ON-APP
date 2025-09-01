@@ -71,7 +71,7 @@ export default function ClassCard({ classInfo, user, onBack, isBookedByUser, onB
       if (attendee) {
         return (
           <div key={attendee.uid} className="flex flex-col items-center text-center">
-            <Avatar className="h-10 w-10 rounded-md">
+            <Avatar className="h-12 w-12 rounded-md">
               <AvatarImage src={attendee.photoURL} alt={attendee.name} />
               <AvatarFallback className="rounded-md">{attendee.name.charAt(0)}</AvatarFallback>
             </Avatar>
@@ -79,7 +79,7 @@ export default function ClassCard({ classInfo, user, onBack, isBookedByUser, onB
           </div>
         );
       }
-      return <div key={index} className="h-10 w-10 bg-muted rounded-md" />;
+      return <div key={index} className="h-12 w-12 bg-muted rounded-md" />;
     });
   };
 
@@ -136,7 +136,7 @@ export default function ClassCard({ classInfo, user, onBack, isBookedByUser, onB
         </CardHeader>
         <CardContent>
           <p className="text-muted-foreground mb-4">Plazas Ocupadas:</p>
-          <div className="grid grid-cols-4 sm:grid-cols-6 gap-4">
+          <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
             {renderAttendees()}
           </div>
         </CardContent>

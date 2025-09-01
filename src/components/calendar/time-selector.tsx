@@ -38,7 +38,7 @@ export default function TimeSelector({ timeSlots, selectedTime, onTimeSelect }: 
        <Carousel setApi={setApi} opts={{ align: "start", slidesToScroll: 3, dragFree: true }}>
         <CarouselContent className="-ml-2">
           {timeSlots.map((time, index) => (
-            <CarouselItem key={index} className="basis-1/3 sm:basis-1/4 md:basis-1/5 lg:basis-[12%] pl-2">
+            <CarouselItem key={index} className="basis-1/4 sm:basis-1/5 md:basis-1/5 lg:basis-[12%] pl-2">
               <Button
                 ref={el => timeRefs.current[index] = el}
                 variant={selectedTime === time ? "default" : "secondary"}

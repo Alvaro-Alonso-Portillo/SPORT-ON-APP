@@ -5,8 +5,8 @@ import { useState } from 'react';
 import type { User } from 'firebase/auth';
 import type { ClassInfo, Attendee } from '@/types';
 import { useRouter } from 'next/navigation';
-import { auth } from '@/lib/firebase';
-import { Users, Loader2 } from 'lucide-react';
+import { auth, db } from '@/lib/firebase';
+import { Users, Loader2, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -19,6 +19,17 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { doc, updateDoc, arrayRemove } from 'firebase/firestore';
 import { isPast, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
 
@@ -48,6 +59,7 @@ export default function ClassCard({
   const { toast } = useToast();
   const [isBooking, setIsBooking] = useState(false);
   const [showFullClassDialog, setShowFullClassDialog] = useState(false);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
 
   const isBookedByUser = user ? userBookings.includes(classInfo.id) : false;
   const isFull = classInfo.attendees.length >= classInfo.capacity;
@@ -79,16 +91,17 @@ export default function ClassCard({
   };
 
   const nextAvailableClass = findNextAvailableClass();
+  
+  const handleStartChange = () => {
+    if (isBookedByUser) {
+        setChangingBookingId(classInfo.id);
+    }
+  };
 
   const handleBookingAction = async () => {
     if (!user) {
       router.push('/login');
       return;
-    }
-
-    if (isBookedByUser) {
-        setChangingBookingId(classInfo.id);
-        return;
     }
     
     if (isFull) {
@@ -97,6 +110,38 @@ export default function ClassCard({
     }
 
     await processBooking(false);
+  };
+  
+  const handleCancelBooking = async () => {
+    if (!user) return;
+    
+    setIsBooking(true);
+    try {
+        const classDocRef = doc(db, "classes", classInfo.id);
+        const attendeeToRemove = classInfo.attendees.find(a => a.uid === user.uid);
+
+        if (attendeeToRemove) {
+            await updateDoc(classDocRef, {
+                attendees: arrayRemove(attendeeToRemove)
+            });
+        }
+        await onBookingUpdate(classInfo, null);
+
+        toast({
+            title: "Reserva Cancelada",
+            description: `Tu reserva para ${classInfo.name} ha sido cancelada.`,
+        });
+    } catch (error) {
+        console.error("Error cancelling booking:", error);
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: "No se pudo cancelar la reserva. Por favor, inténtalo de nuevo.",
+        });
+    } finally {
+        setIsBooking(false);
+        setShowCancelDialog(false);
+    }
   };
 
   const handleUpdateBooking = async () => {
@@ -124,13 +169,11 @@ export default function ClassCard({
         };
         await onBookingUpdate(classInfo, newAttendee, oldClassId);
         
-        // Toasts are now handled in the parent component for better state management
         if (isUpdate) {
             setChangingBookingId(null);
         }
 
     } catch (error: any) {
-        // Errors are now caught and toasted in the parent component
         console.error("Error processing booking:", error);
     } finally {
         setIsBooking(false);
@@ -168,12 +211,33 @@ export default function ClassCard({
              </Button>
          )
     }
+    
+    if (isBookedByUser) {
+        return (
+            <div className="flex w-full items-center gap-2">
+                <Button
+                    onClick={handleStartChange}
+                    disabled={isBooking || isClassPast || isChangingMode}
+                    className="flex-1"
+                >
+                    Cambiar
+                </Button>
+                <Button
+                    onClick={() => setShowCancelDialog(true)}
+                    disabled={isBooking || isClassPast || isChangingMode}
+                    variant="destructive"
+                    size="icon"
+                >
+                    <Trash2 className="h-4 w-4" />
+                </Button>
+            </div>
+        )
+    }
 
     return (
         <Button 
             onClick={handleBookingAction}
             disabled={isBooking || isClassPast || (isChangingMode && !isBookedByUser)}
-            variant={isBookedByUser ? "default" : "default"}
             className="w-full"
         >
             {isBooking ? (
@@ -181,8 +245,6 @@ export default function ClassCard({
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Reservando...
                  </>
-            ) : isBookedByUser ? (
-                'Cambiar Reserva'
             ) : isFull ? (
                 'Llena'
             ) : (
@@ -272,6 +334,25 @@ export default function ClassCard({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esto cancelará permanentemente tu reserva. Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Volver</AlertDialogCancel>
+            <AlertDialogAction onClick={handleCancelBooking} disabled={isBooking}>
+              {isBooking ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Sí, Cancelar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
+
+    

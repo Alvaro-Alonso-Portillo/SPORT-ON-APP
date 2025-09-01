@@ -1,4 +1,6 @@
 
+import type { Timestamp } from "firebase/firestore";
+
 export interface Attendee {
   uid: string;
   name: string;
@@ -26,5 +28,7 @@ export interface UserProfile {
     uid: string;
     name: string;
     email: string;
-    createdAt: Date;
+    createdAt: Date | Timestamp;
+    dob?: Date | Timestamp;
+    bio?: string;
 }

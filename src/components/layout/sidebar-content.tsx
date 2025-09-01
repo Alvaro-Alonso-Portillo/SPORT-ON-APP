@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { usePathname } from 'next/navigation'
-import { Home, CalendarDays, User, LogOut, LogIn } from "lucide-react";
+import { Home, CalendarDays, User as UserIcon, LogOut, LogIn } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -26,6 +26,7 @@ export default function SidebarContent() {
   const navLinks = [
     { href: "/", label: "Calendario", icon: Home },
     { href: "/bookings", label: "Mis Reservas", icon: CalendarDays },
+    { href: "/profile", label: "Mi Perfil", icon: UserIcon },
   ];
 
   return (
@@ -58,7 +59,7 @@ export default function SidebarContent() {
             ) : (
                 <div className="flex items-center gap-4">
                     <Avatar  className="h-12 w-12">
-                        <AvatarFallback><User className="h-6 w-6" /></AvatarFallback>
+                        <AvatarFallback><UserIcon className="h-6 w-6" /></AvatarFallback>
                     </Avatar>
                     <div>
                         <p className="font-semibold">Invitado</p>

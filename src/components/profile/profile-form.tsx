@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 
 import { Button } from "@/components/ui/button";
@@ -25,19 +25,13 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { CalendarIcon, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { UserProfile } from "@/types";
 
 const profileFormSchema = z.object({
-  dob: z.date().optional(),
+  dob: z.string().optional(),
   profileImage: z.instanceof(FileList).optional(),
 });
 
@@ -69,14 +63,16 @@ export default function ProfileForm() {
 
       if (docSnap.exists()) {
         const data = docSnap.data() as UserProfile;
+        let dobString = "";
         
-        if (data.dob && data.dob instanceof Timestamp) {
-            data.dob = data.dob.toDate();
+        if (data.dob) {
+          const dobDate = data.dob instanceof Timestamp ? data.dob.toDate() : new Date(data.dob);
+          dobString = format(dobDate, "yyyy-MM-dd");
         }
-
+        
         setProfile(data);
         form.reset({
-          dob: data.dob,
+          dob: dobString,
         });
       }
       setIsLoading(false);
@@ -93,7 +89,6 @@ export default function ProfileForm() {
       const userDocRef = doc(db, "users", user.uid);
       let photoURL = profile?.photoURL;
 
-      // Handle file upload if a new image is selected
       if (data.profileImage && data.profileImage.length > 0) {
         const file = data.profileImage[0];
         const storageRef = ref(storage, `profile-pictures/${user.uid}/${file.name}`);
@@ -101,13 +96,23 @@ export default function ProfileForm() {
         photoURL = await getDownloadURL(snapshot.ref);
       }
       
-      await updateDoc(userDocRef, {
-        dob: data.dob,
+      const updateData: any = {
         photoURL: photoURL,
-      });
+      };
 
-      // Update local profile state to reflect changes immediately
-      setProfile(prev => prev ? { ...prev, dob: data.dob, photoURL: photoURL } : null);
+      if (data.dob) {
+        updateData.dob = Timestamp.fromDate(parseISO(data.dob));
+      } else {
+        updateData.dob = null;
+      }
+      
+      await updateDoc(userDocRef, updateData);
+
+      setProfile(prev => prev ? { 
+          ...prev, 
+          dob: data.dob ? parseISO(data.dob) : undefined, 
+          photoURL: photoURL 
+      } : null);
 
       toast({
         title: "Perfil actualizado",
@@ -154,39 +159,11 @@ export default function ProfileForm() {
               control={form.control}
               name="dob"
               render={({ field }) => (
-                <FormItem className="flex flex-col">
+                <FormItem>
                   <FormLabel>Fecha de Nacimiento</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant={"outline"}
-                          className={cn(
-                            "w-full justify-start text-left font-normal",
-                            !field.value && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {field.value ? (
-                            format(field.value, "PPP", { locale: es })
-                          ) : (
-                            <span>Elige una fecha</span>
-                          )}
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={field.value}
-                        onSelect={field.onChange}
-                        disabled={(date) =>
-                          date > new Date() || date < new Date("1900-01-01")
-                        }
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
+                  <FormControl>
+                    <Input type="date" {...field} />
+                  </FormControl>
                   <FormDescription>
                     Tu fecha de nacimiento no será pública.
                   </FormDescription>

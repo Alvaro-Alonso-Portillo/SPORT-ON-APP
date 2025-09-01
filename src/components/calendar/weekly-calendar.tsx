@@ -5,7 +5,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import type { ClassInfo, Attendee } from "@/types";
 import { useAuth } from "@/hooks/use-auth";
 import { Loader2, Calendar as CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react";
-import { format, startOfWeek, addDays, isBefore, subDays, parseISO } from 'date-fns';
+import { format, startOfWeek, addDays, isBefore, subDays, parseISO, isToday, isTomorrow } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 import DaySelector from "./day-selector";
@@ -107,6 +107,16 @@ export default function WeeklyCalendar() {
       return day.charAt(0).toUpperCase() + day.slice(1);
   }, [currentDate]);
 
+  const formattedSelectedDate = useMemo(() => {
+    if (isToday(currentDate)) {
+      return `Hoy, ${format(currentDate, 'eeee, d MMMM', { locale: es })}`;
+    }
+    if (isTomorrow(currentDate)) {
+      return `Mañana, ${format(currentDate, 'eeee, d MMMM', { locale: es })}`;
+    }
+    return format(currentDate, 'eeee, d MMMM', { locale: es });
+  }, [currentDate]);
+
 
   const dailyClasses = useMemo(() => {
     return generateClassesForDate(currentDate, allClasses);
@@ -206,7 +216,7 @@ export default function WeeklyCalendar() {
           <div className="flex items-center gap-4">
               <CalendarIcon className="h-6 w-6 text-primary" />
               <div>
-              <p className="font-bold text-lg capitalize">{`Hoy, ${format(new Date(), 'eeee, d MMMM', { locale: es })}`}</p>
+              <p className="font-bold text-lg capitalize">{formattedSelectedDate}</p>
               </div>
           </div>
           <div className="flex items-center gap-2">
@@ -263,3 +273,4 @@ export default function WeeklyCalendar() {
     </div>
   );
 }
+

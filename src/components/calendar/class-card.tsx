@@ -24,7 +24,7 @@ interface ClassCardProps {
   classInfo: ClassInfo;
   user: User | null;
   userBookings: string[];
-  onBookingUpdate: (classId: string, attendees: Attendee[]) => void;
+  onBookingUpdate: (classInfo: ClassInfo, attendee: Attendee | null) => Promise<void>;
   dailyClasses: ClassInfo[];
   onTimeSelect: (time: string) => void;
 }
@@ -64,39 +64,29 @@ export default function ClassCard({ classInfo, user, userBookings, onBookingUpda
         return;
     }
 
-    const currentUser = auth.currentUser;
-    await currentUser.reload();
-    const userName = currentUser.displayName || currentUser.email?.split('@')[0] || "Usuario";
-
-
     setIsBooking(true);
-    await new Promise(res => setTimeout(res, 700));
 
     try {
-      let updatedAttendees: Attendee[];
-      
-      if (isBookedByUser) {
-        updatedAttendees = classInfo.attendees.filter(attendee => attendee.uid !== user.uid);
-        toast({ title: "Reserva cancelada", description: `Has cancelado tu plaza en ${classInfo.name}.` });
-      } else {
-        const newAttendee: Attendee = {
-          uid: user.uid,
-          name: userName,
-          photoURL: auth.currentUser.photoURL || `https://api.dicebear.com/8.x/bottts/svg?seed=${user.uid}`
-        };
-        updatedAttendees = [...classInfo.attendees, newAttendee];
-        toast({ title: "¡Reserva confirmada!", description: `Has reservado tu plaza para ${classInfo.name} a las ${classInfo.time}.` });
-      }
-
-      onBookingUpdate(classInfo.id, updatedAttendees);
-
-    } catch (error) {
-      toast({ variant: "destructive", title: "Error", description: "Ha ocurrido un error al procesar tu solicitud." });
+        if (isBookedByUser) {
+            await onBookingUpdate(classInfo, null);
+            toast({ title: "Reserva cancelada", description: `Has cancelado tu plaza en ${classInfo.name}.` });
+        } else {
+            await auth.currentUser.reload();
+            const userName = auth.currentUser.displayName || auth.currentUser.email?.split('@')[0] || "Usuario";
+            const newAttendee: Attendee = {
+              uid: user.uid,
+              name: userName,
+              photoURL: auth.currentUser.photoURL || `https://api.dicebear.com/8.x/bottts/svg?seed=${user.uid}`
+            };
+            await onBookingUpdate(classInfo, newAttendee);
+            toast({ title: "¡Reserva confirmada!", description: `Has reservado tu plaza para ${classInfo.name} a las ${classInfo.time}.` });
+        }
+    } catch (error: any) {
+        toast({ variant: "destructive", title: "Error", description: error.message || "Ha ocurrido un error al procesar tu solicitud." });
     } finally {
-      setIsBooking(false);
+        setIsBooking(false);
     }
   };
-
 
   return (
     <>

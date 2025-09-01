@@ -4,14 +4,17 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import type { ClassInfo, Attendee } from "@/types";
 import { useAuth } from "@/hooks/use-auth";
+import { db } from "@/lib/firebase";
+import { collection, doc, getDoc, getDocs, query, runTransaction, where, writeBatch } from "firebase/firestore";
 import { Loader2, Calendar as CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react";
-import { format, startOfWeek, addDays, isBefore, subDays, parseISO, isToday, isTomorrow } from 'date-fns';
+import { format, startOfWeek, addDays, isBefore, subDays, parseISO, isToday, isTomorrow, endOfWeek } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 import DaySelector from "./day-selector";
 import TimeSelector from "./time-selector";
 import ClassCard from "./class-card";
 import { Button } from "../ui/button";
+import { useToast } from "@/hooks/use-toast";
 
 const allTimeSlots = [
     "08:00", "09:15", "10:30", "11:45", "13:00", 
@@ -24,7 +27,7 @@ const generateClassesForDate = (date: Date, existingClasses: ClassInfo[]): Class
     const capitalizedDayName = dayName.charAt(0).toUpperCase() + dayName.slice(1);
 
     if (capitalizedDayName === "Sábado" || capitalizedDayName === "Domingo") return [];
-
+    
     let timeSlotsForDay = [...allTimeSlots];
     if (capitalizedDayName === "Viernes") {
         timeSlotsForDay = timeSlotsForDay.filter(time => time !== "20:45");
@@ -55,6 +58,7 @@ const generateClassesForDate = (date: Date, existingClasses: ClassInfo[]): Class
 
 export default function WeeklyCalendar() {
   const { user, loading: authLoading } = useAuth();
+  const { toast } = useToast();
   const [allClasses, setAllClasses] = useState<ClassInfo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
@@ -65,22 +69,38 @@ export default function WeeklyCalendar() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const classCardRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const observer = useRef<IntersectionObserver | null>(null);
+  
+  const startOfCurrentWeek = useMemo(() => startOfWeek(currentDate, { weekStartsOn: 1 }), [currentDate]);
+  const endOfCurrentWeek = useMemo(() => endOfWeek(currentDate, { weekStartsOn: 1 }), [currentDate]);
 
   useEffect(() => {
-    const fetchData = async () => {
-      setIsLoading(true);
-      
-      const storedClasses = sessionStorage.getItem('allClasses');
-      const currentClasses: ClassInfo[] = storedClasses ? JSON.parse(storedClasses) : [];
-      
-      setAllClasses(currentClasses);
-      setIsLoading(false);
+    if (authLoading) return;
+    
+    const fetchClasses = async () => {
+        setIsLoading(true);
+        try {
+            const classesRef = collection(db, 'classes');
+            const q = query(classesRef, 
+                where('date', '>=', format(startOfCurrentWeek, 'yyyy-MM-dd')),
+                where('date', '<=', format(endOfCurrentWeek, 'yyyy-MM-dd'))
+            );
+            const querySnapshot = await getDocs(q);
+            const fetchedClasses = querySnapshot.docs.map(doc => doc.data() as ClassInfo);
+            setAllClasses(fetchedClasses);
+        } catch (error) {
+            console.error("Error fetching classes:", error);
+            toast({
+                variant: "destructive",
+                title: "Error",
+                description: "No se pudieron cargar las clases. Inténtalo de nuevo más tarde."
+            });
+        }
+        setIsLoading(false);
     };
 
-    if (!authLoading) {
-      fetchData();
-    }
-  }, [user, authLoading]);
+    fetchClasses();
+  }, [user, authLoading, startOfCurrentWeek, endOfCurrentWeek, toast]);
+
 
   const userBookings = useMemo(() => {
     if (!user) return [];
@@ -88,9 +108,6 @@ export default function WeeklyCalendar() {
         .filter(c => c.attendees.some(a => a.uid === user.uid))
         .map(c => c.id);
   }, [allClasses, user]);
-
-
-  const startOfCurrentWeek = useMemo(() => startOfWeek(currentDate, { weekStartsOn: 1 }), [currentDate]);
 
   const weekDates = useMemo(() => {
     return Array.from({ length: 7 }).map((_, i) => addDays(startOfCurrentWeek, i));
@@ -134,10 +151,10 @@ export default function WeeklyCalendar() {
   const [selectedTime, setSelectedTime] = useState(timeSlots[0] || "");
 
   useEffect(() => {
-    if (timeSlots.length > 0) {
+    if (timeSlots.length > 0 && !timeSlots.includes(selectedTime)) {
         setSelectedTime(timeSlots[0]);
     }
-  }, [timeSlots]);
+  }, [timeSlots, selectedTime]);
 
   // Scroll Spy Logic
   useEffect(() => {
@@ -178,43 +195,62 @@ export default function WeeklyCalendar() {
     if (targetRef) {
       targetRef.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
-    // Set a timeout to re-enable observer after scroll animation
     setTimeout(() => setIsScrolling(false), 1000);
   }, []);
 
+  const handleBookingUpdate = async (classInfo: ClassInfo, newAttendee: Attendee | null) => {
+    const classDocRef = doc(db, "classes", classInfo.id);
 
-  const handleBookingUpdate = (classId: string, newAttendees: Attendee[]) => {
-      const updatedClasses = [...allClasses];
-      const classIndex = updatedClasses.findIndex(c => c.id === classId);
-      
-      const date = parseISO(classId.substring(0, 10));
-      const dayName = format(date, 'eeee', { locale: es });
-      const capitalizedDayName = dayName.charAt(0).toUpperCase() + dayName.slice(1);
+    try {
+        await runTransaction(db, async (transaction) => {
+            const classDoc = await transaction.get(classDocRef);
+            
+            // If class doesn't exist in Firestore, create it from generated info
+            if (!classDoc.exists()) {
+                if (newAttendee) { // only create if booking
+                    const newClassData = { ...classInfo, attendees: [newAttendee] };
+                    transaction.set(classDocRef, newClassData);
+                    setAllClasses(prev => [...prev, newClassData]);
+                }
+                return;
+            }
 
-      const updatedClass: ClassInfo = {
-          id: classId,
-          name: 'Entrenamiento',
-          description: 'Clase de Entrenamiento.',
-          time: classId.substring(11, 13) + ':' + classId.substring(13, 15),
-          day: capitalizedDayName,
-          date: classId.substring(0, 10),
-          duration: 75,
-          capacity: 24,
-          attendees: newAttendees,
-      };
+            const currentClassData = classDoc.data() as ClassInfo;
+            let updatedAttendees: Attendee[];
 
-      if (classIndex !== -1) {
-          if (newAttendees.length > 0) {
-              updatedClasses[classIndex] = updatedClass;
-          } else {
-              updatedClasses.splice(classIndex, 1);
-          }
-      } else if (newAttendees.length > 0) {
-          updatedClasses.push(updatedClass);
-      }
+            if (newAttendee) { // Add attendee
+                if (currentClassData.attendees.length >= currentClassData.capacity) {
+                    throw new Error("La clase está llena. No se pudo completar la reserva.");
+                }
+                if (currentClassData.attendees.some(a => a.uid === newAttendee.uid)) {
+                    return; // Already booked
+                }
+                updatedAttendees = [...currentClassData.attendees, newAttendee];
+            } else if (user) { // Remove attendee
+                updatedAttendees = currentClassData.attendees.filter(a => a.uid !== user.uid);
+            } else {
+                return; // Should not happen
+            }
 
-      setAllClasses(updatedClasses);
-      sessionStorage.setItem('allClasses', JSON.stringify(updatedClasses));
+            transaction.update(classDocRef, { attendees: updatedAttendees });
+            
+            setAllClasses(prev => prev.map(c => 
+                c.id === classInfo.id ? { ...c, attendees: updatedAttendees } : c
+            ));
+        });
+    } catch (error: any) {
+        console.error("Transaction failed: ", error);
+        toast({
+            variant: "destructive",
+            title: "Error en la reserva",
+            description: error.message || "No se pudo actualizar la reserva. Por favor, inténtalo de nuevo.",
+        });
+        // Optional: Re-fetch data to ensure UI consistency
+        const refetchedDoc = await getDoc(classDocRef);
+        if (refetchedDoc.exists()) {
+            setAllClasses(prev => prev.map(c => c.id === classInfo.id ? refetchedDoc.data() as ClassInfo : c));
+        }
+    }
   };
 
 
@@ -291,5 +327,3 @@ export default function WeeklyCalendar() {
     </div>
   );
 }
-
-

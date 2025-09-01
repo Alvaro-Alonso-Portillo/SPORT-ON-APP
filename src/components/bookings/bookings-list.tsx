@@ -5,6 +5,8 @@ import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/hooks/use-auth";
+import { db } from "@/lib/firebase";
+import { collection, doc, getDocs, query, updateDoc, arrayRemove, where } from "firebase/firestore";
 import type { ClassInfo } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -27,17 +29,18 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { useToast } from "@/hooks/use-toast";
 
 type PopulatedBooking = {
-    id: string; // This will just be the classId for simplicity
+    id: string; // This will be the classId
     classInfo: ClassInfo;
 };
 
 export default function BookingsList() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
+  const { toast } = useToast();
   const [bookings, setBookings] = useState<PopulatedBooking[]>([]);
-  const [allClasses, setAllClasses] = useState<ClassInfo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [bookingToCancel, setBookingToCancel] = useState<PopulatedBooking | null>(null);
 
@@ -50,26 +53,34 @@ export default function BookingsList() {
 
     const fetchBookings = async () => {
       setIsLoading(true);
-
-      const storedClasses = sessionStorage.getItem('allClasses');
-      const currentClasses: ClassInfo[] = storedClasses ? JSON.parse(storedClasses) : [];
-      setAllClasses(currentClasses);
-
-      const userBookings = currentClasses
-        .filter((classInfo) => 
-            classInfo.attendees.some((attendee) => attendee.uid === user.uid)
-        )
-        .map((classInfo) => ({
-            id: classInfo.id, // Use classId as the unique booking identifier
-            classInfo: classInfo,
+      try {
+        const classesRef = collection(db, "classes");
+        const q = query(classesRef, where("attendees", "array-contains", { 
+            uid: user.uid,
+            name: user.displayName || user.email?.split('@')[0],
+            photoURL: user.photoURL || `https://api.dicebear.com/8.x/bottts/svg?seed=${user.uid}`
         }));
-      
-      setBookings(userBookings);
+
+        const querySnapshot = await getDocs(q);
+        const userBookings = querySnapshot.docs.map(doc => ({
+            id: doc.id,
+            classInfo: doc.data() as ClassInfo,
+        }));
+        setBookings(userBookings);
+
+      } catch (error) {
+        console.error("Error fetching bookings:", error);
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: "No se pudieron cargar tus reservas."
+        });
+      }
       setIsLoading(false);
     };
 
     fetchBookings();
-  }, [user, authLoading, router]);
+  }, [user, authLoading, router, toast]);
 
   const groupedBookings = useMemo(() => {
     const sortedBookings = [...bookings].sort((a, b) => 
@@ -86,31 +97,44 @@ export default function BookingsList() {
     }, {} as Record<string, PopulatedBooking[]>);
   }, [bookings]);
 
-  const handleCancel = () => {
-    if (bookingToCancel && user) {
-        const updatedClasses = allClasses.map(c => {
-            if (c.id === bookingToCancel.classInfo.id) {
-                return {
-                    ...c,
-                    attendees: c.attendees.filter(a => a.uid !== user.uid)
-                }
-            }
-            return c;
-        }).filter(c => c.attendees.length > 0); // Remove classes with no attendees
-      
-      setAllClasses(updatedClasses);
-      sessionStorage.setItem('allClasses', JSON.stringify(updatedClasses));
+  const handleCancel = async () => {
+    if (!bookingToCancel || !user) return;
 
-      setBookings(prev => prev.filter(b => b.id !== bookingToCancel.id));
-      setBookingToCancel(null);
+    try {
+        const classDocRef = doc(db, "classes", bookingToCancel.id);
+        const attendeeToRemove = bookingToCancel.classInfo.attendees.find(a => a.uid === user.uid);
+
+        if (attendeeToRemove) {
+            await updateDoc(classDocRef, {
+                attendees: arrayRemove(attendeeToRemove)
+            });
+        }
+        
+        setBookings(prev => prev.filter(b => b.id !== bookingToCancel.id));
+        toast({
+            title: "Reserva Cancelada",
+            description: `Tu reserva para ${bookingToCancel.classInfo.name} ha sido cancelada.`,
+        });
+    } catch (error) {
+        console.error("Error cancelling booking:", error);
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: "No se pudo cancelar la reserva. Por favor, inténtalo de nuevo.",
+        });
+    } finally {
+        setBookingToCancel(null);
     }
   };
 
   const formatDate = (dateString: string) => {
-    const date = parseISO(dateString);
-    return format(date, "eeee, d 'de' MMMM 'de' yyyy", { locale: es });
+    try {
+      const date = parseISO(dateString);
+      return format(date, "eeee, d 'de' MMMM 'de' yyyy", { locale: es });
+    } catch (error) {
+      return dateString; // Fallback for invalid date format
+    }
   };
-
 
   if (isLoading || authLoading) {
     return (

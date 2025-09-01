@@ -37,7 +37,6 @@ export default function SignupForm() {
     }
 
     try {
-      // 1. Check if username already exists in Firestore
       const usersRef = collection(db, "users");
       const q = query(usersRef, where("name", "==", name));
       const querySnapshot = await getDocs(q);
@@ -46,17 +45,14 @@ export default function SignupForm() {
         throw new Error("El nombre de usuario ya existe.");
       }
 
-      // 2. Create the user in Firebase Authentication
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      // 3. Update the user's profile in Firebase Auth with the chosen name
       await updateProfile(user, { displayName: name });
 
-      // 4. Create the user document in Firestore, storing the chosen name
       await setDoc(doc(db, "users", user.uid), {
         uid: user.uid,
-        name, // Storing the chosen username
+        name,
         email: user.email,
         createdAt: new Date(),
       });
@@ -71,6 +67,8 @@ export default function SignupForm() {
             description = "La contraseña es demasiado débil. Debe tener al menos 6 caracteres.";
         } else if (error.code === 'auth/invalid-email') {
             description = "El formato del correo electrónico no es válido.";
+        } else if (error.code === 'auth/invalid-api-key') {
+            description = "Error de configuración. Por favor, contacta con el administrador.";
         }
         
       toast({
@@ -84,7 +82,7 @@ export default function SignupForm() {
   };
 
   return (
-    <Card className="w-full max-w-sm mx-auto">
+    <Card className="w-full max-w-sm mx-auto bg-card text-card-foreground">
       <CardHeader>
         <CardTitle className="text-2xl font-headline">Regístrate</CardTitle>
         <CardDescription>
@@ -103,6 +101,7 @@ export default function SignupForm() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               disabled={isLoading}
+              className="bg-secondary"
             />
           </div>
           <div className="grid gap-2">
@@ -115,6 +114,7 @@ export default function SignupForm() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               disabled={isLoading}
+              className="bg-secondary"
             />
           </div>
           <div className="grid gap-2">
@@ -127,6 +127,7 @@ export default function SignupForm() {
               onChange={(e) => setPassword(e.target.value)}
               disabled={isLoading}
               placeholder="Debe tener al menos 6 caracteres"
+              className="bg-secondary"
             />
           </div>
         </CardContent>

@@ -28,7 +28,6 @@ export default function LoginForm() {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      // After successful login, fetch the user's document from Firestore
       const userDocRef = doc(db, "users", user.uid);
       const userDoc = await getDoc(userDocRef);
 
@@ -36,7 +35,6 @@ export default function LoginForm() {
         const userData = userDoc.data();
         const correctName = userData.name;
 
-        // Sync the displayName from Firestore to Auth profile if it's missing or different
         if (user.displayName !== correctName) {
           await updateProfile(user, { displayName: correctName });
         }
@@ -47,8 +45,8 @@ export default function LoginForm() {
       router.push("/");
     } catch (error: any) {
       let description = "Por favor, comprueba tu correo y contraseña e inténtalo de nuevo.";
-      if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
-        description = "La contraseña es incorrecta. Por favor, inténtalo de nuevo.";
+      if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential' || error.code === 'auth/invalid-api-key') {
+        description = "Credenciales incorrectas. Por favor, inténtalo de nuevo.";
       } else if (error.code === 'auth/user-not-found') {
         description = "No se ha encontrado ninguna cuenta con este correo electrónico.";
       }
@@ -64,7 +62,7 @@ export default function LoginForm() {
   };
 
   return (
-    <Card className="w-full max-w-sm mx-auto">
+    <Card className="w-full max-w-sm mx-auto bg-card text-card-foreground">
       <CardHeader>
         <CardTitle className="text-2xl font-headline">Iniciar Sesión</CardTitle>
         <CardDescription>
@@ -83,6 +81,7 @@ export default function LoginForm() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               disabled={isLoading}
+              className="bg-secondary"
             />
           </div>
           <div className="grid gap-2">
@@ -94,6 +93,7 @@ export default function LoginForm() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               disabled={isLoading}
+              className="bg-secondary"
             />
           </div>
         </CardContent>

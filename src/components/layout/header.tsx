@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { Menu } from "lucide-react";
+import { LogIn, Menu, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -10,28 +10,57 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet"
 import SidebarContent from "./sidebar-content";
+import { useAuth } from "@/hooks/use-auth";
+import UserMenu from "./user-menu";
 
 export default function Header() {
+  const { user, loading } = useAuth();
   return (
-    <header className="bg-card shadow-sm sticky top-0 z-40 h-20 flex items-center px-4 md:px-8 border-b md:hidden">
-      <div className="md:hidden">
-        <Sheet>
-          <SheetTrigger asChild>
-            <Button variant="outline" size="icon">
-              <Menu className="h-5 w-5" />
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="left" className="p-0 w-[300px] sm:w-[350px]">
-             <SidebarContent />
-          </SheetContent>
-        </Sheet>
+    <header className="bg-background shadow-sm sticky top-0 z-40 h-20 flex items-center px-4 md:px-8 border-b">
+       <div className="flex items-center gap-4">
+          <div className="md:hidden">
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="outline" size="icon">
+                  <Menu className="h-5 w-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="p-0 w-[300px] sm:w-[350px]">
+                <SidebarContent />
+              </SheetContent>
+            </Sheet>
+          </div>
+           <Link href="/" className="text-3xl font-headline font-bold text-foreground hidden sm:block">
+             Sport <span className="text-primary">ON</span>
+          </Link>
       </div>
-      <div className="flex-1 text-center">
+
+      <div className="flex-1 text-center sm:hidden">
           <Link href="/" className="text-3xl font-headline font-bold text-foreground">
             Sport <span className="text-primary">ON</span>
           </Link>
       </div>
-      <div className="w-10"></div>
+      
+      <div className="ml-auto">
+        {!loading && (
+          user ? (
+             <UserMenu />
+          ) : (
+            <div className="flex items-center gap-2">
+               <Button variant="ghost" asChild>
+                 <Link href="/login">
+                   <LogIn className="mr-2 h-4 w-4" /> Iniciar Sesión
+                 </Link>
+               </Button>
+               <Button asChild>
+                  <Link href="/signup">
+                    <UserPlus className="mr-2 h-4 w-4" /> Registrarse
+                  </Link>
+               </Button>
+            </div>
+          )
+        )}
+      </div>
     </header>
   );
 }

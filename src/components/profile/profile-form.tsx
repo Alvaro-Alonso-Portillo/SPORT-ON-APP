@@ -29,6 +29,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { UserProfile } from "@/types";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 
 const profileFormSchema = z.object({
   dob: z.string().optional(),
@@ -44,6 +45,7 @@ export default function ProfileForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
@@ -96,22 +98,25 @@ export default function ProfileForm() {
         photoURL = await getDownloadURL(snapshot.ref);
       }
       
-      const updateData: any = {
-        photoURL: photoURL,
-      };
+      const updateData: Partial<UserProfile> = {};
+
+      if (photoURL) {
+        updateData.photoURL = photoURL;
+      }
 
       if (data.dob) {
-        updateData.dob = Timestamp.fromDate(parseISO(data.dob));
+        // Ensure date is parsed correctly, handle potential timezone issues by parsing as UTC
+        updateData.dob = Timestamp.fromDate(new Date(data.dob.replace(/-/g, '/')));
       } else {
-        updateData.dob = null;
+        updateData.dob = undefined; // Or null if you want to clear it
       }
       
       await updateDoc(userDocRef, updateData);
 
       setProfile(prev => prev ? { 
           ...prev, 
-          dob: data.dob ? parseISO(data.dob) : undefined, 
-          photoURL: photoURL 
+          ...updateData,
+          dob: data.dob ? new Date(data.dob.replace(/-/g, '/')) : undefined, 
       } : null);
 
       toast({
@@ -127,6 +132,8 @@ export default function ProfileForm() {
       });
     } finally {
       setIsSubmitting(false);
+      form.reset(form.getValues());
+      setImagePreview(null);
     }
   }
 
@@ -138,12 +145,14 @@ export default function ProfileForm() {
     );
   }
 
+  const currentAvatar = imagePreview || profile?.photoURL || `https://api.dicebear.com/8.x/bottts/svg?seed=${user?.uid}`;
+
   return (
     <Card className="max-w-2xl mx-auto">
       <CardHeader>
         <div className="flex items-center gap-4">
           <Avatar className="h-20 w-20">
-            <AvatarImage src={profile?.photoURL || `https://api.dicebear.com/8.x/bottts/svg?seed=${user?.uid}`} />
+            <AvatarImage src={currentAvatar} />
             <AvatarFallback>{profile?.name?.charAt(0)}</AvatarFallback>
           </Avatar>
           <div>
@@ -181,7 +190,14 @@ export default function ProfileForm() {
                     <Input
                       type="file"
                       accept="image/png, image/jpeg"
-                      onChange={(e) => field.onChange(e.target.files)}
+                      onChange={(e) => {
+                        field.onChange(e.target.files);
+                         if (e.target.files && e.target.files[0]) {
+                           setImagePreview(URL.createObjectURL(e.target.files[0]));
+                         } else {
+                           setImagePreview(null);
+                         }
+                      }}
                     />
                   </FormControl>
                    <FormDescription>
@@ -203,11 +219,3 @@ export default function ProfileForm() {
     </Card>
   );
 }
-
-// Dummy Card components for structure, assuming they exist in ui/card
-const Card = ({ children, className }: { children: React.ReactNode, className?: string }) => <div className={cn("rounded-lg border bg-card text-card-foreground shadow-sm", className)}>{children}</div>;
-const CardHeader = ({ children, className }: { children: React.ReactNode, className?: string }) => <div className={cn("flex flex-col space-y-1.5 p-6", className)}>{children}</div>;
-const CardTitle = ({ children, className }: { children: React.ReactNode, className?: string }) => <h3 className={cn("text-lg font-semibold leading-none tracking-tight", className)}>{children}</h3>;
-const CardDescription = ({ children, className }: { children: React.ReactNode, className?: string }) => <p className={cn("text-sm text-muted-foreground", className)}>{children}</p>;
-const CardContent = ({ children, className }: { children: React.ReactNode, className?: string }) => <div className={cn("p-6 pt-0", className)}>{children}</div>;
-const CardFooter = ({ children, className }: { children: React.ReactNode, className?: string }) => <div className={cn("flex items-center p-6 pt-0", className)}>{children}</div>;

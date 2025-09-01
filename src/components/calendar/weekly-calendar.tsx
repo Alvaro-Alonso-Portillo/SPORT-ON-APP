@@ -188,9 +188,9 @@ function WeeklyCalendarInternal() {
         return;
     }
     
-    if (newAttendee) {
+    if (newAttendee && !oldClassId) {
       const userHasBookingOnThisDay = userBookings.some(bookingId => 
-          bookingId.startsWith(classInfo.date) && bookingId !== oldClassId
+          bookingId.startsWith(classInfo.date)
       );
 
       if (userHasBookingOnThisDay) {
@@ -206,47 +206,63 @@ function WeeklyCalendarInternal() {
     
     try {
         await runTransaction(db, async (transaction) => {
-            // Remove from old class if it's a change
-            if (oldClassId) {
+            // MOVE BOOKING
+            if (oldClassId && newAttendee) {
                 const oldClassDocRef = doc(db, "classes", oldClassId);
-                const oldClassDoc = await transaction.get(oldClassDocRef);
+                const newClassDocRef = doc(db, "classes", classInfo.id);
+                
+                const [oldClassDoc, newClassDoc] = await Promise.all([
+                    transaction.get(oldClassDocRef),
+                    transaction.get(newClassDocRef)
+                ]);
+                
+                // Remove from old class
                 if (oldClassDoc.exists()) {
                     const attendeeToRemove = oldClassDoc.data().attendees.find((a: Attendee) => a.uid === user.uid);
                     if (attendeeToRemove) {
                         transaction.update(oldClassDocRef, { attendees: arrayRemove(attendeeToRemove) });
                     }
                 }
-            }
-            
-            const classDocRef = doc(db, "classes", classInfo.id);
-            const classDoc = await transaction.get(classDocRef);
-            
-            if (newAttendee) { // Add or update
-                if (!classDoc.exists()) {
-                    const newClassData = { ...classInfo, attendees: [newAttendee] };
-                    transaction.set(classDocRef, newClassData);
+                
+                // Add to new class
+                if (!newClassDoc.exists()) {
+                    transaction.set(newClassDocRef, { ...classInfo, attendees: [newAttendee] });
                 } else {
-                    const currentClassData = classDoc.data() as ClassInfo;
+                     const currentClassData = newClassDoc.data() as ClassInfo;
                     if (currentClassData.attendees.length >= currentClassData.capacity) {
-                        throw new Error("La clase está llena. No se pudo completar la reserva.");
+                        throw new Error("La clase de destino está llena. No se pudo completar el cambio.");
                     }
-                    if (currentClassData.attendees.some(a => a.uid === newAttendee.uid)) {
-                        return; // Already in this class, do nothing
-                    }
-                    transaction.update(classDocRef, { attendees: arrayUnion(newAttendee) });
+                    transaction.update(newClassDocRef, { attendees: arrayUnion(newAttendee) });
                 }
-            } else { // Cancel
-                 if (classDoc.exists()) {
-                    const attendeeToRemove = classDoc.data().attendees.find((a: Attendee) => a.uid === user.uid);
-                    if (attendeeToRemove) {
-                        transaction.update(classDocRef, { attendees: arrayRemove(attendeeToRemove) });
+
+            } else { // BOOK OR CANCEL
+                const classDocRef = doc(db, "classes", classInfo.id);
+                const classDoc = await transaction.get(classDocRef);
+                
+                if (newAttendee) { // Add/Book
+                    if (!classDoc.exists()) {
+                        transaction.set(classDocRef, { ...classInfo, attendees: [newAttendee] });
+                    } else {
+                        const currentClassData = classDoc.data() as ClassInfo;
+                        if (currentClassData.attendees.length >= currentClassData.capacity) {
+                            throw new Error("La clase está llena. No se pudo completar la reserva.");
+                        }
+                        if (currentClassData.attendees.some(a => a.uid === newAttendee.uid)) return;
+                        transaction.update(classDocRef, { attendees: arrayUnion(newAttendee) });
+                    }
+                } else { // Cancel
+                     if (classDoc.exists()) {
+                        const attendeeToRemove = classDoc.data().attendees.find((a: Attendee) => a.uid === user.uid);
+                        if (attendeeToRemove) {
+                            transaction.update(classDocRef, { attendees: arrayRemove(attendeeToRemove) });
+                        }
                     }
                 }
             }
         });
 
         if (newAttendee) {
-            toast({ title: oldClassId ? "¡Reserva cambiada!" : "¡Reserva confirmada!", description: `Has reservado tu plaza para ${classInfo.name} a las ${classInfo.time}.` });
+            toast({ title: oldClassId ? "¡Reserva cambiada!" : "¡Reserva confirmada!", description: `Has asegurado tu plaza para ${classInfo.name} a las ${classInfo.time}.` });
         } else {
             toast({ title: "Reserva cancelada", description: `Tu plaza para ${classInfo.name} ha sido cancelada.` });
         }
@@ -260,7 +276,7 @@ function WeeklyCalendarInternal() {
             title: "Error en la reserva",
             description: error.message || "No se pudo actualizar la reserva. Por favor, inténtalo de nuevo.",
         });
-        await fetchClasses();
+        await fetchClasses(); // Refetch even on error to get the latest state
     } finally {
         setChangingBookingId(null);
     }

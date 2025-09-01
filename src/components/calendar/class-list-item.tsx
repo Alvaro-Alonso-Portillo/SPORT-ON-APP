@@ -86,9 +86,12 @@ export default function ClassListItem({ classInfo, user, isBookedByUser, onBooki
     if (changingBookingId && !isChangingThis) {
         if(isBookedByUser || isFull) return <Button disabled>No disponible</Button>;
         return (
-            <Button onClick={handleBookClass}>
-                {isBooking ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Moviendo...</> : "Mover aquí"}
-            </Button>
+            <div className="flex items-center gap-2">
+                <Button onClick={handleBookClass}>
+                    {isBooking ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Moviendo...</> : "Mover aquí"}
+                </Button>
+                <Button variant="ghost" onClick={() => setChangingBookingId(null)}>Cancelar</Button>
+            </div>
         )
     }
 
@@ -133,12 +136,7 @@ export default function ClassListItem({ classInfo, user, isBookedByUser, onBooki
               <Users className="h-4 w-4" />
               <span>{classInfo.attendees.length} / {classInfo.capacity}</span>
             </div>
-            <div className="flex items-center gap-2">
-                {renderButton()}
-                {changingBookingId && !isBookedByUser && (
-                 <Button variant="ghost" onClick={() => setChangingBookingId(null)}>Cancelar</Button>
-               )}
-            </div>
+            {renderButton()}
         </div>
 
       </div>

@@ -22,12 +22,12 @@ export default function DaySelector({ currentDate, setCurrentDate, weekDates, is
           <Button
             key={index}
             variant={isSameDay(day, currentDate) ? "default" : "secondary"}
-            className="flex-1 h-20 flex flex-col gap-1 rounded-lg"
+            className="flex-1 h-12 flex items-center justify-center gap-2 rounded-lg"
             onClick={() => setCurrentDate(day)}
             disabled={isDateDisabled(day)}
           >
             <span className="text-sm capitalize font-light">{format(day, 'eee', { locale: es })}</span>
-            <span className="text-2xl font-bold">{format(day, 'd', { locale: es })}</span>
+            <span className="text-xl font-bold">{format(day, 'd', { locale: es })}</span>
           </Button>
         ))}
       </div>

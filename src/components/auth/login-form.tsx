@@ -44,8 +44,8 @@ export default function LoginForm() {
 
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       
-      // Sync the displayName from Firestore to Auth profile
-      if (userCredential.user && !userCredential.user.displayName) {
+      // Sync the displayName from Firestore to Auth profile if it's missing or different
+      if (userCredential.user && userCredential.user.displayName !== correctName) {
         await updateProfile(userCredential.user, { displayName: correctName });
       }
 

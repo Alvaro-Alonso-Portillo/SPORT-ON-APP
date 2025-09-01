@@ -49,7 +49,8 @@ export default function ClassCard({ classInfo, user, userBookings, onBookingUpda
             setIsBooking(false);
             return;
         }
-        const userName = user.displayName || 'Usuario';
+        // Ensure we have a valid name. Fallback to a default if displayName is somehow null.
+        const userName = user.displayName || "Usuario";
         updatedAttendees = [...classInfo.attendees, { uid: user.uid, name: userName }];
         updatedBookings = [...userBookings, classInfo.id];
         toast({ title: "¡Reserva confirmada!", description: `Has reservado tu plaza para ${classInfo.name} a las ${classInfo.time}.` });
@@ -81,7 +82,7 @@ export default function ClassCard({ classInfo, user, userBookings, onBookingUpda
                 </div>
             ))}
              {Array.from({ length: classInfo.capacity - classInfo.attendees.length }).map((_, i) => (
-                <div key={i} className="h-12 w-12 bg-muted/50 border-2 border-dashed border-muted-foreground/30 rounded-md"></div>
+                <div key={`empty-${i}`} className="h-12 w-12 bg-muted/50 border-2 border-dashed border-muted-foreground/30 rounded-md"></div>
             ))}
         </div>
 

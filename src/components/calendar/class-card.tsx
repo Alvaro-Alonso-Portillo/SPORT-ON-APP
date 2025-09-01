@@ -100,37 +100,40 @@ export default function ClassCard({ classInfo, user, userBookings, onBookingUpda
 
   return (
     <>
-      <div className="bg-card p-4 rounded-lg mb-6 shadow-lg text-card-foreground relative overflow-hidden">
-          <div className="w-2 h-full bg-primary absolute left-0 top-0"></div>
-          
-          <div className="flex justify-between items-center mb-4 ml-4">
-              <h3 className="text-xl md:text-2xl font-bold font-headline tracking-wider text-card-foreground">{classInfo.name.toUpperCase()}</h3>
-              <span className="text-xl md:text-2xl font-bold font-headline text-card-foreground">{classInfo.time}</span>
+      <div className="bg-card p-4 rounded-lg mb-4 shadow-sm text-card-foreground border-t-4 border-primary">
+          <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg md:text-xl font-bold font-headline text-primary">{classInfo.name}</h3>
+              <span className="text-lg md:text-xl font-bold font-headline text-card-foreground">{classInfo.time}</span>
           </div>
           
-          <div className="ml-4 grid grid-cols-5 sm:grid-cols-6 md:grid-cols-8 gap-2 mb-4">
-              {Array.from({ length: classInfo.attendees.length }).map((_, i) => (
-                  <Dialog key={classInfo.attendees[i].uid}>
+          <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 gap-2 mb-4">
+              {classInfo.attendees.map((attendee) => (
+                  <Dialog key={attendee.uid}>
                     <DialogTrigger asChild>
-                       <div className="h-10 sm:h-12 w-full bg-primary/80 rounded-md cursor-pointer"></div>
+                      <div className="flex flex-col items-center justify-center p-1 text-center cursor-pointer group">
+                          <Avatar className="h-10 w-10 sm:h-12 sm:w-12 mb-1 border-2 border-transparent group-hover:border-primary transition-all">
+                            <AvatarImage src={attendee.photoURL} />
+                            <AvatarFallback>{attendee.name.charAt(0)}</AvatarFallback>
+                          </Avatar>
+                      </div>
                     </DialogTrigger>
                     <DialogContent className="sm:max-w-[425px]">
                       <DialogHeader className="items-center text-center">
                          <Avatar className="h-32 w-32 mb-4">
-                            <AvatarImage src={classInfo.attendees[i].photoURL} />
-                            <AvatarFallback>{classInfo.attendees[i].name.charAt(0)}</AvatarFallback>
+                            <AvatarImage src={attendee.photoURL} />
+                            <AvatarFallback>{attendee.name.charAt(0)}</AvatarFallback>
                           </Avatar>
-                        <DialogTitle className="text-2xl">{classInfo.attendees[i].name}</DialogTitle>
+                        <DialogTitle className="text-2xl">{attendee.name}</DialogTitle>
                       </DialogHeader>
                     </DialogContent>
                   </Dialog>
               ))}
                {Array.from({ length: classInfo.capacity - classInfo.attendees.length }).map((_, i) => (
-                  <div key={`empty-${i}`} className="h-10 sm:h-12 w-full bg-muted/50 rounded-md"></div>
+                  <div key={`empty-${i}`} className="h-10 w-10 sm:h-12 sm:w-12 bg-muted rounded-full"></div>
               ))}
           </div>
 
-          <div className="flex justify-between items-center mt-6 ml-4">
+          <div className="flex justify-between items-center mt-4">
                <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Users className="h-4 w-4" />
                   <span>{classInfo.attendees.length} / {classInfo.capacity}</span>
@@ -139,7 +142,6 @@ export default function ClassCard({ classInfo, user, userBookings, onBookingUpda
                   onClick={handleBookingAction}
                   disabled={isBooking}
                   variant={isBookedByUser ? "destructive" : "default"}
-                  className="bg-primary/90 hover:bg-primary text-primary-foreground"
               >
                   {isBooking ? (
                       <Loader2 className="h-4 w-4 animate-spin" />

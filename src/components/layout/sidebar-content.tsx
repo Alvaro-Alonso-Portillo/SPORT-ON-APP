@@ -122,7 +122,7 @@ export default function SidebarContent() {
                     href={link.href}
                     className={cn(
                         "flex items-center gap-3 rounded-lg px-3 py-3 text-muted-foreground transition-all hover:text-primary text-base font-medium",
-                        pathname === link.href && "bg-primary/10 text-primary"
+                        pathname === link.href && "bg-accent text-primary"
                     )}
                 >
                     <link.icon className="h-5 w-5" />

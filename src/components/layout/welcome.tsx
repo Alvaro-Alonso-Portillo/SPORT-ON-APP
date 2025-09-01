@@ -23,11 +23,8 @@ export default function Welcome() {
   return (
     <div className="flex flex-col items-center justify-center h-full w-full bg-background text-foreground">
       <div className="text-center">
-        <h1 className="text-6xl md:text-8xl font-headline font-bold flex items-center">
-          Sport
-          <span className="text-primary flex items-center">
-            <Power className="mx-1 h-16 w-16 md:h-20 md:w-20" />N
-          </span>
+        <h1 className="text-6xl md:text-8xl font-headline font-bold">
+          Sport <span className="text-primary">ON</span>
         </h1>
         <p className="mt-4 text-lg md:text-xl text-muted-foreground italic h-7">
           {quote}

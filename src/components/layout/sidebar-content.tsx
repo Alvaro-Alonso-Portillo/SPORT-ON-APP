@@ -90,11 +90,8 @@ export default function SidebarContent({ onLinkClick }: SidebarContentProps) {
   }
 
   const logo = (
-    <span className="flex items-center text-3xl font-headline font-bold">
-      Sport
-      <span className="text-primary flex items-center">
-        <Power className="mx-1 h-8 w-8" />N
-      </span>
+    <span className="text-3xl font-headline font-bold">
+      Sport <span className="text-primary">ON</span>
     </span>
   );
 

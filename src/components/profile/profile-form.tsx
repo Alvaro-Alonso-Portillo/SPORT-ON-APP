@@ -4,15 +4,15 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
-import { db, storage } from "@/lib/firebase";
+import { db, storage, auth } from "@/lib/firebase";
 import { doc, getDoc, updateDoc, Timestamp } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { updateProfile } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { format, parseISO } from "date-fns";
-import { es } from "date-fns/locale";
+import { format } from "date-fns";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -27,7 +27,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Loader2 } from "lucide-react";
-import { cn } from "@/lib/utils";
 import type { UserProfile } from "@/types";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -90,34 +89,33 @@ export default function ProfileForm() {
     try {
       const userDocRef = doc(db, "users", user.uid);
       let photoURL = profile?.photoURL;
+      const updateData: Partial<UserProfile> = {};
 
+      // Handle file upload
       if (data.profileImage && data.profileImage.length > 0) {
         const file = data.profileImage[0];
         const storageRef = ref(storage, `profile-pictures/${user.uid}/${file.name}`);
         const snapshot = await uploadBytes(storageRef, file);
         photoURL = await getDownloadURL(snapshot.ref);
+        updateData.photoURL = photoURL;
+
+        // Also update the photoURL in Firebase Auth profile
+        if (auth.currentUser) {
+          await updateProfile(auth.currentUser, { photoURL });
+        }
       }
       
-      const updateData: Partial<UserProfile> = {};
-
-      if (photoURL) {
-        updateData.photoURL = photoURL;
-      }
-
+      // Handle date of birth
       if (data.dob) {
-        // Ensure date is parsed correctly, handle potential timezone issues by parsing as UTC
         updateData.dob = Timestamp.fromDate(new Date(data.dob.replace(/-/g, '/')));
       } else {
-        updateData.dob = undefined; // Or null if you want to clear it
+        updateData.dob = undefined;
       }
       
-      await updateDoc(userDocRef, updateData);
-
-      setProfile(prev => prev ? { 
-          ...prev, 
-          ...updateData,
-          dob: data.dob ? new Date(data.dob.replace(/-/g, '/')) : undefined, 
-      } : null);
+      if (Object.keys(updateData).length > 0) {
+        await updateDoc(userDocRef, updateData);
+        setProfile(prev => prev ? { ...prev, ...updateData } : null);
+      }
 
       toast({
         title: "Perfil actualizado",
@@ -145,7 +143,7 @@ export default function ProfileForm() {
     );
   }
 
-  const currentAvatar = imagePreview || profile?.photoURL || `https://api.dicebear.com/8.x/bottts/svg?seed=${user?.uid}`;
+  const currentAvatar = imagePreview || profile?.photoURL || user?.photoURL || `https://api.dicebear.com/8.x/bottts/svg?seed=${user?.uid}`;
 
   return (
     <Card className="max-w-2xl mx-auto">
@@ -156,8 +154,8 @@ export default function ProfileForm() {
             <AvatarFallback>{profile?.name?.charAt(0)}</AvatarFallback>
           </Avatar>
           <div>
-            <CardTitle className="text-2xl">{profile?.name}</CardTitle>
-            <CardDescription>{profile?.email}</CardDescription>
+            <CardTitle className="text-2xl">{profile?.name || user?.displayName}</CardTitle>
+            <CardDescription>{profile?.email || user?.email}</CardDescription>
           </div>
         </div>
       </CardHeader>
@@ -183,17 +181,19 @@ export default function ProfileForm() {
             <FormField
               control={form.control}
               name="profileImage"
-              render={({ field }) => (
+              render={({ field: { onChange, value, ...rest } }) => (
                 <FormItem>
                   <FormLabel>Imagen del perfil</FormLabel>
                   <FormControl>
                     <Input
                       type="file"
                       accept="image/png, image/jpeg"
+                      {...rest}
                       onChange={(e) => {
-                        field.onChange(e.target.files);
-                         if (e.target.files && e.target.files[0]) {
-                           setImagePreview(URL.createObjectURL(e.target.files[0]));
+                        const files = e.target.files;
+                        onChange(files);
+                         if (files && files[0]) {
+                           setImagePreview(URL.createObjectURL(files[0]));
                          } else {
                            setImagePreview(null);
                          }

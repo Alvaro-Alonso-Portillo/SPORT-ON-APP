@@ -1,11 +1,11 @@
 
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import type { ClassInfo, Attendee } from "@/types";
 import { useAuth } from "@/hooks/use-auth";
 import { Loader2, Calendar as CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react";
-import { format, startOfWeek, addDays, isBefore, endOfWeek, subDays, parseISO } from 'date-fns';
+import { format, startOfWeek, addDays, isBefore, subDays, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 import DaySelector from "./day-selector";
@@ -55,6 +55,11 @@ export default function WeeklyCalendar() {
   
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedTime, setSelectedTime] = useState(timeSlots[0]);
+  const [isScrolling, setIsScrolling] = useState(false);
+
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const classCardRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const observer = useRef<IntersectionObserver | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -62,7 +67,7 @@ export default function WeeklyCalendar() {
       
       const storedClasses = sessionStorage.getItem('allClasses');
       let currentClasses: ClassInfo[] = [];
-       if (storedClasses) {
+      if (storedClasses) {
         currentClasses = JSON.parse(storedClasses);
       }
       
@@ -106,9 +111,53 @@ export default function WeeklyCalendar() {
   }, [currentDate]);
 
 
-  const filteredClasses = useMemo(() => {
-    return generateClassesForDate(currentDate, allClasses).filter(c => c.time === selectedTime);
-  }, [currentDate, allClasses, selectedTime]);
+  const dailyClasses = useMemo(() => {
+    return generateClassesForDate(currentDate, allClasses);
+  }, [currentDate, allClasses]);
+
+  // Scroll Spy Logic
+  useEffect(() => {
+    const handleIntersect = (entries: IntersectionObserverEntry[]) => {
+      if (isScrolling) return;
+
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const time = entry.target.getAttribute('data-time');
+          if (time) {
+            setSelectedTime(time);
+          }
+        }
+      });
+    };
+    
+    observer.current = new IntersectionObserver(handleIntersect, {
+      root: scrollContainerRef.current,
+      rootMargin: '-50% 0px -50% 0px', // Center of the viewport
+      threshold: 0,
+    });
+
+    const currentObserver = observer.current;
+    Object.values(classCardRefs.current).forEach(el => {
+      if (el) currentObserver.observe(el);
+    });
+
+    return () => {
+      currentObserver.disconnect();
+    };
+  }, [dailyClasses, isScrolling]);
+
+
+  const handleTimeSelect = useCallback((time: string) => {
+    setIsScrolling(true);
+    setSelectedTime(time);
+    const targetRef = classCardRefs.current[time];
+    if (targetRef) {
+      targetRef.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    // Set a timeout to re-enable observer after scroll animation
+    setTimeout(() => setIsScrolling(false), 1000);
+  }, []);
+
 
   const handleBookingUpdate = (classId: string, newAttendees: Attendee[]) => {
       const updatedClasses = [...allClasses];
@@ -159,7 +208,7 @@ export default function WeeklyCalendar() {
         <div className="flex items-center gap-4">
             <CalendarIcon className="h-6 w-6 text-primary" />
             <div>
-            <p className="font-bold text-lg capitalize">{`Hoy, ${format(currentDate, 'eeee, d MMMM', { locale: es })}`}</p>
+            <p className="font-bold text-lg capitalize">{`Hoy, ${format(new Date(), 'eeee, d MMMM', { locale: es })}`}</p>
             </div>
         </div>
          <div className="flex items-center gap-2">
@@ -181,23 +230,28 @@ export default function WeeklyCalendar() {
       <TimeSelector
         timeSlots={timeSlots}
         selectedTime={selectedTime}
-        setSelectedTime={setSelectedTime}
+        onTimeSelect={handleTimeSelect}
       />
 
-      <div className="mt-6 flex-1 overflow-y-auto">
+      <div ref={scrollContainerRef} className="mt-6 flex-1 overflow-y-auto scroll-smooth">
         {selectedDayName === "Sábado" || selectedDayName === "Domingo" ? (
              <div className="text-center py-10">
                 <p className="text-muted-foreground">No hay clases programadas para el {selectedDayName}.</p>
              </div>
-        ) : filteredClasses.length > 0 ? (
-          filteredClasses.map(classInfo => (
-            <ClassCard 
-              key={classInfo.id}
-              classInfo={classInfo}
-              user={user}
-              userBookings={userBookings}
-              onBookingUpdate={handleBookingUpdate}
-            />
+        ) : dailyClasses.length > 0 ? (
+          dailyClasses.map(classInfo => (
+            <div 
+              key={classInfo.id} 
+              ref={el => classCardRefs.current[classInfo.time] = el}
+              data-time={classInfo.time}
+            >
+              <ClassCard 
+                classInfo={classInfo}
+                user={user}
+                userBookings={userBookings}
+                onBookingUpdate={handleBookingUpdate}
+              />
+            </div>
           ))
         ) : (
           <div className="text-center py-10">

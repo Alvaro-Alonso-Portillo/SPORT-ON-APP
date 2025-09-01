@@ -235,28 +235,30 @@ function WeeklyCalendarInternal() {
   }, []);
 
   const handleBookingUpdate = async (classInfo: ClassInfo, newAttendee: Attendee | null, oldClassId?: string) => {
-    if (!user || !newAttendee) return;
+    if (!user) return;
     
-    // --- ONE BOOKING PER DAY LOGIC ---
-    const userHasBookingOnThisDay = userBookings.some(bookingId => 
-        bookingId.startsWith(classInfo.date) && bookingId !== oldClassId
-    );
+    // For new bookings (not cancellations), check the one-booking-per-day rule
+    if (newAttendee) {
+      const userHasBookingOnThisDay = userBookings.some(bookingId => 
+          bookingId.startsWith(classInfo.date) && bookingId !== oldClassId
+      );
 
-    if (userHasBookingOnThisDay) {
-        toast({
-            variant: "destructive",
-            title: "Límite de reservas alcanzado",
-            description: "Ya tienes una reserva para este día. No puedes reservar más de una clase diaria.",
-        });
-        return;
+      if (userHasBookingOnThisDay) {
+          toast({
+              variant: "destructive",
+              title: "Límite de reservas alcanzado",
+              description: "Ya tienes una reserva para este día. No puedes reservar más de una clase diaria.",
+          });
+          return;
+      }
     }
     
     try {
         await runTransaction(db, async (transaction) => {
-            const newClassDocRef = doc(db, "classes", classInfo.id);
+            const classDocRef = doc(db, "classes", classInfo.id);
             
             // --- ALL READS FIRST ---
-            const newClassDoc = await transaction.get(newClassDocRef);
+            const classDoc = await transaction.get(classDocRef);
             let oldClassDoc;
             if (oldClassId) {
                 const oldClassDocRef = doc(db, "classes", oldClassId);
@@ -275,27 +277,38 @@ function WeeklyCalendarInternal() {
                 }
             }
             
-            // 2. Handle the new booking
-            if (!newClassDoc.exists()) {
-                const newClassData = { ...classInfo, attendees: [newAttendee] };
-                transaction.set(newClassDocRef, newClassData);
-            } else {
-                const currentClassData = newClassDoc.data() as ClassInfo;
-                if (currentClassData.attendees.length >= currentClassData.capacity) {
-                    throw new Error("La clase está llena. No se pudo completar la reserva.");
+            // 2. Handle the new booking or cancellation
+            if (newAttendee) { // It's a booking or a change
+                if (!classDoc.exists()) {
+                    const newClassData = { ...classInfo, attendees: [newAttendee] };
+                    transaction.set(classDocRef, newClassData);
+                } else {
+                    const currentClassData = classDoc.data() as ClassInfo;
+                    if (currentClassData.attendees.length >= currentClassData.capacity) {
+                        throw new Error("La clase está llena. No se pudo completar la reserva.");
+                    }
+                    if (currentClassData.attendees.some(a => a.uid === newAttendee.uid)) {
+                        return;
+                    }
+                    transaction.update(classDocRef, { attendees: arrayUnion(newAttendee) });
                 }
-                if (currentClassData.attendees.some(a => a.uid === newAttendee.uid)) {
-                    // This case should ideally not happen if logic is correct, but as a safeguard.
-                    return;
-                }
-                transaction.update(newClassDocRef, { attendees: arrayUnion(newAttendee) });
+            } else { // It's a cancellation
+                 if (classDoc.exists()) {
+                    const classData = classDoc.data() as ClassInfo;
+                    const attendeeToRemove = classData.attendees.find(a => a.uid === user.uid);
+                    if (attendeeToRemove) {
+                       transaction.update(classDocRef, { attendees: arrayRemove(attendeeToRemove) });
+                    }
+                 }
             }
         });
 
-        if (oldClassId) {
-            toast({ title: "¡Reserva modificada!", description: `Has cambiado tu reserva a ${classInfo.name} a las ${classInfo.time}.` });
-        } else {
-            toast({ title: "¡Reserva confirmada!", description: `Has reservado tu plaza para ${classInfo.name} a las ${classInfo.time}.` });
+        if (newAttendee) {
+           if (oldClassId) {
+               toast({ title: "¡Reserva modificada!", description: `Has cambiado tu reserva a ${classInfo.name} a las ${classInfo.time}.` });
+           } else {
+               toast({ title: "¡Reserva confirmada!", description: `Has reservado tu plaza para ${classInfo.name} a las ${classInfo.time}.` });
+           }
         }
         
         await fetchClasses();

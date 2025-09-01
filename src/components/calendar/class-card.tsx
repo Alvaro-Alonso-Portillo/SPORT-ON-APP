@@ -117,16 +117,7 @@ export default function ClassCard({
     
     setIsBooking(true);
     try {
-        const classDocRef = doc(db, "classes", classInfo.id);
-        const attendeeToRemove = classInfo.attendees.find(a => a.uid === user.uid);
-
-        if (attendeeToRemove) {
-            await updateDoc(classDocRef, {
-                attendees: arrayRemove(attendeeToRemove)
-            });
-        }
         await onBookingUpdate(classInfo, null);
-
         toast({
             title: "Reserva Cancelada",
             description: `Tu reserva para ${classInfo.name} ha sido cancelada.`,
@@ -226,9 +217,8 @@ export default function ClassCard({
                     onClick={() => setShowCancelDialog(true)}
                     disabled={isBooking || isClassPast || isChangingMode}
                     variant="destructive"
-                    size="icon"
                 >
-                    <Trash2 className="h-4 w-4" />
+                    Cancelar
                 </Button>
             </div>
         )
@@ -354,5 +344,3 @@ export default function ClassCard({
     </>
   );
 }
-
-    

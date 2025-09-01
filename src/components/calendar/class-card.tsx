@@ -62,7 +62,7 @@ export default function ClassCard({ classInfo, user, userBookings, onBookingUpda
         const newAttendee: Attendee = {
           uid: user.uid,
           name: userName,
-          photoURL: currentUser.photoURL || `https://api.dicebear.com/8.x/bottts/svg?seed=${user.uid}`
+          photoURL: auth.currentUser.photoURL || `https://api.dicebear.com/8.x/bottts/svg?seed=${user.uid}`
         };
         updatedAttendees = [...classInfo.attendees, newAttendee];
         toast({ title: "¡Reserva confirmada!", description: `Has reservado tu plaza para ${classInfo.name} a las ${classInfo.time}.` });

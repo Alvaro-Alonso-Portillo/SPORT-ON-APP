@@ -133,7 +133,7 @@ export default function ClassListItem({ classInfo, user, isBookedByUser, onBooki
             <span className="text-lg font-bold text-foreground">{classInfo.time}</span>
         </div>
         
-        <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 my-4 -mx-4 px-4">
+        <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-y-2 my-4 -mx-4 px-4">
             {renderAttendees()}
         </div>
 

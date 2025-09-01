@@ -13,6 +13,7 @@ import { format, startOfWeek, addDays, isBefore, subDays, parseISO, isToday, isT
 import { es } from 'date-fns/locale';
 
 import DaySelector from "./day-selector";
+import TimeSelector from "./time-selector";
 import ClassListItem from "./class-list-item";
 import { Button } from "../ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -275,8 +276,8 @@ function WeeklyCalendarInternal() {
 
   return (
     <div className="flex flex-col h-full bg-transparent p-0 text-foreground space-y-6">
-      <div className="flex-shrink-0 z-10 bg-background/95">
-        <div className="flex items-center justify-between gap-4 mb-4">
+      <div className="flex-shrink-0 z-10 bg-background/95 space-y-4">
+        <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-4">
               <CalendarIcon className="h-6 w-6 text-primary" />
               <div>
@@ -299,6 +300,8 @@ function WeeklyCalendarInternal() {
           weekDates={weekDates}
           isDateDisabled={isDateDisabled}
         />
+        
+         {dailyClasses.length > 0 && <TimeSelector classes={dailyClasses} />}
       </div>
       
       <Separator />
@@ -306,15 +309,16 @@ function WeeklyCalendarInternal() {
       <div className="flex-1 overflow-y-auto scroll-smooth space-y-4">
         { dailyClasses.length > 0 ? (
             dailyClasses.map(classInfo => (
-                <ClassListItem 
-                    key={classInfo.id}
-                    classInfo={classInfo}
-                    user={user}
-                    isBookedByUser={userBookings.includes(classInfo.id)}
-                    onBookingUpdate={handleBookingUpdate}
-                    changingBookingId={changingBookingId}
-                    setChangingBookingId={setChangingBookingId}
-                />
+                <div key={classInfo.id} id={`class-${classInfo.time.replace(':', '')}`}>
+                    <ClassListItem 
+                        classInfo={classInfo}
+                        user={user}
+                        isBookedByUser={userBookings.includes(classInfo.id)}
+                        onBookingUpdate={handleBookingUpdate}
+                        changingBookingId={changingBookingId}
+                        setChangingBookingId={setChangingBookingId}
+                    />
+                </div>
             ))
          ) : (
           <div className="text-center py-10">
@@ -333,5 +337,3 @@ export default function WeeklyCalendar() {
     </React.Suspense>
   );
 }
-
-    

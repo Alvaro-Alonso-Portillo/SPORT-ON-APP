@@ -163,5 +163,3 @@ export default function ClassListItem({ classInfo, user, isBookedByUser, onBooki
     </>
   );
 }
-
-    

@@ -126,7 +126,7 @@ function WeeklyCalendarInternal() {
   }, [allClasses, user]);
 
   const weekDates = useMemo(() => {
-    return Array.from({ length: 7 }).map((_, i) => addDays(startOfCurrentWeek, i));
+    return Array.from({ length: 5 }).map((_, i) => addDays(startOfCurrentWeek, i));
   }, [startOfCurrentWeek]);
 
   const isPastWeek = isBefore(startOfCurrentWeek, startOfWeek(new Date(), { weekStartsOn: 1 }));

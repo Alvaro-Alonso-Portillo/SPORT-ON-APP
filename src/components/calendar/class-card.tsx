@@ -100,7 +100,7 @@ export default function ClassCard({ classInfo, user, userBookings, onBookingUpda
 
   return (
     <>
-      <div className="bg-card p-4 rounded-lg mb-4 shadow-sm text-card-foreground border-t-4 border-primary">
+      <div className="bg-card p-2 rounded-lg shadow-sm text-card-foreground border-t-4 border-primary">
           <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg md:text-xl font-bold font-headline text-primary">{classInfo.name}</h3>
               <span className="text-lg md:text-xl font-bold font-headline text-card-foreground">{classInfo.time}</span>
@@ -120,7 +120,7 @@ export default function ClassCard({ classInfo, user, userBookings, onBookingUpda
                     </DialogTrigger>
                     <DialogContent className="sm:max-w-[425px]">
                       <DialogHeader className="items-center text-center">
-                         <Avatar className="h-32 w-32 mb-4">
+                         <Avatar className="h-32 w-32">
                             <AvatarImage src={attendee.photoURL} />
                             <AvatarFallback>{attendee.name.charAt(0)}</AvatarFallback>
                           </Avatar>

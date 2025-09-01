@@ -4,7 +4,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { signInWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
@@ -36,12 +36,19 @@ export default function LoginForm() {
 
       const userData = querySnapshot.docs[0].data();
       const email = userData.email;
+      const correctName = userData.name;
 
       if (!email) {
         throw new Error("Email not found for this user");
       }
 
-      await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      
+      // Sync the displayName from Firestore to Auth profile
+      if (userCredential.user && !userCredential.user.displayName) {
+        await updateProfile(userCredential.user, { displayName: correctName });
+      }
+
       router.push("/");
     } catch (error: any) {
       toast({
@@ -104,5 +111,3 @@ export default function LoginForm() {
     </Card>
   );
 }
-
-    

@@ -13,7 +13,7 @@ import { format, startOfWeek, addDays, isBefore, subDays, parseISO, isToday, isT
 import { es } from 'date-fns/locale';
 
 import DaySelector from "./day-selector";
-import TimeSelector from "./time-selector";
+import ClassListItem from "./class-list-item";
 import ClassCard from "./class-card";
 import { Button } from "../ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -280,6 +280,27 @@ function WeeklyCalendarInternal() {
         setChangingBookingId(null);
     }
   };
+  
+  const handleBookClass = (classInfo: ClassInfo) => {
+      if (!user) {
+        toast({ title: "Acción requerida", description: "Debes iniciar sesión para reservar una clase." });
+        return;
+      }
+      const newAttendee: Attendee = {
+        uid: user.uid,
+        name: user.displayName || user.email?.split('@')[0] || "Usuario",
+        photoURL: user.photoURL || `https://api.dicebear.com/8.x/bottts/svg?seed=${user.uid}`
+      };
+      handleBookingUpdate(classInfo, newAttendee);
+  }
+
+  const handleCancelBooking = (classInfo: ClassInfo) => {
+      handleBookingUpdate(classInfo, null);
+  }
+  
+  const handleStartChange = (classInfo: ClassInfo) => {
+      setChangingBookingId(classInfo.id);
+  }
 
   if (isLoading || authLoading) {
     return (
@@ -332,13 +353,20 @@ function WeeklyCalendarInternal() {
               setChangingBookingId={setChangingBookingId}
             />
         ) : dailyClasses.length > 0 ? (
-            <TimeSelector
-              dailyClasses={dailyClasses}
-              onTimeSelect={handleTimeSelect}
-              userBookings={userBookings}
-              user={user}
-              changingBookingId={changingBookingId}
-            />
+            <div className="space-y-4">
+              {dailyClasses.map((classInfo) => (
+                <ClassListItem
+                  key={classInfo.id}
+                  classInfo={classInfo}
+                  user={user}
+                  isBookedByUser={user ? userBookings.includes(classInfo.id) : false}
+                  onBook={handleBookClass}
+                  onCancel={handleCancelBooking}
+                  onChange={handleStartChange}
+                  changingBookingId={changingBookingId}
+                />
+              ))}
+            </div>
          ) : (
           <div className="text-center py-10">
             <p className="text-muted-foreground">No hay clases programadas o disponibles para este día.</p>

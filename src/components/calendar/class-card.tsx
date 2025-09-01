@@ -9,7 +9,7 @@ import { es } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Users, Calendar, Clock, Loader2 } from 'lucide-react';
+import { ArrowLeft, Users, Calendar, Clock, Loader2, Trash2 } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -70,13 +70,16 @@ export default function ClassCard({ classInfo, user, onBack, isBookedByUser, onB
       const attendee = classInfo.attendees[index];
       if (attendee) {
         return (
-          <Avatar key={attendee.uid} className="h-8 w-8 rounded-md">
-            <AvatarImage src={attendee.photoURL} alt={attendee.name} />
-            <AvatarFallback className="rounded-md">{attendee.name.charAt(0)}</AvatarFallback>
-          </Avatar>
+          <div key={attendee.uid} className="flex flex-col items-center text-center">
+            <Avatar className="h-10 w-10 rounded-md">
+              <AvatarImage src={attendee.photoURL} alt={attendee.name} />
+              <AvatarFallback className="rounded-md">{attendee.name.charAt(0)}</AvatarFallback>
+            </Avatar>
+            <span className="text-xs mt-1 truncate w-12">{attendee.name}</span>
+          </div>
         );
       }
-      return <div key={index} className="h-8 w-8 bg-muted rounded-md" />;
+      return <div key={index} className="h-10 w-10 bg-muted rounded-md" />;
     });
   };
 
@@ -86,10 +89,10 @@ export default function ClassCard({ classInfo, user, onBack, isBookedByUser, onB
     if (isBookedByUser) {
       return (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2 w-full">
-            <Button onClick={handleStartChange} disabled={isBooking}>
+            <Button onClick={handleStartChange} disabled={isBooking || isCancelling}>
                 {isBooking ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Cambiando...</> : "Cambiar Reserva"}
             </Button>
-            <Button variant="destructive" onClick={() => setShowCancelConfirm(true)} disabled={isBooking}>
+            <Button variant="destructive" onClick={() => setShowCancelConfirm(true)} disabled={isBooking || isCancelling}>
                 Cancelar
             </Button>
         </div>
@@ -102,7 +105,7 @@ export default function ClassCard({ classInfo, user, onBack, isBookedByUser, onB
 
     return (
       <Button onClick={handleBookClass} disabled={isBooking} className="w-full">
-        {isBooking ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Reservando...</> : "Reservar esta hora"}
+        {isBooking ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Reservando...</> : "Reservar esta clase"}
       </Button>
     );
   };
@@ -133,7 +136,7 @@ export default function ClassCard({ classInfo, user, onBack, isBookedByUser, onB
         </CardHeader>
         <CardContent>
           <p className="text-muted-foreground mb-4">Plazas Ocupadas:</p>
-          <div className="grid grid-cols-6 gap-2">
+          <div className="grid grid-cols-4 sm:grid-cols-6 gap-4">
             {renderAttendees()}
           </div>
         </CardContent>

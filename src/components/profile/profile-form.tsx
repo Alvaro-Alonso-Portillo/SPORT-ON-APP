@@ -83,7 +83,7 @@ export default function ProfileForm() {
   }, [user, authLoading, router, form]);
 
   async function onSubmit(data: ProfileFormValues) {
-    if (!user) return;
+    if (!user || !auth.currentUser) return;
     setIsSubmitting(true);
 
     try {
@@ -99,16 +99,14 @@ export default function ProfileForm() {
         photoURL = await getDownloadURL(snapshot.ref);
         updateData.photoURL = photoURL;
 
-        // Also update the photoURL in Firebase Auth profile
-        if (auth.currentUser) {
-          await updateProfile(auth.currentUser, { photoURL });
-        }
+        // Also update the photoURL in Firebase Auth profile immediately
+        await updateProfile(auth.currentUser, { photoURL });
       }
       
       // Handle date of birth
       if (data.dob) {
         updateData.dob = Timestamp.fromDate(new Date(data.dob.replace(/-/g, '/')));
-      } else {
+      } else if (data.dob === '') {
         updateData.dob = undefined;
       }
       
@@ -143,7 +141,7 @@ export default function ProfileForm() {
     );
   }
 
-  const currentAvatar = imagePreview || profile?.photoURL || user?.photoURL || `https://api.dicebear.com/8.x/bottts/svg?seed=${user?.uid}`;
+  const currentAvatar = imagePreview || auth.currentUser?.photoURL || profile?.photoURL || `https://api.dicebear.com/8.x/bottts/svg?seed=${user?.uid}`;
 
   return (
     <Card className="max-w-2xl mx-auto">

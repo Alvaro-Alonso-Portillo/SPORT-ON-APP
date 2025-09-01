@@ -83,7 +83,7 @@ export default function ClassCard({ classInfo, user, userBookings, onBookingUpda
             {classInfo.attendees.map((attendee) => (
                 <div key={attendee.uid} className="flex flex-col items-center justify-center p-1 text-center">
                     <Avatar className="h-10 w-10 mb-1">
-                      <AvatarImage src={attendee.photoURL || `https://api.dicebear.com/8.x/bottts/svg?seed=${attendee.uid}`} />
+                      <AvatarImage src={attendee.photoURL} />
                       <AvatarFallback>{attendee.name.charAt(0)}</AvatarFallback>
                     </Avatar>
                     <p className="text-xs font-semibold text-primary truncate w-full">{attendee.name}</p>

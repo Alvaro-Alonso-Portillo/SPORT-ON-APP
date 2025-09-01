@@ -37,7 +37,7 @@ export default function SignupForm() {
     }
 
     try {
-      // 1. Check if username already exists
+      // 1. Check if username already exists in Firestore
       const usersRef = collection(db, "users");
       const q = query(usersRef, where("name", "==", name));
       const querySnapshot = await getDocs(q);
@@ -53,10 +53,10 @@ export default function SignupForm() {
       // 3. Update the user's profile in Firebase Auth with the chosen name
       await updateProfile(user, { displayName: name });
 
-      // 4. Create the user document in Firestore
+      // 4. Create the user document in Firestore, storing the chosen name
       await setDoc(doc(db, "users", user.uid), {
         uid: user.uid,
-        name,
+        name, // Storing the chosen username
         email: user.email,
         createdAt: new Date(),
       });

@@ -96,7 +96,6 @@ export default function ClassListItem({ classInfo, user, isBookedByUser, onBooki
                 <Button onClick={handleBookClass}>
                     {isBooking ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Moviendo...</> : "Mover aquí"}
                 </Button>
-                <Button variant="ghost" onClick={() => setChangingBookingId(null)}>Cancelar</Button>
             </div>
         )
     }
@@ -104,8 +103,8 @@ export default function ClassListItem({ classInfo, user, isBookedByUser, onBooki
     if (isBookedByUser) {
       return (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2 w-full md:w-auto">
-            <Button onClick={handleStartChange} disabled={isBooking || isCancelling || !!changingBookingId} className="md:w-32">
-                {isChangingThis ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Cambiando...</> : "Cambiar"}
+            <Button onClick={isChangingThis ? () => setChangingBookingId(null) : handleStartChange} variant={isChangingThis ? "ghost" : "default"} disabled={isBooking || isCancelling || (!!changingBookingId && !isChangingThis)} className="md:w-32">
+                {isChangingThis ? "Cancelar cambio" : "Cambiar"}
             </Button>
             <Button variant="destructive" onClick={() => setShowCancelConfirm(true)} disabled={isBooking || isCancelling || !!changingBookingId}>
                 Cancelar

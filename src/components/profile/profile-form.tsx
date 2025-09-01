@@ -33,7 +33,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 
 const profileFormSchema = z.object({
   dob: z.string().optional(),
-  profileImage: z.instanceof(FileList).optional(),
+  profileImage: z.any().optional(),
 });
 
 type ProfileFormValues = z.infer<typeof profileFormSchema>;

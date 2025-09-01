@@ -8,15 +8,34 @@ import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "../ui/button";
-import { auth } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
 import { signOut } from "firebase/auth";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { doc, getDoc, onSnapshot } from "firebase/firestore";
+import type { UserProfile } from "@/types";
 
 
 export default function SidebarContent() {
   const { user, loading } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+
+  useEffect(() => {
+    if (user) {
+      const docRef = doc(db, "users", user.uid);
+      const unsubscribe = onSnapshot(docRef, (docSnap) => {
+        if (docSnap.exists()) {
+          setProfile(docSnap.data() as UserProfile);
+        } else {
+          setProfile(null);
+        }
+      });
+      return () => unsubscribe();
+    }
+  }, [user]);
+
 
   const handleSignOut = async () => {
     await signOut(auth);
@@ -48,7 +67,7 @@ export default function SidebarContent() {
             ) : user ? (
                 <div className="flex items-center gap-4">
                     <Avatar className="h-12 w-12">
-                        <AvatarImage src={`https://api.dicebear.com/8.x/bottts/svg?seed=${user.uid}`} />
+                        <AvatarImage src={profile?.photoURL || `https://api.dicebear.com/8.x/bottts/svg?seed=${user.uid}`} />
                         <AvatarFallback>{user.displayName?.charAt(0) || user.email?.charAt(0)}</AvatarFallback>
                     </Avatar>
                     <div>

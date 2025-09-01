@@ -4,8 +4,9 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
-import { db } from "@/lib/firebase";
+import { db, storage } from "@/lib/firebase";
 import { doc, getDoc, updateDoc, Timestamp } from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useToast } from "@/hooks/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -24,7 +25,6 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Popover,
   PopoverContent,
@@ -38,7 +38,7 @@ import type { UserProfile } from "@/types";
 
 const profileFormSchema = z.object({
   dob: z.date().optional(),
-  bio: z.string().max(200, "La biografía no puede exceder los 200 caracteres.").optional(),
+  profileImage: z.instanceof(FileList).optional(),
 });
 
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
@@ -47,14 +47,12 @@ export default function ProfileForm() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [profile, setProfile] = useState<UserProfile | null>(null);
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
-    defaultValues: {
-      bio: "",
-    },
   });
 
   useEffect(() => {
@@ -72,14 +70,12 @@ export default function ProfileForm() {
       if (docSnap.exists()) {
         const data = docSnap.data() as UserProfile;
         
-        // Convert Firestore Timestamp to JS Date if it exists
         if (data.dob && data.dob instanceof Timestamp) {
             data.dob = data.dob.toDate();
         }
 
         setProfile(data);
         form.reset({
-          bio: data.bio || "",
           dob: data.dob,
         });
       }
@@ -91,26 +87,41 @@ export default function ProfileForm() {
 
   async function onSubmit(data: ProfileFormValues) {
     if (!user) return;
-    setIsLoading(true);
+    setIsSubmitting(true);
 
     try {
       const userDocRef = doc(db, "users", user.uid);
+      let photoURL = profile?.photoURL;
+
+      // Handle file upload if a new image is selected
+      if (data.profileImage && data.profileImage.length > 0) {
+        const file = data.profileImage[0];
+        const storageRef = ref(storage, `profile-pictures/${user.uid}/${file.name}`);
+        const snapshot = await uploadBytes(storageRef, file);
+        photoURL = await getDownloadURL(snapshot.ref);
+      }
+      
       await updateDoc(userDocRef, {
-        bio: data.bio,
         dob: data.dob,
+        photoURL: photoURL,
       });
+
+      // Update local profile state to reflect changes immediately
+      setProfile(prev => prev ? { ...prev, dob: data.dob, photoURL: photoURL } : null);
+
       toast({
         title: "Perfil actualizado",
         description: "Tu información ha sido guardada con éxito.",
       });
     } catch (error) {
+      console.error("Error updating profile: ", error);
       toast({
         variant: "destructive",
         title: "Error",
         description: "No se pudo actualizar tu perfil. Por favor, inténtalo de nuevo.",
       });
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   }
 
@@ -127,7 +138,7 @@ export default function ProfileForm() {
       <CardHeader>
         <div className="flex items-center gap-4">
           <Avatar className="h-20 w-20">
-            <AvatarImage src={`https://api.dicebear.com/8.x/bottts/svg?seed=${user?.uid}`} />
+            <AvatarImage src={profile?.photoURL || `https://api.dicebear.com/8.x/bottts/svg?seed=${user?.uid}`} />
             <AvatarFallback>{profile?.name?.charAt(0)}</AvatarFallback>
           </Avatar>
           <div>
@@ -185,19 +196,19 @@ export default function ProfileForm() {
             />
             <FormField
               control={form.control}
-              name="bio"
+              name="profileImage"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Biografía</FormLabel>
+                  <FormLabel>Añadir Imagen (JPG o PNG)</FormLabel>
                   <FormControl>
-                    <Textarea
-                      placeholder="Cuéntanos un poco sobre ti..."
-                      className="resize-none"
-                      {...field}
+                    <Input
+                      type="file"
+                      accept="image/png, image/jpeg"
+                      onChange={(e) => field.onChange(e.target.files)}
                     />
                   </FormControl>
                    <FormDescription>
-                    Un breve resumen sobre ti.
+                    Sube una foto de perfil.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -205,8 +216,8 @@ export default function ProfileForm() {
             />
           </CardContent>
           <CardFooter>
-            <Button type="submit" disabled={isLoading}>
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Guardar Cambios
             </Button>
           </CardFooter>

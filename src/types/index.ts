@@ -31,4 +31,5 @@ export interface UserProfile {
     createdAt: Date | Timestamp;
     dob?: Date | Timestamp;
     bio?: string;
+    photoURL?: string;
 }

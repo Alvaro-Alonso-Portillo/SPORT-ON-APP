@@ -121,7 +121,7 @@ export default function ClassListItem({ classInfo, user, isBookedByUser, onBooki
 
   return (
     <>
-      <div className="w-full bg-card p-4 rounded-lg shadow-sm border-t-4 border-primary">
+      <div id={`class-${classInfo.time.replace(':', '')}`} className="w-full bg-card p-4 rounded-lg shadow-sm border-t-4 border-primary">
         <div className="flex items-center justify-between gap-4 mb-4">
             <h3 className="text-lg font-bold text-primary-dark font-headline uppercase">{classInfo.name}</h3>
             <span className="text-lg font-bold text-foreground">{classInfo.time}</span>

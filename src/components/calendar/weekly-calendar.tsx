@@ -14,8 +14,10 @@ import { es } from 'date-fns/locale';
 
 import DaySelector from "./day-selector";
 import ClassListItem from "./class-list-item";
+import TimeSelector from "./time-selector";
 import { Button } from "../ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { Separator } from "../ui/separator";
 
 const allTimeSlots = [
     "08:00", "09:15", "10:30", "11:45", "13:00", 
@@ -313,6 +315,8 @@ function WeeklyCalendarInternal() {
           weekDates={weekDates}
           isDateDisabled={isDateDisabled}
         />
+        <Separator />
+        <TimeSelector dailyClasses={dailyClasses} />
       </header>
       
       <main className="flex-1 space-y-4">

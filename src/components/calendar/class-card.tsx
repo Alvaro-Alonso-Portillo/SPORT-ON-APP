@@ -79,13 +79,13 @@ export default function ClassCard({ classInfo, user, userBookings, onBookingUpda
 
 
   return (
-    <div className="bg-card p-4 rounded-lg border-t-4 border-primary mb-6 shadow-lg">
+    <div className="bg-card p-4 rounded-lg border-t-4 border-primary mb-6 shadow-lg text-card-foreground">
         <div className="flex justify-between items-center mb-4">
             <div className="flex items-center gap-3">
               <div className="w-1 h-8 bg-primary rounded-full"></div>
               <h3 className="text-2xl font-bold font-headline tracking-wider text-primary">{classInfo.name.toUpperCase()}</h3>
             </div>
-            <span className="text-2xl font-bold font-headline">{classInfo.time}</span>
+            <span className="text-2xl font-bold font-headline text-card-foreground">{classInfo.time}</span>
         </div>
         
         <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2 mb-4">
@@ -97,7 +97,7 @@ export default function ClassCard({ classInfo, user, userBookings, onBookingUpda
                           <AvatarImage src={attendee.photoURL} />
                           <AvatarFallback>{attendee.name.charAt(0)}</AvatarFallback>
                         </Avatar>
-                        <p className="text-sm font-semibold text-foreground truncate w-full">{attendee.name}</p>
+                        <p className="text-sm font-semibold text-card-foreground truncate w-full">{attendee.name}</p>
                     </div>
                   </DialogTrigger>
                   <DialogContent className="sm:max-w-[425px]">

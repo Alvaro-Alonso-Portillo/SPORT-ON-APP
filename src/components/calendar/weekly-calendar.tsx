@@ -201,34 +201,36 @@ export default function WeeklyCalendar() {
 
   return (
     <div className="flex flex-col h-full bg-transparent p-0 text-foreground">
-      <div className="flex items-center justify-between gap-4 mb-4">
-        <div className="flex items-center gap-4">
-            <CalendarIcon className="h-6 w-6 text-primary" />
-            <div>
-            <p className="font-bold text-lg capitalize">{`Hoy, ${format(new Date(), 'eeee, d MMMM', { locale: es })}`}</p>
-            </div>
+      <div className="flex-shrink-0">
+        <div className="flex items-center justify-between gap-4 mb-4">
+          <div className="flex items-center gap-4">
+              <CalendarIcon className="h-6 w-6 text-primary" />
+              <div>
+              <p className="font-bold text-lg capitalize">{`Hoy, ${format(new Date(), 'eeee, d MMMM', { locale: es })}`}</p>
+              </div>
+          </div>
+          <div className="flex items-center gap-2">
+              <Button variant="outline" size="icon" onClick={handlePreviousWeek} disabled={isPastWeek}>
+                  <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <Button variant="outline" size="icon" onClick={handleNextWeek}>
+                  <ChevronRight className="h-4 w-4" />
+              </Button>
+          </div>
         </div>
-         <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" onClick={handlePreviousWeek} disabled={isPastWeek}>
-                <ChevronLeft className="h-4 w-4" />
-            </Button>
-             <Button variant="outline" size="icon" onClick={handleNextWeek}>
-                <ChevronRight className="h-4 w-4" />
-            </Button>
-        </div>
-      </div>
 
-      <DaySelector
-        currentDate={currentDate}
-        setCurrentDate={setCurrentDate}
-        weekDates={weekDates}
-      />
-      
-      <TimeSelector
-        timeSlots={timeSlots}
-        selectedTime={selectedTime}
-        onTimeSelect={handleTimeSelect}
-      />
+        <DaySelector
+          currentDate={currentDate}
+          setCurrentDate={setCurrentDate}
+          weekDates={weekDates}
+        />
+        
+        <TimeSelector
+          timeSlots={timeSlots}
+          selectedTime={selectedTime}
+          onTimeSelect={handleTimeSelect}
+        />
+      </div>
 
       <div ref={scrollContainerRef} className="mt-6 flex-1 overflow-y-auto scroll-smooth">
         {selectedDayName === "Sábado" || selectedDayName === "Domingo" ? (

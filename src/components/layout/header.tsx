@@ -16,7 +16,7 @@ import UserMenu from "./user-menu";
 export default function Header() {
   const { user, loading } = useAuth();
   return (
-    <header className="bg-background shadow-sm sticky top-0 z-40 h-20 flex items-center px-4 md:px-8 border-b">
+    <header className="bg-card shadow-sm sticky top-0 z-40 h-20 flex items-center px-4 md:px-8 border-b">
        <div className="flex items-center gap-4">
           <div className="md:hidden">
             <Sheet>

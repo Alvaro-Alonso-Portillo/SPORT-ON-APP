@@ -185,7 +185,7 @@ export default function ProfileForm() {
               name="profileImage"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Añadir Imagen (JPG o PNG)</FormLabel>
+                  <FormLabel>Imagen del perfil</FormLabel>
                   <FormControl>
                     <Input
                       type="file"
@@ -201,7 +201,7 @@ export default function ProfileForm() {
                     />
                   </FormControl>
                    <FormDescription>
-                    Sube una foto de perfil.
+                    Sube una foto de perfil (JPG o PNG).
                   </FormDescription>
                   <FormMessage />
                 </FormItem>

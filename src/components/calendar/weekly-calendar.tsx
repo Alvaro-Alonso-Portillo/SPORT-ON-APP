@@ -62,8 +62,8 @@ export default function WeeklyCalendar() {
         setAllClasses(JSON.parse(storedClasses));
       } else {
         const generatedClasses = generateAllPossibleClasses();
-        generatedClasses[0].attendees.push({uid: 'user-xxx', name: 'Alex'});
-        generatedClasses[5].attendees.push({uid: 'user-yyy', name: 'Sara'});
+        generatedClasses[0].attendees.push({uid: 'user-xxx', name: 'Alex', photoURL: `https://api.dicebear.com/8.x/bottts/svg?seed=alex`});
+        generatedClasses[5].attendees.push({uid: 'user-yyy', name: 'Sara', photoURL: `https://api.dicebear.com/8.x/bottts/svg?seed=sara`});
         setAllClasses(generatedClasses);
         sessionStorage.setItem('allClasses', JSON.stringify(generatedClasses));
       }

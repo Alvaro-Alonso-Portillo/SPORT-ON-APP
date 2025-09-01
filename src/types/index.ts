@@ -4,6 +4,7 @@ import type { Timestamp } from "firebase/firestore";
 export interface Attendee {
   uid: string;
   name: string;
+  photoURL?: string;
 }
 
 export interface ClassInfo {

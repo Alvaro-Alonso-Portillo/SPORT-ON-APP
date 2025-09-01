@@ -54,8 +54,8 @@ const generateAllPossibleClasses = (): ClassInfo[] => {
   });
   // Simulate some attendees for initial state
   if (typeof window !== 'undefined' && !sessionStorage.getItem('classesInitialized')) {
-    allClasses[0].attendees.push({uid: 'user-xxx', name: 'Alex'});
-    allClasses[5].attendees.push({uid: 'user-yyy', name: 'Sara'});
+    allClasses[0].attendees.push({uid: 'user-xxx', name: 'Alex', photoURL: `https://api.dicebear.com/8.x/bottts/svg?seed=alex`});
+    allClasses[5].attendees.push({uid: 'user-yyy', name: 'Sara', photoURL: `https://api.dicebear.com/8.x/bottts/svg?seed=sara`});
     sessionStorage.setItem('classesInitialized', 'true');
   }
   return allClasses;

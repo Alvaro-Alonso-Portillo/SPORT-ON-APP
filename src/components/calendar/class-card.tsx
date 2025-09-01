@@ -5,6 +5,7 @@ import { useState } from 'react';
 import type { User } from 'firebase/auth';
 import type { ClassInfo, Attendee } from '@/types';
 import { useRouter } from 'next/navigation';
+import { auth } from '@/lib/firebase';
 import { Users, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';

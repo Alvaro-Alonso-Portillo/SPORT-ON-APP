@@ -125,10 +125,10 @@ export default function BookingsList() {
       <Alert className="text-center p-8 border-dashed bg-card shadow-sm">
         <CalendarX className="h-8 w-8 mx-auto mb-4 text-muted-foreground" />
         <AlertTitle className="font-headline text-lg">No hay próximas reservas</AlertTitle>
-        <AlertDescription className="text-muted-foreground">
+        <AlertDescription className="text-muted-foreground mb-4">
           Aún no has reservado ninguna clase.
         </AlertDescription>
-        <Button asChild className="mt-4">
+        <Button asChild>
           <Link href="/">
             <CalendarPlus className="mr-2 h-4 w-4" /> Reservar una clase
           </Link>

@@ -1,3 +1,9 @@
+
+export interface Attendee {
+  uid: string;
+  name: string;
+}
+
 export interface ClassInfo {
   id: string;
   name: string;
@@ -6,7 +12,7 @@ export interface ClassInfo {
   day: string;
   duration: number;
   capacity: number;
-  attendees: string[]; // Array of user UIDs
+  attendees: Attendee[]; // Array of Attendee objects
 }
 
 export interface Booking {

@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import type { ClassInfo } from "@/types";
+import type { ClassInfo, Attendee } from "@/types";
 import { useAuth } from "@/hooks/use-auth";
 import { Loader2, Calendar as CalendarIcon } from "lucide-react";
 import { format, startOfWeek, addDays, isSameDay } from 'date-fns';
@@ -54,8 +54,8 @@ export default function WeeklyCalendar() {
       await new Promise(res => setTimeout(res, 500));
       const generatedClasses = generateAllPossibleClasses();
       // Simulate some attendees
-      generatedClasses[0].attendees.push('user-xxx');
-      generatedClasses[5].attendees.push('user-yyy');
+      generatedClasses[0].attendees.push({uid: 'user-xxx', name: 'Alex'});
+      generatedClasses[5].attendees.push({uid: 'user-yyy', name: 'Sara'});
       setAllClasses(generatedClasses);
       
       if (user) {
@@ -85,7 +85,7 @@ export default function WeeklyCalendar() {
     return allClasses.filter(c => c.day.toLowerCase() === selectedDayName.toLowerCase() && c.time === selectedTime);
   }, [allClasses, selectedDayName, selectedTime]);
 
-  const handleBookingUpdate = (classId: string, newAttendees: string[], newBookings: string[]) => {
+  const handleBookingUpdate = (classId: string, newAttendees: Attendee[], newBookings: string[]) => {
       setAllClasses(prev => prev.map(c => c.id === classId ? { ...c, attendees: newAttendees } : c));
       setUserBookings(newBookings);
   };

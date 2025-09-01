@@ -3,17 +3,18 @@
 
 import { useState } from 'react';
 import type { User } from 'firebase/auth';
-import type { ClassInfo } from '@/types';
+import type { ClassInfo, Attendee } from '@/types';
 import { useRouter } from 'next/navigation';
 import { Users, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 interface ClassCardProps {
   classInfo: ClassInfo;
   user: User | null;
   userBookings: string[];
-  onBookingUpdate: (classId: string, attendees: string[], bookings: string[]) => void;
+  onBookingUpdate: (classId: string, attendees: Attendee[], bookings: string[]) => void;
 }
 
 export default function ClassCard({ classInfo, user, userBookings, onBookingUpdate }: ClassCardProps) {
@@ -34,12 +35,12 @@ export default function ClassCard({ classInfo, user, userBookings, onBookingUpda
     await new Promise(res => setTimeout(res, 700)); // Simulate API call
 
     try {
-      let updatedAttendees: string[];
+      let updatedAttendees: Attendee[];
       let updatedBookings: string[];
       
       if (isBookedByUser) {
         // Cancel booking
-        updatedAttendees = classInfo.attendees.filter(uid => uid !== user.uid);
+        updatedAttendees = classInfo.attendees.filter(attendee => attendee.uid !== user.uid);
         updatedBookings = userBookings.filter(id => id !== classInfo.id);
         toast({ title: "Reserva cancelada", description: `Has cancelado tu plaza en ${classInfo.name}.` });
       } else {
@@ -49,7 +50,8 @@ export default function ClassCard({ classInfo, user, userBookings, onBookingUpda
             setIsBooking(false);
             return;
         }
-        updatedAttendees = [...classInfo.attendees, user.uid];
+        const userName = user.displayName || user.email?.split('@')[0] || 'Usuario';
+        updatedAttendees = [...classInfo.attendees, { uid: user.uid, name: userName }];
         updatedBookings = [...userBookings, classInfo.id];
         toast({ title: "¡Reserva confirmada!", description: `Has reservado tu plaza para ${classInfo.name} a las ${classInfo.time}.` });
       }
@@ -72,9 +74,13 @@ export default function ClassCard({ classInfo, user, userBookings, onBookingUpda
         </div>
         
         <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2 mb-4">
-            {Array.from({ length: classInfo.attendees.length }).map((_, i) => (
-                <div key={i} className="h-12 w-12 bg-muted rounded-md flex items-center justify-center">
-                    <Users className="h-6 w-6 text-muted-foreground" />
+            {classInfo.attendees.map((attendee) => (
+                <div key={attendee.uid} className="h-12 w-12 bg-muted rounded-md flex items-center justify-center">
+                    <Avatar className="h-10 w-10">
+                        <AvatarFallback className="bg-primary/20 text-primary font-bold">
+                            {attendee.name.charAt(0).toUpperCase()}
+                        </AvatarFallback>
+                    </Avatar>
                 </div>
             ))}
              {Array.from({ length: classInfo.capacity - classInfo.attendees.length }).map((_, i) => (

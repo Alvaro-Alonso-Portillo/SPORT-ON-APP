@@ -51,10 +51,17 @@ export default function LoginForm() {
 
       router.push("/");
     } catch (error: any) {
+      let description = "Por favor, comprueba tu nombre y contraseña e inténtalo de nuevo.";
+      if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+        description = "La contraseña es incorrecta. Por favor, inténtalo de nuevo.";
+      } else if (error.message === 'Usuario no encontrado') {
+        description = "El nombre de usuario no existe. Por favor, regístrate.";
+      }
+
       toast({
         variant: "destructive",
         title: "Fallo de inicio de sesión",
-        description: error.message || "Por favor, comprueba tu nombre y contraseña e inténtalo de nuevo.",
+        description: description,
       });
     } finally {
       setIsLoading(false);

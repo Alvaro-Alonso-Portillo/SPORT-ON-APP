@@ -30,6 +30,14 @@ export default function ClassCard({ classInfo, user, userBookings, onBookingUpda
       return;
     }
 
+    // Ensure we have a valid name. Fallback to a default if displayName is somehow null.
+    const userName = user.displayName || user.email?.split('@')[0] || "Usuario";
+
+    if (!user.displayName) {
+        console.warn("User displayName is not set. Falling back to email/generic name.");
+    }
+
+
     setIsBooking(true);
     await new Promise(res => setTimeout(res, 700)); // Simulate API call
 
@@ -49,8 +57,6 @@ export default function ClassCard({ classInfo, user, userBookings, onBookingUpda
             setIsBooking(false);
             return;
         }
-        // Ensure we have a valid name. Fallback to a default if displayName is somehow null.
-        const userName = user.displayName || "Usuario";
         updatedAttendees = [...classInfo.attendees, { uid: user.uid, name: userName }];
         updatedBookings = [...userBookings, classInfo.id];
         toast({ title: "¡Reserva confirmada!", description: `Has reservado tu plaza para ${classInfo.name} a las ${classInfo.time}.` });

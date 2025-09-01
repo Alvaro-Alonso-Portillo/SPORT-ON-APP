@@ -13,7 +13,7 @@ import TimeSelector from "./time-selector";
 import ClassCard from "./class-card";
 import { Button } from "../ui/button";
 
-const timeSlots = [
+const allTimeSlots = [
     "08:00", "09:15", "10:30", "11:45", "13:00", 
     "14:15", "17:00", "18:15", "19:30", "20:45"
 ];
@@ -25,7 +25,12 @@ const generateClassesForDate = (date: Date, existingClasses: ClassInfo[]): Class
 
     if (capitalizedDayName === "Sábado" || capitalizedDayName === "Domingo") return [];
 
-    return timeSlots.map(time => {
+    let timeSlotsForDay = [...allTimeSlots];
+    if (capitalizedDayName === "Viernes") {
+        timeSlotsForDay = timeSlotsForDay.filter(time => time !== "20:45");
+    }
+
+    return timeSlotsForDay.map(time => {
         const classId = `${dateString}-${time.replace(':', '')}`;
         const existingClass = existingClasses.find(c => c.id === classId);
         
@@ -54,7 +59,7 @@ export default function WeeklyCalendar() {
   const [isLoading, setIsLoading] = useState(true);
   
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [selectedTime, setSelectedTime] = useState(timeSlots[0]);
+  
   const [isScrolling, setIsScrolling] = useState(false);
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -109,7 +114,7 @@ export default function WeeklyCalendar() {
 
   const formattedSelectedDate = useMemo(() => {
     if (isToday(currentDate)) {
-      return `Hoy, ${format(currentDate, 'eeee, d MMMM', { locale: es })}`;
+      return `Hoy, ${format(currentDate, 'd MMMM', { locale: es })}`;
     }
     if (isTomorrow(currentDate)) {
       return `Mañana, ${format(currentDate, 'eeee, d MMMM', { locale: es })}`;
@@ -121,6 +126,18 @@ export default function WeeklyCalendar() {
   const dailyClasses = useMemo(() => {
     return generateClassesForDate(currentDate, allClasses);
   }, [currentDate, allClasses]);
+  
+  const timeSlots = useMemo(() => {
+    return dailyClasses.map(c => c.time);
+  }, [dailyClasses]);
+  
+  const [selectedTime, setSelectedTime] = useState(timeSlots[0] || "");
+
+  useEffect(() => {
+    if (timeSlots.length > 0) {
+        setSelectedTime(timeSlots[0]);
+    }
+  }, [timeSlots]);
 
   // Scroll Spy Logic
   useEffect(() => {
@@ -211,8 +228,8 @@ export default function WeeklyCalendar() {
 
   return (
     <div className="flex flex-col h-full bg-transparent p-0 text-foreground">
-      <div className="flex-shrink-0">
-        <div className="flex items-center justify-between gap-4 mb-4">
+      <div className="flex-shrink-0 sticky top-0 z-40 bg-background/95 backdrop-blur-sm">
+        <div className="flex items-center justify-between gap-4 mb-4 p-4 md:p-0 md:pt-4">
           <div className="flex items-center gap-4">
               <CalendarIcon className="h-6 w-6 text-primary" />
               <div>
@@ -242,7 +259,7 @@ export default function WeeklyCalendar() {
         />
       </div>
 
-      <div ref={scrollContainerRef} className="mt-6 flex-1 overflow-y-auto scroll-smooth">
+      <div ref={scrollContainerRef} className="mt-6 flex-1 overflow-y-auto scroll-smooth p-4 md:p-0">
         {selectedDayName === "Sábado" || selectedDayName === "Domingo" ? (
              <div className="text-center py-10">
                 <p className="text-muted-foreground">No hay clases programadas para el {selectedDayName}.</p>
@@ -253,6 +270,7 @@ export default function WeeklyCalendar() {
               key={classInfo.id} 
               ref={el => classCardRefs.current[classInfo.time] = el}
               data-time={classInfo.time}
+              className="mb-4"
             >
               <ClassCard 
                 classInfo={classInfo}

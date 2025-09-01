@@ -1,6 +1,7 @@
 
 "use client";
 
+import * as React from "react";
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useSearchParams } from 'next/navigation'
 import type { ClassInfo, Attendee } from "@/types";

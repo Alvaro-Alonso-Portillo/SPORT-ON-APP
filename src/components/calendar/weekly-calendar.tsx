@@ -9,7 +9,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { db } from "@/lib/firebase";
 import { collection, doc, getDoc, getDocs, query, runTransaction, where, arrayRemove, arrayUnion } from "firebase/firestore";
 import { Loader2, Calendar as CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react";
-import { format, startOfWeek, addDays, isBefore, subDays, parseISO, isToday, isTomorrow, endOfWeek, startOfDay, isValid } from 'date-fns';
+import { format, startOfWeek, addDays, isBefore, subDays, parseISO, isToday, isTomorrow, endOfWeek, startOfDay, isValid, isPast } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 import DaySelector from "./day-selector";
@@ -130,6 +130,10 @@ function WeeklyCalendarInternal() {
   }, [startOfCurrentWeek]);
 
   const isPastWeek = isBefore(startOfCurrentWeek, startOfWeek(new Date(), { weekStartsOn: 1 }));
+  
+  const isDateDisabled = (date: Date) => {
+    return isBefore(date, startOfDay(new Date()));
+  };
 
   const handleNextWeek = () => {
     setCurrentDate(addDays(startOfCurrentWeek, 7));
@@ -158,7 +162,19 @@ function WeeklyCalendarInternal() {
 
   const dailyClasses = useMemo(() => {
     if(isBefore(startOfDay(currentDate), startOfDay(new Date()))) return [];
-    return generateClassesForDate(currentDate, allClasses);
+    const generated = generateClassesForDate(currentDate, allClasses);
+    const now = new Date();
+
+    if (isToday(currentDate)) {
+      return generated.filter(classInfo => {
+        const [hours, minutes] = classInfo.time.split(':');
+        const classDateTime = new Date(currentDate);
+        classDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+        return isBefore(now, classDateTime);
+      });
+    }
+    
+    return generated;
   }, [currentDate, allClasses]);
   
   const timeSlots = useMemo(() => {
@@ -170,6 +186,8 @@ function WeeklyCalendarInternal() {
   useEffect(() => {
     if (timeSlots.length > 0 && !timeSlots.includes(selectedTime)) {
         setSelectedTime(timeSlots[0]);
+    } else if (timeSlots.length === 0) {
+        setSelectedTime("");
     }
   }, [timeSlots, selectedTime]);
 
@@ -315,6 +333,7 @@ function WeeklyCalendarInternal() {
           currentDate={currentDate}
           setCurrentDate={setCurrentDate}
           weekDates={weekDates}
+          isDateDisabled={isDateDisabled}
         />
         
         <TimeSelector
@@ -349,7 +368,7 @@ function WeeklyCalendarInternal() {
           ))
         ) : (
           <div className="text-center py-10">
-            <p className="text-muted-foreground">No hay clases para esta selección.</p>
+            <p className="text-muted-foreground">No hay clases disponibles para hoy.</p>
           </div>
         )}
       </div>

@@ -29,6 +29,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { isPast, parseISO, format } from 'date-fns';
 
 
 interface ClassCardProps {
@@ -51,6 +52,15 @@ export default function ClassCard({ classInfo, user, userBookings, onBookingUpda
   const isBookedByUser = user ? userBookings.includes(classInfo.id) : false;
   const isFull = classInfo.attendees.length >= classInfo.capacity;
   
+  const getClassDateTime = (date: string, time: string) => {
+      const [hours, minutes] = time.split(':');
+      const classDate = parseISO(date);
+      classDate.setHours(parseInt(hours), parseInt(minutes));
+      return classDate;
+  }
+  
+  const isClassPast = isPast(getClassDateTime(classInfo.date, classInfo.time));
+
   const findNextAvailableClass = () => {
     const currentTimeIndex = dailyClasses.findIndex(c => c.time === classInfo.time);
     if (currentTimeIndex === -1) return null;
@@ -162,7 +172,7 @@ export default function ClassCard({ classInfo, user, userBookings, onBookingUpda
               </div>
               <Button 
                   onClick={handleBookingAction}
-                  disabled={isBooking}
+                  disabled={isBooking || isClassPast}
                   variant={isBookedByUser ? "destructive" : "default"}
               >
                   {isBooking ? (

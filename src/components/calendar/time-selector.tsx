@@ -50,8 +50,8 @@ export default function TimeSelector({ timeSlots, selectedTime, onTimeSelect }: 
             </CarouselItem>
           ))}
         </CarouselContent>
-        <CarouselPrevious className="absolute -left-4 top-1/2 -translate-y-1/2 hidden sm:flex" />
-        <CarouselNext className="absolute -right-4 top-1/2 -translate-y-1/2 hidden sm:flex" />
+        <CarouselPrevious className="absolute -left-4 top-1/2 -translate-y-1/2 hidden md:flex" />
+        <CarouselNext className="absolute -right-4 top-1/2 -translate-y-1/2 hidden md:flex" />
       </Carousel>
     </div>
   );

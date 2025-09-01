@@ -117,7 +117,7 @@ export default function WeeklyCalendar() {
       return `Hoy, ${format(currentDate, 'd MMMM', { locale: es })}`;
     }
     if (isTomorrow(currentDate)) {
-      return `Mañana, ${format(currentDate, 'eeee, d MMMM', { locale: es })}`;
+      return `Mañana, ${format(currentDate, 'd MMMM', { locale: es })}`;
     }
     return format(currentDate, 'eeee, d MMMM', { locale: es });
   }, [currentDate]);
@@ -291,4 +291,5 @@ export default function WeeklyCalendar() {
     </div>
   );
 }
+
 

@@ -65,39 +65,8 @@ export default function WeeklyCalendar() {
       let currentClasses: ClassInfo[] = [];
       if (storedClasses) {
         currentClasses = JSON.parse(storedClasses);
-      } else {
-        // Add some initial mock data for demonstration
-        const today = new Date();
-        const monday = startOfWeek(today, { weekStartsOn: 1 });
-        const initialDate = format(monday, 'yyyy-MM-dd');
-        const initialClassId = `${initialDate}-0800`;
-        const anotherClassId = `${format(addDays(monday, 2), 'yyyy-MM-dd')}-0915`;
-
-        currentClasses.push({
-          id: initialClassId,
-          name: 'Entrenamiento',
-          description: 'Clase de Entrenamiento.',
-          time: '08:00',
-          day: 'Lunes',
-          date: initialDate,
-          duration: 75,
-          capacity: 24,
-          attendees: [{uid: 'user-xxx', name: 'Alex', photoURL: `https://api.dicebear.com/8.x/bottts/svg?seed=alex`}]
-        });
-        currentClasses.push({
-          id: anotherClassId,
-          name: 'Entrenamiento',
-          description: 'Clase de Entrenamiento.',
-          time: '09:15',
-          day: 'Miércoles',
-          date: format(addDays(monday, 2), 'yyyy-MM-dd'),
-          duration: 75,
-          capacity: 24,
-          attendees: [{uid: 'user-yyy', name: 'Sara', photoURL: `https://api.dicebear.com/8.x/bottts/svg?seed=sara`}]
-        });
-
-        sessionStorage.setItem('allClasses', JSON.stringify(currentClasses));
       }
+      
       setAllClasses(currentClasses);
       setIsLoading(false);
     };

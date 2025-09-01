@@ -91,7 +91,7 @@ export default function ClassCard({ classInfo, user, userBookings, onBookingUpda
   };
 
   const processBooking = async (oldClassIdToCancel?: string) => {
-    if (!user || !auth.currentUser) return; // Should be logged in at this point
+    if (!user || !auth.currentUser || !onBookingUpdate) return;
 
     setIsBooking(true);
 

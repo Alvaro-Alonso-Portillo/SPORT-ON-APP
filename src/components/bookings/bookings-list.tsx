@@ -174,7 +174,7 @@ export default function BookingsList() {
   }
 
   return (
-    <AlertDialog>
+    <AlertDialog open={!!bookingToCancel} onOpenChange={(open) => !open && setBookingToCancel(null)}>
       <div className="space-y-8">
         {Object.entries(groupedBookings).map(([day, dayBookings]) => (
           <div key={day} className="bg-card rounded-lg shadow-sm">

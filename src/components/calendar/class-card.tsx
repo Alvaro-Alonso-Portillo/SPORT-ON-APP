@@ -106,15 +106,16 @@ export default function ClassCard({ classInfo, user, userBookings, onBookingUpda
               <span className="text-lg md:text-xl font-bold font-headline text-card-foreground">{classInfo.time}</span>
           </div>
           
-          <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 gap-2 mb-4">
+          <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2 mb-4">
               {classInfo.attendees.map((attendee) => (
                   <Dialog key={attendee.uid}>
                     <DialogTrigger asChild>
-                      <div className="flex flex-col items-center justify-center p-1 text-center cursor-pointer group">
-                          <Avatar className="h-10 w-10 sm:h-12 sm:w-12 mb-1 border-2 border-transparent group-hover:border-primary transition-all">
+                      <div className="flex flex-col items-center justify-center text-center cursor-pointer group w-16">
+                          <Avatar className="h-12 w-12 mb-1 border-2 border-transparent group-hover:border-primary transition-all">
                             <AvatarImage src={attendee.photoURL} />
                             <AvatarFallback>{attendee.name.charAt(0)}</AvatarFallback>
                           </Avatar>
+                           <p className="text-xs text-muted-foreground truncate w-full">{attendee.name}</p>
                       </div>
                     </DialogTrigger>
                     <DialogContent className="sm:max-w-[425px]">
@@ -129,7 +130,7 @@ export default function ClassCard({ classInfo, user, userBookings, onBookingUpda
                   </Dialog>
               ))}
                {Array.from({ length: classInfo.capacity - classInfo.attendees.length }).map((_, i) => (
-                  <div key={`empty-${i}`} className="h-10 w-10 sm:h-12 sm:w-12 bg-muted rounded-full"></div>
+                  <div key={`empty-${i}`} className="h-12 w-12 bg-muted rounded-full"></div>
               ))}
           </div>
 

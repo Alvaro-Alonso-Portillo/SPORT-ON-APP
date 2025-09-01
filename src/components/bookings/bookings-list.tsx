@@ -5,8 +5,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/hooks/use-auth";
-import type { Booking, ClassInfo } from "@/types";
-import { MOCK_CLASSES, MOCK_USER_BOOKINGS } from "@/lib/mock-data";
+import type { Booking, ClassInfo, Attendee } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2, CalendarX, CalendarPlus, MoreHorizontal, Trash2 } from "lucide-react";
@@ -27,13 +26,55 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-type PopulatedBooking = Booking & { classInfo: ClassInfo };
+const timeSlots = [
+    "08:00", "09:15", "10:30", "11:45", "13:00", 
+    "14:15", "17:00", "18:15", "19:30", "20:45"
+];
+
+const daysOfWeek = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"];
+
+// NOTE: This is a simplified, temporary state management. 
+// In a real app, this should come from a shared state (like Context or Zustand) or be fetched from the DB.
+const generateAllPossibleClasses = (): ClassInfo[] => {
+  const allClasses: ClassInfo[] = [];
+  daysOfWeek.forEach(day => {
+    timeSlots.forEach(time => {
+      const classId = `${day.toLowerCase().substring(0,3)}-${time.replace(':', '')}`;
+      allClasses.push({
+        id: classId,
+        name: 'Entrenamiento',
+        description: 'Clase de Entrenamiento.',
+        time: time,
+        day: day,
+        duration: 75,
+        capacity: 24,
+        attendees: [],
+      });
+    });
+  });
+  // Simulate some attendees for initial state
+  if (typeof window !== 'undefined' && !sessionStorage.getItem('classesInitialized')) {
+    allClasses[0].attendees.push({uid: 'user-xxx', name: 'Alex'});
+    allClasses[5].attendees.push({uid: 'user-yyy', name: 'Sara'});
+    sessionStorage.setItem('classesInitialized', 'true');
+  }
+  return allClasses;
+};
+
+
+type PopulatedBooking = {
+    id: string;
+    userId: string;
+    classId: string;
+    classInfo: ClassInfo;
+};
 
 export default function BookingsList() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [bookings, setBookings] = useState<PopulatedBooking[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [allClasses, setAllClasses] = useState<ClassInfo[]>([]);
   const [bookingToCancel, setBookingToCancel] = useState<PopulatedBooking | null>(null);
 
   useEffect(() => {
@@ -45,15 +86,25 @@ export default function BookingsList() {
 
     const fetchBookings = async () => {
       setIsLoading(true);
-      await new Promise(res => setTimeout(res, 500)); 
 
-      const userBookings = MOCK_USER_BOOKINGS.filter(b => b.userId === 'user-123');
-      const populatedBookings = userBookings.map(booking => {
-        const classInfo = MOCK_CLASSES.find(c => c.id === booking.classId);
-        return { ...booking, classInfo: classInfo! };
-      }).filter(b => b.classInfo);
+      // In a real app, this would be a fetch call. Here we simulate it.
+      // We retrieve the state from sessionStorage to reflect calendar changes.
+      const storedClasses = sessionStorage.getItem('allClasses');
+      const currentClasses = storedClasses ? JSON.parse(storedClasses) : generateAllPossibleClasses();
+      setAllClasses(currentClasses);
+
+      const userBookings = currentClasses
+        .filter((classInfo: ClassInfo) => 
+            classInfo.attendees.some((attendee: Attendee) => attendee.uid === user.uid)
+        )
+        .map((classInfo: ClassInfo, index: number) => ({
+            id: `booking-${user.uid}-${classInfo.id}-${index}`,
+            userId: user.uid,
+            classId: classInfo.id,
+            classInfo: classInfo,
+        }));
       
-      setBookings(populatedBookings);
+      setBookings(userBookings);
       setIsLoading(false);
     };
 
@@ -61,7 +112,14 @@ export default function BookingsList() {
   }, [user, authLoading, router]);
 
   const groupedBookings = useMemo(() => {
-    return bookings.reduce((acc, booking) => {
+    const sortedBookings = [...bookings].sort((a, b) => {
+        const dayA = daysOfWeek.indexOf(a.classInfo.day);
+        const dayB = daysOfWeek.indexOf(b.classInfo.day);
+        if (dayA !== dayB) return dayA - dayB;
+        return a.classInfo.time.localeCompare(b.classInfo.time);
+    });
+
+    return sortedBookings.reduce((acc, booking) => {
       const day = booking.classInfo.day;
       if (!acc[day]) {
         acc[day] = [];
@@ -72,7 +130,19 @@ export default function BookingsList() {
   }, [bookings]);
 
   const handleCancel = () => {
-    if (bookingToCancel) {
+    if (bookingToCancel && user) {
+        const updatedClasses = allClasses.map(c => {
+            if (c.id === bookingToCancel.classId) {
+                return {
+                    ...c,
+                    attendees: c.attendees.filter(a => a.uid !== user.uid)
+                }
+            }
+            return c;
+        });
+      setAllClasses(updatedClasses);
+      sessionStorage.setItem('allClasses', JSON.stringify(updatedClasses));
+
       setBookings(prev => prev.filter(b => b.id !== bookingToCancel.id));
       setBookingToCancel(null);
     }

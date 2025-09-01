@@ -51,19 +51,30 @@ export default function WeeklyCalendar() {
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
-      await new Promise(res => setTimeout(res, 500));
-      const generatedClasses = generateAllPossibleClasses();
-      // Simulate some attendees
-      generatedClasses[0].attendees.push({uid: 'user-xxx', name: 'Alex'});
-      generatedClasses[5].attendees.push({uid: 'user-yyy', name: 'Sara'});
-      setAllClasses(generatedClasses);
+      
+      // Attempt to load class state from sessionStorage
+      const storedClasses = sessionStorage.getItem('allClasses');
+      if (storedClasses) {
+        setAllClasses(JSON.parse(storedClasses));
+      } else {
+        // If nothing in storage, generate initial state and add mocks
+        const generatedClasses = generateAllPossibleClasses();
+        generatedClasses[0].attendees.push({uid: 'user-xxx', name: 'Alex'});
+        generatedClasses[5].attendees.push({uid: 'user-yyy', name: 'Sara'});
+        setAllClasses(generatedClasses);
+        sessionStorage.setItem('allClasses', JSON.stringify(generatedClasses));
+      }
       
       if (user) {
-        // Here you would fetch actual user bookings
-        setUserBookings([]); 
+        // Filter bookings for the current user
+        const currentUserBookings = (JSON.parse(sessionStorage.getItem('allClasses') || '[]') as ClassInfo[])
+            .filter(c => c.attendees.some(a => a.uid === user.uid))
+            .map(c => c.id);
+        setUserBookings(currentUserBookings);
       } else {
         setUserBookings([]);
       }
+
       setIsLoading(false);
     };
 
@@ -78,16 +89,22 @@ export default function WeeklyCalendar() {
   }, [currentDate]);
 
   const selectedDayName = useMemo(() => {
-      return format(currentDate, 'eeee', { locale: es });
+      const day = format(currentDate, 'eeee', { locale: es });
+      // Capitalize the first letter
+      return day.charAt(0).toUpperCase() + day.slice(1);
   }, [currentDate]);
+
 
   const filteredClasses = useMemo(() => {
     return allClasses.filter(c => c.day.toLowerCase() === selectedDayName.toLowerCase() && c.time === selectedTime);
   }, [allClasses, selectedDayName, selectedTime]);
 
   const handleBookingUpdate = (classId: string, newAttendees: Attendee[], newBookings: string[]) => {
-      setAllClasses(prev => prev.map(c => c.id === classId ? { ...c, attendees: newAttendees } : c));
+      const updatedClasses = allClasses.map(c => c.id === classId ? { ...c, attendees: newAttendees } : c);
+      setAllClasses(updatedClasses);
       setUserBookings(newBookings);
+      // Persist changes to sessionStorage
+      sessionStorage.setItem('allClasses', JSON.stringify(updatedClasses));
   };
 
   if (isLoading || authLoading) {
@@ -104,7 +121,7 @@ export default function WeeklyCalendar() {
         <CalendarIcon className="h-6 w-6 text-primary" />
         <div>
           <p className="text-sm text-muted-foreground">DÍA</p>
-          <p className="font-semibold capitalize">Hoy, {format(currentDate, 'eeee dd/MM', { locale: es })}</p>
+          <p className="font-semibold capitalize">{format(currentDate, 'eeee dd/MM', { locale: es })}</p>
         </div>
       </div>
 

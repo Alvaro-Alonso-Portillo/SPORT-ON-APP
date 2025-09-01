@@ -16,8 +16,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
-  DialogFooter,
 } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -29,25 +27,35 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { isPast, parseISO, format } from 'date-fns';
+import { isPast, parseISO } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 
 interface ClassCardProps {
   classInfo: ClassInfo;
   user: User | null;
   userBookings: string[];
-  onBookingUpdate: (classInfo: ClassInfo, attendee: Attendee | null, oldClassId?: string) => Promise<void>;
+  onBookingUpdate: (classInfo: ClassInfo, newAttendee: Attendee | null, oldClassId?: string) => Promise<void>;
   dailyClasses: ClassInfo[];
   onTimeSelect: (time: string) => void;
+  changingBookingId: string | null;
+  setChangingBookingId: (id: string | null) => void;
 }
 
-export default function ClassCard({ classInfo, user, userBookings, onBookingUpdate, dailyClasses, onTimeSelect }: ClassCardProps) {
+export default function ClassCard({ 
+  classInfo, 
+  user, 
+  userBookings, 
+  onBookingUpdate, 
+  dailyClasses, 
+  onTimeSelect,
+  changingBookingId,
+  setChangingBookingId
+}: ClassCardProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [isBooking, setIsBooking] = useState(false);
   const [showFullClassDialog, setShowFullClassDialog] = useState(false);
-  const [showChangeBookingDialog, setShowChangeBookingDialog] = useState(false);
-  const [existingBooking, setExistingBooking] = useState<string | null>(null);
 
   const isBookedByUser = user ? userBookings.includes(classInfo.id) : false;
   const isFull = classInfo.attendees.length >= classInfo.capacity;
@@ -60,6 +68,10 @@ export default function ClassCard({ classInfo, user, userBookings, onBookingUpda
   }
   
   const isClassPast = isPast(getClassDateTime(classInfo.date, classInfo.time));
+  const isChangingMode = !!changingBookingId;
+  const isThisClassBeingChanged = changingBookingId === classInfo.id;
+  const isSelectableForChange = isChangingMode && !isFull && !isBookedByUser && !isThisClassBeingChanged;
+
 
   const findNextAvailableClass = () => {
     const currentTimeIndex = dailyClasses.findIndex(c => c.time === classInfo.time);
@@ -77,61 +89,122 @@ export default function ClassCard({ classInfo, user, userBookings, onBookingUpda
   const nextAvailableClass = findNextAvailableClass();
 
   const handleBookingAction = async () => {
-    if (!user || !auth.currentUser) {
+    if (!user) {
       router.push('/login');
       return;
     }
-    
-    if (!isBookedByUser && isFull) {
-        setShowFullClassDialog(true);
+
+    if (isBookedByUser) {
+        setChangingBookingId(classInfo.id);
         return;
     }
-
-    // Check for existing booking on the same day
-    if (!isBookedByUser) {
-        const bookingOnSameDay = userBookings.find(bookingId => bookingId.startsWith(classInfo.date));
-        if (bookingOnSameDay) {
-            setExistingBooking(bookingOnSameDay);
-            setShowChangeBookingDialog(true);
-            return;
-        }
+    
+    if (isFull) {
+        setShowFullClassDialog(true);
+        return;
     }
 
     await processBooking();
   };
 
-  const processBooking = async (oldClassIdToCancel?: string) => {
-    if (!user || !auth.currentUser || !onBookingUpdate) return;
+  const handleUpdateBooking = async () => {
+      if (!user || !changingBookingId) return;
+
+      setIsBooking(true);
+      try {
+           await auth.currentUser?.reload();
+           const userName = auth.currentUser?.displayName || auth.currentUser?.email?.split('@')[0] || "Usuario";
+           const newAttendee: Attendee = {
+              uid: user.uid,
+              name: userName,
+              photoURL: auth.currentUser?.photoURL || `https://api.dicebear.com/8.x/bottts/svg?seed=${user.uid}`
+            };
+
+           await onBookingUpdate(classInfo, newAttendee, changingBookingId);
+           toast({ title: "¡Reserva modificada!", description: `Has cambiado tu reserva a ${classInfo.name} a las ${classInfo.time}.` });
+      } catch (error: any) {
+           toast({ variant: "destructive", title: "Error", description: error.message || "Ha ocurrido un error al procesar tu solicitud." });
+      } finally {
+          setIsBooking(false);
+          setChangingBookingId(null);
+      }
+  }
+
+
+  const processBooking = async () => {
+    if (!user || !auth.currentUser) return;
+    if (!onBookingUpdate) return;
 
     setIsBooking(true);
 
     try {
-        if (isBookedByUser) {
-            await onBookingUpdate(classInfo, null);
-            toast({ title: "Reserva cancelada", description: `Has cancelado tu plaza en ${classInfo.name}.` });
-        } else {
-            await auth.currentUser.reload();
-            const userName = auth.currentUser.displayName || auth.currentUser.email?.split('@')[0] || "Usuario";
-            const newAttendee: Attendee = {
-              uid: user.uid,
-              name: userName,
-              photoURL: auth.currentUser.photoURL || `https://api.dicebear.com/8.x/bottts/svg?seed=${user.uid}`
-            };
-            await onBookingUpdate(classInfo, newAttendee, oldClassIdToCancel);
-            toast({ title: "¡Reserva confirmada!", description: `Has reservado tu plaza para ${classInfo.name} a las ${classInfo.time}.` });
-        }
+        await auth.currentUser.reload();
+        const userName = auth.currentUser.displayName || auth.currentUser.email?.split('@')[0] || "Usuario";
+        const newAttendee: Attendee = {
+          uid: user.uid,
+          name: userName,
+          photoURL: auth.currentUser.photoURL || `https://api.dicebear.com/8.x/bottts/svg?seed=${user.uid}`
+        };
+        await onBookingUpdate(classInfo, newAttendee);
+        toast({ title: "¡Reserva confirmada!", description: `Has reservado tu plaza para ${classInfo.name} a las ${classInfo.time}.` });
     } catch (error: any) {
         toast({ variant: "destructive", title: "Error", description: error.message || "Ha ocurrido un error al procesar tu solicitud." });
     } finally {
         setIsBooking(false);
-        setShowChangeBookingDialog(false);
-        setExistingBooking(null);
     }
+  }
+  
+  const renderButton = () => {
+    if (isThisClassBeingChanged) {
+        return (
+            <Button 
+                onClick={() => setChangingBookingId(null)}
+                variant="outline"
+                className="w-full"
+            >
+                Cancelar Cambio
+            </Button>
+        );
+    }
+
+    if (isSelectableForChange) {
+         return (
+             <Button
+                onClick={handleUpdateBooking}
+                disabled={isBooking}
+                className="w-full"
+             >
+                {isBooking ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Elegir esta hora'}
+             </Button>
+         )
+    }
+
+    return (
+        <Button 
+            onClick={handleBookingAction}
+            disabled={isBooking || isClassPast || (isChangingMode && !isBookedByUser)}
+            variant={isBookedByUser ? "default" : "default"}
+            className="w-full"
+        >
+            {isBooking ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+            ) : isBookedByUser ? (
+                'Cambiar Reserva'
+            ) : isFull ? (
+                'Llena'
+            ) : (
+                'Reservar'
+            )}
+        </Button>
+    )
   }
 
   return (
     <>
-      <div className="bg-card p-2 rounded-lg shadow-sm text-card-foreground border-t-4 border-primary">
+      <div className={cn(
+        "bg-card p-2 rounded-lg shadow-sm text-card-foreground border-t-4 border-primary transition-all",
+        isSelectableForChange && "border-2 border-green-500 ring-2 ring-green-500/20"
+      )}>
           <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg md:text-xl font-bold font-headline text-primary">{classInfo.name}</h3>
               <span className="text-lg md:text-xl font-bold font-headline text-card-foreground">{classInfo.time}</span>
@@ -170,21 +243,9 @@ export default function ClassCard({ classInfo, user, userBookings, onBookingUpda
                   <Users className="h-4 w-4" />
                   <span>{classInfo.attendees.length} / {classInfo.capacity}</span>
               </div>
-              <Button 
-                  onClick={handleBookingAction}
-                  disabled={isBooking || isClassPast}
-                  variant={isBookedByUser ? "destructive" : "default"}
-              >
-                  {isBooking ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : isBookedByUser ? (
-                      'Cancelar'
-                  ) : isFull ? (
-                      'Llena'
-                  ) : (
-                      'Reservar'
-                  )}
-              </Button>
+              <div className="w-1/2">
+                {renderButton()}
+              </div>
           </div>
       </div>
       <Dialog open={showFullClassDialog} onOpenChange={setShowFullClassDialog}>
@@ -218,21 +279,6 @@ export default function ClassCard({ classInfo, user, userBookings, onBookingUpda
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      <AlertDialog open={showChangeBookingDialog} onOpenChange={setShowChangeBookingDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Ya tienes una reserva este día</AlertDialogTitle>
-            <AlertDialogDescription>
-                Ya tienes una reserva para el {classInfo.date}. ¿Te gustaría cancelar la reserva existente y reservar esta en su lugar?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setShowChangeBookingDialog(false)}>No, mantener la actual</AlertDialogCancel>
-            <AlertDialogAction onClick={() => processBooking(existingBooking ?? undefined)}>Sí, cambiar reserva</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </>
   );
 }

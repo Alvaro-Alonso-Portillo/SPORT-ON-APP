@@ -78,6 +78,7 @@ function WeeklyCalendarInternal() {
   const [isLoading, setIsLoading] = useState(true);
   
   const [currentDate, setCurrentDate] = useState(getInitialDate);
+  const [changingBookingId, setChangingBookingId] = useState<string | null>(null);
   
   const [isScrolling, setIsScrolling] = useState(false);
 
@@ -241,9 +242,11 @@ function WeeklyCalendarInternal() {
             const newClassDocRef = doc(db, "classes", classInfo.id);
             let oldClassDocRef;
             let oldClassDoc;
+            let newClassDoc;
 
             // --- ALL READS FIRST ---
-            const newClassDoc = await transaction.get(newClassDocRef);
+            newClassDoc = await transaction.get(newClassDocRef);
+
             if (oldClassId) {
                 oldClassDocRef = doc(db, "classes", oldClassId);
                 oldClassDoc = await transaction.get(oldClassDocRef);
@@ -363,6 +366,8 @@ function WeeklyCalendarInternal() {
                 onBookingUpdate={handleBookingUpdate}
                 dailyClasses={dailyClasses}
                 onTimeSelect={handleTimeSelect}
+                changingBookingId={changingBookingId}
+                setChangingBookingId={setChangingBookingId}
               />
             </div>
           ))

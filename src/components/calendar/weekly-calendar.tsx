@@ -2,19 +2,19 @@
 "use client";
 
 import * as React from "react";
-import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useSearchParams } from 'next/navigation'
 import type { ClassInfo, Attendee } from "@/types";
 import { useAuth } from "@/hooks/use-auth";
 import { db } from "@/lib/firebase";
 import { collection, doc, getDocs, query, runTransaction, where, arrayRemove, arrayUnion } from "firebase/firestore";
-import { Loader2, Calendar as CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react";
+import { Loader2, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Users } from "lucide-react";
 import { format, startOfWeek, addDays, isBefore, subDays, parseISO, isToday, isTomorrow, endOfWeek, startOfDay, isValid } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 import DaySelector from "./day-selector";
 import TimeSelector from "./time-selector";
-import ClassCard from "./class-card";
+import BookingConfirmationModal from "./booking-confirmation-modal";
 import { Button } from "../ui/button";
 import { useToast } from "@/hooks/use-toast";
 
@@ -76,15 +76,8 @@ function WeeklyCalendarInternal() {
 
   const [allClasses, setAllClasses] = useState<ClassInfo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  
   const [currentDate, setCurrentDate] = useState(getInitialDate);
-  const [changingBookingId, setChangingBookingId] = useState<string | null>(null);
-  
-  const [isScrolling, setIsScrolling] = useState(false);
-
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const classCardRefs = useRef<Record<string, HTMLDivElement | null>>({});
-  const observer = useRef<IntersectionObserver | null>(null);
+  const [classToBook, setClassToBook] = useState<ClassInfo | null>(null);
   
   const startOfCurrentWeek = useMemo(() => startOfWeek(currentDate, { weekStartsOn: 1 }), [currentDate]);
   const endOfCurrentWeek = useMemo(() => endOfWeek(currentDate, { weekStartsOn: 1 }), [currentDate]);
@@ -145,11 +138,6 @@ function WeeklyCalendarInternal() {
     setCurrentDate(subDays(startOfCurrentWeek, 7));
   };
 
-  const selectedDayName = useMemo(() => {
-      const day = format(currentDate, 'eeee', { locale: es });
-      return day.charAt(0).toUpperCase() + day.slice(1);
-  }, [currentDate]);
-
   const formattedSelectedDate = useMemo(() => {
     if (isToday(currentDate)) {
       return `Hoy, ${format(currentDate, 'd MMMM', { locale: es })}`;
@@ -177,67 +165,21 @@ function WeeklyCalendarInternal() {
     
     return generated;
   }, [currentDate, allClasses]);
-  
-  const timeSlots = useMemo(() => {
-    return dailyClasses.map(c => c.time);
-  }, [dailyClasses]);
-  
-  const [selectedTime, setSelectedTime] = useState(timeSlots[0] || "");
 
-  useEffect(() => {
-    if (timeSlots.length > 0 && !timeSlots.includes(selectedTime)) {
-        setSelectedTime(timeSlots[0]);
-    } else if (timeSlots.length === 0) {
-        setSelectedTime("");
-    }
-  }, [timeSlots, selectedTime]);
-
-  // Scroll Spy Logic
-  useEffect(() => {
-    const handleIntersect = (entries: IntersectionObserverEntry[]) => {
-      if (isScrolling) return;
-
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          const time = entry.target.getAttribute('data-time');
-          if (time) {
-            setSelectedTime(time);
-          }
-        }
-      });
-    };
-    
-    observer.current = new IntersectionObserver(handleIntersect, {
-      root: scrollContainerRef.current,
-      rootMargin: '-50% 0px -50% 0px', // Center of the viewport
-      threshold: 0,
-    });
-
-    const currentObserver = observer.current;
-    Object.values(classCardRefs.current).forEach(el => {
-      if (el) currentObserver.observe(el);
-    });
-
-    return () => {
-      currentObserver.disconnect();
-    };
-  }, [dailyClasses, isScrolling]);
-
-
-  const handleTimeSelect = useCallback((time: string) => {
-    setIsScrolling(true);
-    setSelectedTime(time);
-    const targetRef = classCardRefs.current[time];
-    if (targetRef) {
-      targetRef.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-    setTimeout(() => setIsScrolling(false), 1000);
-  }, []);
+  const handleTimeSelect = useCallback((classInfo: ClassInfo) => {
+      if (!user) {
+        toast({
+            title: "Acción requerida",
+            description: "Debes iniciar sesión para reservar una clase.",
+        });
+        return;
+      }
+      setClassToBook(classInfo);
+  }, [user, toast]);
 
   const handleBookingUpdate = async (classInfo: ClassInfo, newAttendee: Attendee | null, oldClassId?: string) => {
     if (!user) return;
     
-    // For new bookings (not cancellations), check the one-booking-per-day rule
     if (newAttendee) {
       const userHasBookingOnThisDay = userBookings.some(bookingId => 
           bookingId.startsWith(classInfo.date) && bookingId !== oldClassId
@@ -256,29 +198,9 @@ function WeeklyCalendarInternal() {
     try {
         await runTransaction(db, async (transaction) => {
             const classDocRef = doc(db, "classes", classInfo.id);
-            
-            // --- ALL READS FIRST ---
             const classDoc = await transaction.get(classDocRef);
-            let oldClassDoc;
-            if (oldClassId) {
-                const oldClassDocRef = doc(db, "classes", oldClassId);
-                oldClassDoc = await transaction.get(oldClassDocRef);
-            }
             
-            // --- THEN ALL WRITES ---
-
-            // 1. Handle cancellation of the old class if it's a booking change
-            if (oldClassId && oldClassDoc?.exists()) {
-                const oldClassDocRef = doc(db, "classes", oldClassId);
-                const oldClassData = oldClassDoc.data() as ClassInfo;
-                const attendeeToRemove = oldClassData.attendees.find(a => a.uid === user.uid);
-                if (attendeeToRemove) {
-                    transaction.update(oldClassDocRef, { attendees: arrayRemove(attendeeToRemove) });
-                }
-            }
-            
-            // 2. Handle the new booking or cancellation
-            if (newAttendee) { // It's a booking or a change
+            if (newAttendee) { 
                 if (!classDoc.exists()) {
                     const newClassData = { ...classInfo, attendees: [newAttendee] };
                     transaction.set(classDocRef, newClassData);
@@ -292,23 +214,11 @@ function WeeklyCalendarInternal() {
                     }
                     transaction.update(classDocRef, { attendees: arrayUnion(newAttendee) });
                 }
-            } else { // It's a cancellation
-                 if (classDoc.exists()) {
-                    const classData = classDoc.data() as ClassInfo;
-                    const attendeeToRemove = classData.attendees.find(a => a.uid === user.uid);
-                    if (attendeeToRemove) {
-                       transaction.update(classDocRef, { attendees: arrayRemove(attendeeToRemove) });
-                    }
-                 }
             }
         });
 
         if (newAttendee) {
-           if (oldClassId) {
-               toast({ title: "¡Reserva modificada!", description: `Has cambiado tu reserva a ${classInfo.name} a las ${classInfo.time}.` });
-           } else {
-               toast({ title: "¡Reserva confirmada!", description: `Has reservado tu plaza para ${classInfo.name} a las ${classInfo.time}.` });
-           }
+            toast({ title: "¡Reserva confirmada!", description: `Has reservado tu plaza para ${classInfo.name} a las ${classInfo.time}.` });
         }
         
         await fetchClasses();
@@ -321,6 +231,8 @@ function WeeklyCalendarInternal() {
             description: error.message || "No se pudo actualizar la reserva. Por favor, inténtalo de nuevo.",
         });
         await fetchClasses();
+    } finally {
+        setClassToBook(null);
     }
   };
 
@@ -358,46 +270,32 @@ function WeeklyCalendarInternal() {
           weekDates={weekDates}
           isDateDisabled={isDateDisabled}
         />
-        
-        {timeSlots.length > 0 && (
-            <TimeSelector
-              timeSlots={timeSlots}
-              selectedTime={selectedTime}
-              onTimeSelect={handleTimeSelect}
-            />
-        )}
       </div>
 
-      <div ref={scrollContainerRef} className="mt-6 flex-1 overflow-y-auto scroll-smooth p-4 md:p-0">
-        {selectedDayName === "Sábado" || selectedDayName === "Domingo" ? (
-             <div className="text-center py-10">
-                <p className="text-muted-foreground">No hay clases programadas para el {selectedDayName}.</p>
-             </div>
-        ) : dailyClasses.length > 0 ? (
-          dailyClasses.map(classInfo => (
-            <div 
-              key={classInfo.id} 
-              ref={el => classCardRefs.current[classInfo.time] = el}
-              data-time={classInfo.time}
-            >
-              <ClassCard 
-                classInfo={classInfo}
-                user={user}
-                userBookings={userBookings}
-                onBookingUpdate={handleBookingUpdate}
-                dailyClasses={dailyClasses}
-                onTimeSelect={handleTimeSelect}
-                changingBookingId={changingBookingId}
-                setChangingBookingId={setChangingBookingId}
-              />
-            </div>
-          ))
-        ) : (
+      <div className="mt-6 flex-1 overflow-y-auto scroll-smooth p-4 md:p-0">
+         {dailyClasses.length > 0 ? (
+            <TimeSelector
+              dailyClasses={dailyClasses}
+              onTimeSelect={handleTimeSelect}
+              userBookings={userBookings}
+              user={user}
+            />
+         ) : (
           <div className="text-center py-10">
-            <p className="text-muted-foreground">No hay más clases disponibles para hoy.</p>
+            <p className="text-muted-foreground">No hay clases programadas o disponibles para este día.</p>
           </div>
         )}
       </div>
+
+      {classToBook && (
+          <BookingConfirmationModal
+            classInfo={classToBook}
+            isOpen={!!classToBook}
+            onClose={() => setClassToBook(null)}
+            onConfirm={handleBookingUpdate}
+            user={user}
+          />
+      )}
     </div>
   );
 }

@@ -106,34 +106,16 @@ export default function ClassCard({
         return;
     }
 
-    await processBooking();
+    await processBooking(false);
   };
 
   const handleUpdateBooking = async () => {
       if (!user || !changingBookingId) return;
-
-      setIsBooking(true);
-      try {
-           await auth.currentUser?.reload();
-           const userName = auth.currentUser?.displayName || auth.currentUser?.email?.split('@')[0] || "Usuario";
-           const newAttendee: Attendee = {
-              uid: user.uid,
-              name: userName,
-              photoURL: auth.currentUser?.photoURL || `https://api.dicebear.com/8.x/bottts/svg?seed=${user.uid}`
-            };
-
-           await onBookingUpdate(classInfo, newAttendee, changingBookingId);
-           toast({ title: "¡Reserva modificada!", description: `Has cambiado tu reserva a ${classInfo.name} a las ${classInfo.time}.` });
-      } catch (error: any) {
-           toast({ variant: "destructive", title: "Error", description: error.message || "Ha ocurrido un error al procesar tu solicitud." });
-      } finally {
-          setIsBooking(false);
-          setChangingBookingId(null);
-      }
+      await processBooking(true, changingBookingId);
   }
 
 
-  const processBooking = async () => {
+  const processBooking = async (isUpdate: boolean, oldClassId?: string) => {
     if (!user || !auth.currentUser) return;
     if (!onBookingUpdate) return;
 
@@ -147,8 +129,15 @@ export default function ClassCard({
           name: userName,
           photoURL: auth.currentUser.photoURL || `https://api.dicebear.com/8.x/bottts/svg?seed=${user.uid}`
         };
-        await onBookingUpdate(classInfo, newAttendee);
-        toast({ title: "¡Reserva confirmada!", description: `Has reservado tu plaza para ${classInfo.name} a las ${classInfo.time}.` });
+        await onBookingUpdate(classInfo, newAttendee, oldClassId);
+        
+        if (isUpdate) {
+            toast({ title: "¡Reserva modificada!", description: `Has cambiado tu reserva a ${classInfo.name} a las ${classInfo.time}.` });
+            setChangingBookingId(null);
+        } else {
+            toast({ title: "¡Reserva confirmada!", description: `Has reservado tu plaza para ${classInfo.name} a las ${classInfo.time}.` });
+        }
+
     } catch (error: any) {
         toast({ variant: "destructive", title: "Error", description: error.message || "Ha ocurrido un error al procesar tu solicitud." });
     } finally {
@@ -176,7 +165,14 @@ export default function ClassCard({
                 disabled={isBooking}
                 className="w-full"
              >
-                {isBooking ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Elegir esta hora'}
+                {isBooking ? (
+                    <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Cambiando...
+                    </>
+                ) : (
+                    'Elegir esta hora'
+                )}
              </Button>
          )
     }
@@ -189,7 +185,10 @@ export default function ClassCard({
             className="w-full"
         >
             {isBooking ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                 <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Reservando...
+                 </>
             ) : isBookedByUser ? (
                 'Cambiar Reserva'
             ) : isFull ? (

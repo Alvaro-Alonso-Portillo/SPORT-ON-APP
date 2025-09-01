@@ -15,8 +15,11 @@ import { useEffect, useState } from "react";
 import { doc, onSnapshot } from "firebase/firestore";
 import type { UserProfile } from "@/types";
 
+interface SidebarContentProps {
+  onLinkClick?: () => void;
+}
 
-export default function SidebarContent() {
+export default function SidebarContent({ onLinkClick }: SidebarContentProps) {
   const { user, loading } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
@@ -38,6 +41,7 @@ export default function SidebarContent() {
 
 
   const handleSignOut = async () => {
+    if (onLinkClick) onLinkClick();
     await signOut(auth);
     router.push("/login");
   };
@@ -85,7 +89,7 @@ export default function SidebarContent() {
           </div>
           <div className="p-6">
               <p className="text-muted-foreground mb-4">Inicia sesión para ver tu calendario y gestionar tus reservas.</p>
-              <Button asChild>
+              <Button asChild onClick={onLinkClick}>
                   <Link href="/login">
                       <LogIn className="mr-2 h-4 w-4" />
                       Iniciar Sesión
@@ -99,7 +103,7 @@ export default function SidebarContent() {
   return (
     <div className="flex flex-col h-full bg-card text-card-foreground">
         <div className="p-6 border-b">
-             <Link href="/" className="text-3xl font-headline font-bold">
+             <Link href="/" onClick={onLinkClick} className="text-3xl font-headline font-bold">
                 Sport <span className="text-primary">ON</span>
             </Link>
         </div>
@@ -120,6 +124,7 @@ export default function SidebarContent() {
                 <Link
                     key={link.href}
                     href={link.href}
+                    onClick={onLinkClick}
                     className={cn(
                         "flex items-center gap-3 rounded-lg px-3 py-3 text-muted-foreground transition-all hover:text-primary text-base font-medium",
                         pathname === link.href && "bg-accent text-primary"

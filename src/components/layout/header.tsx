@@ -2,13 +2,8 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { signOut } from "firebase/auth";
-import { LogIn, LogOut, User, Menu } from "lucide-react";
-import { useAuth } from "@/hooks/use-auth";
-import { auth } from "@/lib/firebase";
+import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   Sheet,
   SheetContent,
@@ -17,14 +12,6 @@ import {
 import SidebarContent from "./sidebar-content";
 
 export default function Header() {
-  const { user, loading } = useAuth();
-  const router = useRouter();
-
-  const handleSignOut = async () => {
-    await signOut(auth);
-    router.push("/login");
-  };
-
   return (
     <header className="bg-card shadow-sm sticky top-0 z-40 h-20 flex items-center px-4 md:px-8 border-b md:hidden">
       <div className="md:hidden">
@@ -34,7 +21,7 @@ export default function Header() {
               <Menu className="h-5 w-5" />
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="p-0">
+          <SheetContent side="left" className="p-0 w-[300px] sm:w-[350px]">
              <SidebarContent />
           </SheetContent>
         </Sheet>

@@ -26,7 +26,7 @@ export default function DaySelector({ currentDate, setCurrentDate, weekDates }: 
       <Carousel opts={{ align: "start", slidesToScroll: 1, dragFree: true }}>
         <CarouselContent className="-ml-2">
           {weekDates.map((day, index) => (
-            <CarouselItem key={index} className="basis-1/5 sm:basis-1/7 md:basis-[12%] pl-2">
+            <CarouselItem key={index} className="basis-1/3 sm:basis-1/5 md:basis-[12%] pl-2">
               <Button
                 variant={isSameDay(day, currentDate) ? "default" : "outline"}
                 className="w-full h-16 flex flex-col gap-1"
@@ -38,8 +38,8 @@ export default function DaySelector({ currentDate, setCurrentDate, weekDates }: 
             </CarouselItem>
           ))}
         </CarouselContent>
-        <CarouselPrevious className="absolute -left-4 top-1/2 -translate-y-1/2" />
-        <CarouselNext className="absolute -right-4 top-1/2 -translate-y-1/2" />
+        <CarouselPrevious className="absolute -left-4 top-1/2 -translate-y-1/2 hidden sm:flex" />
+        <CarouselNext className="absolute -right-4 top-1/2 -translate-y-1/2 hidden sm:flex" />
       </Carousel>
     </div>
   );

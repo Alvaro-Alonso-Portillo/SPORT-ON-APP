@@ -24,7 +24,7 @@ export default function TimeSelector({ timeSlots, selectedTime, setSelectedTime 
        <Carousel opts={{ align: "start", slidesToScroll: 3, dragFree: true }}>
         <CarouselContent className="-ml-2">
           {timeSlots.map((time, index) => (
-            <CarouselItem key={index} className="basis-1/4 sm:basis-1/6 md:basis-[15%] lg:basis-[12%] pl-2">
+            <CarouselItem key={index} className="basis-1/3 sm:basis-1/4 md:basis-1/5 lg:basis-[12%] pl-2">
               <Button
                 variant={selectedTime === time ? "default" : "ghost"}
                 className="w-full"
@@ -35,8 +35,8 @@ export default function TimeSelector({ timeSlots, selectedTime, setSelectedTime 
             </CarouselItem>
           ))}
         </CarouselContent>
-        <CarouselPrevious className="absolute -left-4 top-1/2 -translate-y-1/2" />
-        <CarouselNext className="absolute -right-4 top-1/2 -translate-y-1/2" />
+        <CarouselPrevious className="absolute -left-4 top-1/2 -translate-y-1/2 hidden sm:flex" />
+        <CarouselNext className="absolute -right-4 top-1/2 -translate-y-1/2 hidden sm:flex" />
       </Carousel>
     </div>
   );

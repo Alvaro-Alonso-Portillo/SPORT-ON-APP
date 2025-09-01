@@ -14,6 +14,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { doc, onSnapshot } from "firebase/firestore";
 import type { UserProfile } from "@/types";
+import { useToast } from "@/hooks/use-toast";
 
 interface SidebarContentProps {
   onLinkClick?: () => void;
@@ -23,6 +24,7 @@ export default function SidebarContent({ onLinkClick }: SidebarContentProps) {
   const { user, loading } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
+  const { toast } = useToast();
   const [profile, setProfile] = useState<UserProfile | null>(null);
 
   useEffect(() => {
@@ -42,8 +44,16 @@ export default function SidebarContent({ onLinkClick }: SidebarContentProps) {
 
   const handleSignOut = async () => {
     if (onLinkClick) onLinkClick();
-    await signOut(auth);
-    router.push("/login");
+    try {
+      await signOut(auth);
+      router.push("/login");
+    } catch (error) {
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: "No se pudo cerrar la sesión. Por favor, inténtalo de nuevo.",
+        });
+    }
   };
 
   const navLinks = [
@@ -60,7 +70,7 @@ export default function SidebarContent({ onLinkClick }: SidebarContentProps) {
         </div>
         <div className="p-2 border-b mb-2">
             <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-full bg-muted animate-pulse" />
+                <div className="h-12 w-12 rounded-md bg-muted animate-pulse" />
                 <div className="flex flex-col gap-2">
                     <div className="h-4 w-24 bg-muted animate-pulse rounded-md" />
                     <div className="h-3 w-32 bg-muted animate-pulse rounded-md" />

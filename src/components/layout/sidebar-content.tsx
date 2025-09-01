@@ -49,9 +49,9 @@ export default function SidebarContent() {
   ];
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full bg-card">
         <div className="p-6 border-b">
-             <Link href="/" className="text-3xl font-headline font-bold text-gray-800">
+             <Link href="/" className="text-3xl font-headline font-bold text-foreground">
                 Sport <span className="text-primary">ON</span>
             </Link>
         </div>

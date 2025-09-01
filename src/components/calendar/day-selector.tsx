@@ -3,7 +3,6 @@
 
 import { format, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import {
@@ -22,14 +21,14 @@ interface DaySelectorProps {
 
 export default function DaySelector({ currentDate, setCurrentDate, weekDates }: DaySelectorProps) {
   return (
-    <div className="relative mb-4">
-      <Carousel opts={{ align: "start", slidesToScroll: 1, dragFree: true }}>
+    <div className="relative mb-6">
+      <Carousel opts={{ align: "start", slidesToScroll: 3, dragFree: true }}>
         <CarouselContent className="-ml-2">
           {weekDates.map((day, index) => (
-            <CarouselItem key={index} className="basis-1/3 sm:basis-1/5 md:basis-[12%] pl-2">
+            <CarouselItem key={index} className="basis-1/4 sm:basis-1/5 md:basis-[12%] pl-2">
               <Button
-                variant={isSameDay(day, currentDate) ? "default" : "outline"}
-                className="w-full h-16 flex flex-col gap-1"
+                variant={isSameDay(day, currentDate) ? "default" : "secondary"}
+                className="w-full h-16 flex flex-col gap-1 rounded-md"
                 onClick={() => setCurrentDate(day)}
               >
                 <span className="text-xs capitalize font-light">{format(day, 'eee', { locale: es })}</span>

@@ -9,8 +9,6 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel"
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
-
 
 interface TimeSelectorProps {
   timeSlots: string[];
@@ -26,8 +24,8 @@ export default function TimeSelector({ timeSlots, selectedTime, setSelectedTime 
           {timeSlots.map((time, index) => (
             <CarouselItem key={index} className="basis-1/3 sm:basis-1/4 md:basis-1/5 lg:basis-[12%] pl-2">
               <Button
-                variant={selectedTime === time ? "default" : "ghost"}
-                className="w-full"
+                variant={selectedTime === time ? "default" : "outline"}
+                className="w-full rounded-full"
                 onClick={() => setSelectedTime(time)}
               >
                 {time}

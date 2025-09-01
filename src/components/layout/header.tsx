@@ -27,7 +27,7 @@ export default function Header() {
         </Sheet>
       </div>
       <div className="flex-1 text-center">
-          <Link href="/" className="text-3xl font-headline font-bold text-gray-800">
+          <Link href="/" className="text-3xl font-headline font-bold text-foreground">
             Sport <span className="text-primary">ON</span>
           </Link>
       </div>

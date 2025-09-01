@@ -79,22 +79,25 @@ export default function ClassCard({ classInfo, user, userBookings, onBookingUpda
 
 
   return (
-    <div className="bg-secondary p-4 rounded-lg border-l-4 border-primary mb-4">
+    <div className="bg-card p-4 rounded-lg border-t-4 border-primary mb-6 shadow-lg">
         <div className="flex justify-between items-center mb-4">
-            <h3 className="text-xl font-bold font-headline tracking-wider">{classInfo.name.toUpperCase()}</h3>
-            <span className="text-xl font-bold font-headline">{classInfo.time}</span>
+            <div className="flex items-center gap-3">
+              <div className="w-1 h-8 bg-primary rounded-full"></div>
+              <h3 className="text-2xl font-bold font-headline tracking-wider">{classInfo.name.toUpperCase()}</h3>
+            </div>
+            <span className="text-2xl font-bold font-headline">{classInfo.time}</span>
         </div>
         
         <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2 mb-4">
             {classInfo.attendees.map((attendee) => (
                 <Dialog key={attendee.uid}>
                   <DialogTrigger asChild>
-                    <div className="flex flex-col items-center justify-center p-1 text-center cursor-pointer">
-                        <Avatar className="h-16 w-16 mb-1 border-2 border-transparent hover:border-primary transition-all">
+                    <div className="flex flex-col items-center justify-center p-1 text-center cursor-pointer group">
+                        <Avatar className="h-16 w-16 mb-1 border-2 border-transparent group-hover:border-primary transition-all">
                           <AvatarImage src={attendee.photoURL} />
                           <AvatarFallback>{attendee.name.charAt(0)}</AvatarFallback>
                         </Avatar>
-                        <p className="text-base font-semibold text-primary truncate w-full">{attendee.name}</p>
+                        <p className="text-sm font-semibold text-foreground truncate w-full">{attendee.name}</p>
                     </div>
                   </DialogTrigger>
                   <DialogContent className="sm:max-w-[425px]">
@@ -109,11 +112,11 @@ export default function ClassCard({ classInfo, user, userBookings, onBookingUpda
                 </Dialog>
             ))}
              {Array.from({ length: classInfo.capacity - classInfo.attendees.length }).map((_, i) => (
-                <div key={`empty-${i}`} className="flex items-center justify-center h-[100px] w-full bg-muted/50 border-2 border-dashed border-muted-foreground/30 rounded-md"></div>
+                <div key={`empty-${i}`} className="flex items-center justify-center h-[90px] w-full bg-background border-2 border-dashed border-muted rounded-md"></div>
             ))}
         </div>
 
-        <div className="flex justify-between items-center">
+        <div className="flex justify-between items-center mt-6">
              <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Users className="h-4 w-4" />
                 <span>{classInfo.attendees.length} / {classInfo.capacity}</span>
@@ -122,7 +125,6 @@ export default function ClassCard({ classInfo, user, userBookings, onBookingUpda
                 onClick={handleBookingAction}
                 disabled={isBooking || (!isBookedByUser && isFull)}
                 variant={isBookedByUser ? "destructive" : "default"}
-                size="sm"
             >
                 {isBooking ? (
                     <Loader2 className="h-4 w-4 animate-spin" />

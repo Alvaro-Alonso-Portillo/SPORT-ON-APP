@@ -35,7 +35,7 @@ const generateClassesForDate = (date: Date, existingClasses: ClassInfo[]): Class
 
         return {
             id: classId,
-            name: 'Entrenamiento',
+            name: 'Crossfit',
             description: 'Clase de Entrenamiento.',
             time: time,
             day: capitalizedDayName,
@@ -62,7 +62,7 @@ export default function WeeklyCalendar() {
       
       const storedClasses = sessionStorage.getItem('allClasses');
       let currentClasses: ClassInfo[] = [];
-      if (storedClasses) {
+       if (storedClasses) {
         currentClasses = JSON.parse(storedClasses);
       }
       
@@ -120,7 +120,7 @@ export default function WeeklyCalendar() {
 
       const updatedClass: ClassInfo = {
           id: classId,
-          name: 'Entrenamiento',
+          name: 'Crossfit',
           description: 'Clase de Entrenamiento.',
           time: classId.substring(11, 13) + ':' + classId.substring(13, 15),
           day: capitalizedDayName,
@@ -154,13 +154,12 @@ export default function WeeklyCalendar() {
   }
 
   return (
-    <div className="flex flex-col h-full bg-card p-4 sm:p-6 rounded-lg shadow-lg text-card-foreground">
+    <div className="flex flex-col h-full bg-transparent p-0 text-foreground">
       <div className="flex items-center justify-between gap-4 mb-4">
         <div className="flex items-center gap-4">
             <CalendarIcon className="h-6 w-6 text-primary" />
             <div>
-            <p className="text-sm text-muted-foreground">SEMANA DE</p>
-            <p className="font-semibold capitalize">{`${format(startOfCurrentWeek, 'd MMM', { locale: es })} - ${format(endOfWeek(startOfCurrentWeek, { weekStartsOn: 1 }), 'd MMM', { locale: es })}`}</p>
+            <p className="font-bold text-lg capitalize">{`Hoy, ${format(currentDate, 'eeee, d MMMM', { locale: es })}`}</p>
             </div>
         </div>
          <div className="flex items-center gap-2">

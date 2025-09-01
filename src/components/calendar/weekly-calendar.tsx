@@ -5,9 +5,9 @@ import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import type { ClassInfo, Attendee } from "@/types";
 import { useAuth } from "@/hooks/use-auth";
 import { db } from "@/lib/firebase";
-import { collection, doc, getDoc, getDocs, query, runTransaction, where, writeBatch } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, query, runTransaction, where, writeBatch, arrayRemove, arrayUnion } from "firebase/firestore";
 import { Loader2, Calendar as CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react";
-import { format, startOfWeek, addDays, isBefore, subDays, parseISO, isToday, isTomorrow, endOfWeek } from 'date-fns';
+import { format, startOfWeek, addDays, isBefore, subDays, parseISO, isToday, isTomorrow, endOfWeek, startOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 import DaySelector from "./day-selector";
@@ -141,6 +141,7 @@ export default function WeeklyCalendar() {
 
 
   const dailyClasses = useMemo(() => {
+    if(isBefore(startOfDay(currentDate), startOfDay(new Date()))) return [];
     return generateClassesForDate(currentDate, allClasses);
   }, [currentDate, allClasses]);
   
@@ -198,46 +199,66 @@ export default function WeeklyCalendar() {
     setTimeout(() => setIsScrolling(false), 1000);
   }, []);
 
-  const handleBookingUpdate = async (classInfo: ClassInfo, newAttendee: Attendee | null) => {
-    const classDocRef = doc(db, "classes", classInfo.id);
+  const handleBookingUpdate = async (classInfo: ClassInfo, newAttendee: Attendee | null, oldClassId?: string) => {
+    if (!user) return;
+    const newClassDocRef = doc(db, "classes", classInfo.id);
 
     try {
         await runTransaction(db, async (transaction) => {
-            const classDoc = await transaction.get(classDocRef);
+            // 1. Handle cancellation of the old class if it's a booking change
+            if (oldClassId) {
+                const oldClassDocRef = doc(db, "classes", oldClassId);
+                const oldClassDoc = await transaction.get(oldClassDocRef);
+                if (oldClassDoc.exists()) {
+                    const oldClassData = oldClassDoc.data() as ClassInfo;
+                    const attendeeToRemove = oldClassData.attendees.find(a => a.uid === user.uid);
+                    if (attendeeToRemove) {
+                        transaction.update(oldClassDocRef, { attendees: arrayRemove(attendeeToRemove) });
+                    }
+                }
+            }
             
-            // If class doesn't exist in Firestore, create it from generated info
-            if (!classDoc.exists()) {
-                if (newAttendee) { // only create if booking
+            // 2. Handle the new booking or cancellation
+            const newClassDoc = await transaction.get(newClassDocRef);
+            
+            // If class doesn't exist, create it (only if booking, not cancelling)
+            if (!newClassDoc.exists()) {
+                if (newAttendee) {
                     const newClassData = { ...classInfo, attendees: [newAttendee] };
-                    transaction.set(classDocRef, newClassData);
-                    setAllClasses(prev => [...prev, newClassData]);
+                    transaction.set(newClassDocRef, newClassData);
                 }
                 return;
             }
 
-            const currentClassData = classDoc.data() as ClassInfo;
-            let updatedAttendees: Attendee[];
-
-            if (newAttendee) { // Add attendee
+            const currentClassData = newClassDoc.data() as ClassInfo;
+            
+            if (newAttendee) { // Add attendee (new booking)
                 if (currentClassData.attendees.length >= currentClassData.capacity) {
                     throw new Error("La clase está llena. No se pudo completar la reserva.");
                 }
                 if (currentClassData.attendees.some(a => a.uid === newAttendee.uid)) {
-                    return; // Already booked
+                    return; // Already booked, do nothing.
                 }
-                updatedAttendees = [...currentClassData.attendees, newAttendee];
-            } else if (user) { // Remove attendee
-                updatedAttendees = currentClassData.attendees.filter(a => a.uid !== user.uid);
-            } else {
-                return; // Should not happen
+                transaction.update(newClassDocRef, { attendees: arrayUnion(newAttendee) });
+            } else { // Remove attendee (cancellation)
+                const attendeeToRemove = currentClassData.attendees.find(a => a.uid === user.uid);
+                if (attendeeToRemove) {
+                    transaction.update(newClassDocRef, { attendees: arrayRemove(attendeeToRemove) });
+                }
             }
-
-            transaction.update(classDocRef, { attendees: updatedAttendees });
-            
-            setAllClasses(prev => prev.map(c => 
-                c.id === classInfo.id ? { ...c, attendees: updatedAttendees } : c
-            ));
         });
+        
+        // After transaction succeeds, optimistically update the UI
+        // This is a complex state update, so a refetch might be simpler/safer
+        const classesRef = collection(db, 'classes');
+        const q = query(classesRef, 
+            where('date', '>=', format(startOfCurrentWeek, 'yyyy-MM-dd')),
+            where('date', '<=', format(endOfCurrentWeek, 'yyyy-MM-dd'))
+        );
+        const querySnapshot = await getDocs(q);
+        const fetchedClasses = querySnapshot.docs.map(doc => doc.data() as ClassInfo);
+        setAllClasses(fetchedClasses);
+
     } catch (error: any) {
         console.error("Transaction failed: ", error);
         toast({
@@ -245,14 +266,13 @@ export default function WeeklyCalendar() {
             title: "Error en la reserva",
             description: error.message || "No se pudo actualizar la reserva. Por favor, inténtalo de nuevo.",
         });
-        // Optional: Re-fetch data to ensure UI consistency
-        const refetchedDoc = await getDoc(classDocRef);
+        // On error, refetch to ensure UI consistency
+        const refetchedDoc = await getDoc(newClassDocRef);
         if (refetchedDoc.exists()) {
             setAllClasses(prev => prev.map(c => c.id === classInfo.id ? refetchedDoc.data() as ClassInfo : c));
         }
     }
   };
-
 
   if (isLoading || authLoading) {
     return (

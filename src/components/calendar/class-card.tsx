@@ -19,12 +19,23 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
 
 interface ClassCardProps {
   classInfo: ClassInfo;
   user: User | null;
   userBookings: string[];
-  onBookingUpdate: (classInfo: ClassInfo, attendee: Attendee | null) => Promise<void>;
+  onBookingUpdate: (classInfo: ClassInfo, attendee: Attendee | null, oldClassId?: string) => Promise<void>;
   dailyClasses: ClassInfo[];
   onTimeSelect: (time: string) => void;
 }
@@ -34,6 +45,8 @@ export default function ClassCard({ classInfo, user, userBookings, onBookingUpda
   const { toast } = useToast();
   const [isBooking, setIsBooking] = useState(false);
   const [showFullClassDialog, setShowFullClassDialog] = useState(false);
+  const [showChangeBookingDialog, setShowChangeBookingDialog] = useState(false);
+  const [existingBooking, setExistingBooking] = useState<string | null>(null);
 
   const isBookedByUser = user ? userBookings.includes(classInfo.id) : false;
   const isFull = classInfo.attendees.length >= classInfo.capacity;
@@ -64,6 +77,22 @@ export default function ClassCard({ classInfo, user, userBookings, onBookingUpda
         return;
     }
 
+    // Check for existing booking on the same day
+    if (!isBookedByUser) {
+        const bookingOnSameDay = userBookings.find(bookingId => bookingId.startsWith(classInfo.date));
+        if (bookingOnSameDay) {
+            setExistingBooking(bookingOnSameDay);
+            setShowChangeBookingDialog(true);
+            return;
+        }
+    }
+
+    await processBooking();
+  };
+
+  const processBooking = async (oldClassIdToCancel?: string) => {
+    if (!user || !auth.currentUser) return; // Should be logged in at this point
+
     setIsBooking(true);
 
     try {
@@ -78,15 +107,17 @@ export default function ClassCard({ classInfo, user, userBookings, onBookingUpda
               name: userName,
               photoURL: auth.currentUser.photoURL || `https://api.dicebear.com/8.x/bottts/svg?seed=${user.uid}`
             };
-            await onBookingUpdate(classInfo, newAttendee);
+            await onBookingUpdate(classInfo, newAttendee, oldClassIdToCancel);
             toast({ title: "¡Reserva confirmada!", description: `Has reservado tu plaza para ${classInfo.name} a las ${classInfo.time}.` });
         }
     } catch (error: any) {
         toast({ variant: "destructive", title: "Error", description: error.message || "Ha ocurrido un error al procesar tu solicitud." });
     } finally {
         setIsBooking(false);
+        setShowChangeBookingDialog(false);
+        setExistingBooking(null);
     }
-  };
+  }
 
   return (
     <>
@@ -177,6 +208,21 @@ export default function ClassCard({ classInfo, user, userBookings, onBookingUpda
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={showChangeBookingDialog} onOpenChange={setShowChangeBookingDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Ya tienes una reserva este día</AlertDialogTitle>
+            <AlertDialogDescription>
+                Ya tienes una reserva para el {classInfo.date}. ¿Te gustaría cancelar la reserva existente y reservar esta en su lugar?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setShowChangeBookingDialog(false)}>No, mantener la actual</AlertDialogCancel>
+            <AlertDialogAction onClick={() => processBooking(existingBooking || undefined)}>Sí, cambiar reserva</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

@@ -8,7 +8,6 @@ import { useRouter } from 'next/navigation';
 import { Users, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 interface ClassCardProps {
   classInfo: ClassInfo;
@@ -75,12 +74,10 @@ export default function ClassCard({ classInfo, user, userBookings, onBookingUpda
         
         <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2 mb-4">
             {classInfo.attendees.map((attendee) => (
-                <div key={attendee.uid} className="h-12 w-12 bg-muted rounded-md flex items-center justify-center">
-                    <Avatar className="h-10 w-10">
-                        <AvatarFallback className="bg-primary/20 text-primary font-bold">
-                            {attendee.name.charAt(0).toUpperCase()}
-                        </AvatarFallback>
-                    </Avatar>
+                <div key={attendee.uid} className="h-12 w-12 bg-muted rounded-md flex items-center justify-center p-1">
+                   <div className="text-center">
+                     <p className="text-xs font-semibold text-primary truncate">{attendee.name}</p>
+                   </div>
                 </div>
             ))}
              {Array.from({ length: classInfo.capacity - classInfo.attendees.length }).map((_, i) => (

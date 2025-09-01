@@ -98,9 +98,9 @@ export default function ProfileForm() {
         const snapshot = await uploadBytes(storageRef, file);
         photoURL = await getDownloadURL(snapshot.ref);
         updateData.photoURL = photoURL;
-
-        // Also update the photoURL in Firebase Auth profile immediately
+        
         await updateProfile(auth.currentUser, { photoURL });
+        await auth.currentUser.reload(); // Force reload to update user object across the app
       }
       
       // Handle date of birth

@@ -8,12 +8,12 @@ import type { ClassInfo, Attendee } from "@/types";
 import { useAuth } from "@/hooks/use-auth";
 import { db } from "@/lib/firebase";
 import { collection, doc, getDocs, query, runTransaction, where, arrayRemove, arrayUnion } from "firebase/firestore";
-import { Loader2, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Users } from "lucide-react";
+import { Loader2, Calendar as CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react";
 import { format, startOfWeek, addDays, isBefore, subDays, parseISO, isToday, isTomorrow, endOfWeek, startOfDay, isValid } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 import DaySelector from "./day-selector";
-import ClassListItem from "./class-list-item";
+import TimeSelector from "./time-selector";
 import ClassCard from "./class-card";
 import { Button } from "../ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -280,27 +280,6 @@ function WeeklyCalendarInternal() {
         setChangingBookingId(null);
     }
   };
-  
-  const handleBookClass = (classInfo: ClassInfo) => {
-      if (!user) {
-        toast({ title: "Acción requerida", description: "Debes iniciar sesión para reservar una clase." });
-        return;
-      }
-      const newAttendee: Attendee = {
-        uid: user.uid,
-        name: user.displayName || user.email?.split('@')[0] || "Usuario",
-        photoURL: user.photoURL || `https://api.dicebear.com/8.x/bottts/svg?seed=${user.uid}`
-      };
-      handleBookingUpdate(classInfo, newAttendee);
-  }
-
-  const handleCancelBooking = (classInfo: ClassInfo) => {
-      handleBookingUpdate(classInfo, null);
-  }
-  
-  const handleStartChange = (classInfo: ClassInfo) => {
-      setChangingBookingId(classInfo.id);
-  }
 
   if (isLoading || authLoading) {
     return (
@@ -353,20 +332,12 @@ function WeeklyCalendarInternal() {
               setChangingBookingId={setChangingBookingId}
             />
         ) : dailyClasses.length > 0 ? (
-            <div className="space-y-4">
-              {dailyClasses.map((classInfo) => (
-                <ClassListItem
-                  key={classInfo.id}
-                  classInfo={classInfo}
-                  user={user}
-                  isBookedByUser={user ? userBookings.includes(classInfo.id) : false}
-                  onBook={handleBookClass}
-                  onCancel={handleCancelBooking}
-                  onChange={handleStartChange}
-                  changingBookingId={changingBookingId}
-                />
-              ))}
-            </div>
+            <TimeSelector 
+                classes={dailyClasses} 
+                onTimeSelect={handleTimeSelect}
+                userBookings={userBookings}
+                changingBookingId={changingBookingId}
+             />
          ) : (
           <div className="text-center py-10">
             <p className="text-muted-foreground">No hay clases programadas o disponibles para este día.</p>

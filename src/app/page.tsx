@@ -13,7 +13,7 @@ export default function Home() {
   }
 
   return (
-    <div className="h-full w-full">
+    <div className="h-full w-full p-4 md:p-8">
       <WeeklyCalendar />
     </div>
   );

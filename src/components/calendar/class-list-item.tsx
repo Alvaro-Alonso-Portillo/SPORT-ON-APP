@@ -129,7 +129,7 @@ export default function ClassListItem({ classInfo, user, isBookedByUser, onBooki
     <>
       <div id={`class-${classInfo.time.replace(':', '')}`} className="w-full bg-card p-4 rounded-lg shadow-sm border-t-4 border-primary">
         <div className="flex items-center justify-between gap-4 mb-4">
-            <h3 className={`${anton.className} text-2xl md:text-3xl font-bold text-foreground uppercase`} style={{ textShadow: '1px 1px 2px black' }}>{classInfo.name}</h3>
+            <h3 className={`${anton.className} text-2xl md:text-3xl text-foreground uppercase`}>{classInfo.name}</h3>
             <span className="text-lg font-bold text-foreground">{classInfo.time}</span>
         </div>
         

@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import type { ClassInfo, Attendee } from "@/types";
 import { useAuth } from "@/hooks/use-auth";
 import { Loader2, Calendar as CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react";
@@ -35,7 +35,7 @@ const generateClassesForDate = (date: Date, existingClasses: ClassInfo[]): Class
 
         return {
             id: classId,
-            name: 'Crossfit',
+            name: 'Entrenamiento',
             description: 'Clase de Entrenamiento.',
             time: time,
             day: capitalizedDayName,
@@ -66,10 +66,7 @@ export default function WeeklyCalendar() {
       setIsLoading(true);
       
       const storedClasses = sessionStorage.getItem('allClasses');
-      let currentClasses: ClassInfo[] = [];
-      if (storedClasses) {
-        currentClasses = JSON.parse(storedClasses);
-      }
+      const currentClasses: ClassInfo[] = storedClasses ? JSON.parse(storedClasses) : [];
       
       setAllClasses(currentClasses);
       setIsLoading(false);
@@ -169,7 +166,7 @@ export default function WeeklyCalendar() {
 
       const updatedClass: ClassInfo = {
           id: classId,
-          name: 'Crossfit',
+          name: 'Entrenamiento',
           description: 'Clase de Entrenamiento.',
           time: classId.substring(11, 13) + ':' + classId.substring(13, 15),
           day: capitalizedDayName,

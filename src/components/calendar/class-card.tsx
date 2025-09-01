@@ -83,7 +83,7 @@ export default function ClassCard({ classInfo, user, userBookings, onBookingUpda
         <div className="flex justify-between items-center mb-4">
             <div className="flex items-center gap-3">
               <div className="w-1 h-8 bg-primary rounded-full"></div>
-              <h3 className="text-2xl font-bold font-headline tracking-wider">{classInfo.name.toUpperCase()}</h3>
+              <h3 className="text-2xl font-bold font-headline tracking-wider text-primary">{classInfo.name.toUpperCase()}</h3>
             </div>
             <span className="text-2xl font-bold font-headline">{classInfo.time}</span>
         </div>

@@ -49,7 +49,7 @@ export default function ClassCard({ classInfo, user, userBookings, onBookingUpda
             setIsBooking(false);
             return;
         }
-        const userName = user.displayName || user.email?.split('@')[0] || 'Usuario';
+        const userName = user.displayName || 'Usuario';
         updatedAttendees = [...classInfo.attendees, { uid: user.uid, name: userName }];
         updatedBookings = [...userBookings, classInfo.id];
         toast({ title: "¡Reserva confirmada!", description: `Has reservado tu plaza para ${classInfo.name} a las ${classInfo.time}.` });

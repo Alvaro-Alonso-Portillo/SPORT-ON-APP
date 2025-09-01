@@ -249,6 +249,8 @@ export default function WeeklyCalendar() {
                 user={user}
                 userBookings={userBookings}
                 onBookingUpdate={handleBookingUpdate}
+                dailyClasses={dailyClasses}
+                onTimeSelect={handleTimeSelect}
               />
             </div>
           ))

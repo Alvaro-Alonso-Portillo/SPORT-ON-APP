@@ -217,28 +217,34 @@ function WeeklyCalendarInternal() {
 
   const handleBookingUpdate = async (classInfo: ClassInfo, newAttendee: Attendee | null, oldClassId?: string) => {
     if (!user) return;
-    const newClassDocRef = doc(db, "classes", classInfo.id);
-
+    
     try {
         await runTransaction(db, async (transaction) => {
-            // 1. Handle cancellation of the old class if it's a booking change
+            const newClassDocRef = doc(db, "classes", classInfo.id);
+            let oldClassDocRef;
+            let oldClassDoc;
+
+            // --- ALL READS FIRST ---
+            const newClassDoc = await transaction.get(newClassDocRef);
             if (oldClassId) {
-                const oldClassDocRef = doc(db, "classes", oldClassId);
-                const oldClassDoc = await transaction.get(oldClassDocRef);
-                if (oldClassDoc.exists()) {
-                    const oldClassData = oldClassDoc.data() as ClassInfo;
-                    const attendeeToRemove = oldClassData.attendees.find(a => a.uid === user.uid);
-                    if (attendeeToRemove) {
-                        transaction.update(oldClassDocRef, { attendees: arrayRemove(attendeeToRemove) });
-                    }
+                oldClassDocRef = doc(db, "classes", oldClassId);
+                oldClassDoc = await transaction.get(oldClassDocRef);
+            }
+            
+            // --- THEN ALL WRITES ---
+
+            // 1. Handle cancellation of the old class if it's a booking change
+            if (oldClassId && oldClassDocRef && oldClassDoc?.exists()) {
+                const oldClassData = oldClassDoc.data() as ClassInfo;
+                const attendeeToRemove = oldClassData.attendees.find(a => a.uid === user.uid);
+                if (attendeeToRemove) {
+                    transaction.update(oldClassDocRef, { attendees: arrayRemove(attendeeToRemove) });
                 }
             }
             
             // 2. Handle the new booking or cancellation
-            const newClassDoc = await transaction.get(newClassDocRef);
-            
-            // If class doesn't exist, create it (only if booking, not cancelling)
             if (!newClassDoc.exists()) {
+                // If class doesn't exist, create it (only if booking, not cancelling)
                 if (newAttendee) {
                     const newClassData = { ...classInfo, attendees: [newAttendee] };
                     transaction.set(newClassDocRef, newClassData);

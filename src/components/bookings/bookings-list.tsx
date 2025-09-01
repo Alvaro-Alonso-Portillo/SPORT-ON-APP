@@ -10,7 +10,7 @@ import { collection, doc, getDocs, query, updateDoc, arrayRemove, where } from "
 import type { ClassInfo } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Loader2, CalendarX, CalendarPlus, MoreHorizontal, Trash2, Pencil } from "lucide-react";
+import { Loader2, CalendarX, CalendarPlus, Trash2, Pencil } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,11 +22,11 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useToast } from "@/hooks/use-toast";
@@ -168,65 +168,72 @@ export default function BookingsList() {
   }
 
   return (
-    <AlertDialog open={!!bookingToCancel} onOpenChange={(open) => !open && setBookingToCancel(null)}>
-      <div className="space-y-8">
-        {Object.entries(groupedBookings).map(([date, dayBookings]) => (
-          <div key={date} className="bg-card rounded-lg shadow-sm">
-            <div className="p-4 border-b-4 border-primary/80 flex justify-between items-center">
-              <div>
-                <h2 className="font-headline text-lg font-bold capitalize">{formatDate(date)}</h2>
+    <TooltipProvider>
+      <AlertDialog open={!!bookingToCancel} onOpenChange={(open) => !open && setBookingToCancel(null)}>
+        <div className="space-y-8">
+          {Object.entries(groupedBookings).map(([date, dayBookings]) => (
+            <div key={date} className="bg-card rounded-lg shadow-sm">
+              <div className="p-4 border-b-4 border-primary/80 flex justify-between items-center">
+                <div>
+                  <h2 className="font-headline text-lg font-bold capitalize">{formatDate(date)}</h2>
+                </div>
+              </div>
+              <div className="p-4 space-y-4">
+                {dayBookings.map((booking) => (
+                  <div key={booking.id} className="flex items-center justify-between p-3 rounded-md bg-secondary">
+                    <div className="flex items-center gap-4">
+                       <div className="bg-muted p-3 rounded-md">
+                          <span className="font-bold text-lg text-primary">{booking.classInfo.time.split(':')[0]}</span>
+                       </div>
+                       <div>
+                          <p className="font-semibold">{booking.classInfo.name}</p>
+                          <p className="text-sm text-muted-foreground">{booking.classInfo.time}</p>
+                       </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                           <Button variant="outline" size="icon" onClick={() => handleModify(booking)}>
+                              <Pencil className="h-4 w-4" />
+                           </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Modificar Reserva</p>
+                        </TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="destructive" size="icon" onClick={() => setBookingToCancel(booking)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Cancelar Reserva</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
-            <div className="p-4 space-y-4">
-              {dayBookings.map((booking) => (
-                <div key={booking.id} className="flex items-center justify-between p-3 rounded-md bg-secondary">
-                  <div className="flex items-center gap-4">
-                     <div className="bg-muted p-3 rounded-md">
-                        <span className="font-bold text-lg text-primary">{booking.classInfo.time.split(':')[0]}</span>
-                     </div>
-                     <div>
-                        <p className="font-semibold">{booking.classInfo.name}</p>
-                        <p className="text-sm text-muted-foreground">{booking.classInfo.time}</p>
-                     </div>
-                  </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon">
-                        <MoreHorizontal className="h-5 w-5" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                       <DropdownMenuItem onSelect={() => handleModify(booking)}>
-                        <Pencil className="mr-2 h-4 w-4" />
-                        <span>Modificar Reserva</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onSelect={() => setBookingToCancel(booking)}>
-                        <Trash2 className="mr-2 h-4 w-4 text-destructive" />
-                        <span className="text-destructive">Cancelar Reserva</span>
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
 
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-          <AlertDialogDescription>
-            Esto cancelará permanentemente tu reserva para {bookingToCancel?.classInfo.name} el {bookingToCancel ? formatDate(bookingToCancel.classInfo.date) : ''} a las {bookingToCancel?.classInfo.time}. Esta acción no se puede deshacer.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel onClick={() => setBookingToCancel(null)}>Volver</AlertDialogCancel>
-          <AlertDialogAction onClick={handleCancel}>
-            Sí, Cancelar Reserva
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esto cancelará permanentemente tu reserva para {bookingToCancel?.classInfo.name} el {bookingToCancel ? formatDate(bookingToCancel.classInfo.date) : ''} a las {bookingToCancel?.classInfo.time}. Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setBookingToCancel(null)}>Volver</AlertDialogCancel>
+            <AlertDialogAction onClick={handleCancel}>
+              Sí, Cancelar Reserva
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </TooltipProvider>
   );
 }

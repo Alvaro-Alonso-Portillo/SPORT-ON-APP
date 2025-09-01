@@ -106,12 +106,12 @@ export default function ClassCard({ classInfo, user, userBookings, onBookingUpda
               <span className="text-lg md:text-xl font-bold font-headline text-card-foreground">{classInfo.time}</span>
           </div>
           
-          <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2 mb-4">
+          <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-1 mb-4">
               {classInfo.attendees.map((attendee) => (
                   <Dialog key={attendee.uid}>
                     <DialogTrigger asChild>
                       <div className="flex flex-col items-center justify-center text-center cursor-pointer group w-16">
-                          <Avatar className="h-12 w-12 mb-1 border-2 border-transparent group-hover:border-primary transition-all">
+                          <Avatar className="h-14 w-14 sm:h-16 sm:w-16 mb-1 border-2 border-transparent group-hover:border-primary transition-all">
                             <AvatarImage src={attendee.photoURL} />
                             <AvatarFallback>{attendee.name.charAt(0)}</AvatarFallback>
                           </Avatar>
@@ -130,7 +130,7 @@ export default function ClassCard({ classInfo, user, userBookings, onBookingUpda
                   </Dialog>
               ))}
                {Array.from({ length: classInfo.capacity - classInfo.attendees.length }).map((_, i) => (
-                  <div key={`empty-${i}`} className="h-12 w-12 bg-muted rounded-md"></div>
+                  <div key={`empty-${i}`} className="h-14 w-14 sm:h-16 sm:w-16 bg-muted rounded-md"></div>
               ))}
           </div>
 

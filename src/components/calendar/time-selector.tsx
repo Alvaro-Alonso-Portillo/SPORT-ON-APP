@@ -41,7 +41,7 @@ export default function TimeSelector({ timeSlots, selectedTime, onTimeSelect }: 
             <CarouselItem key={index} className="basis-1/3 sm:basis-1/4 md:basis-1/5 lg:basis-[12%] pl-2">
               <Button
                 ref={el => timeRefs.current[index] = el}
-                variant={selectedTime === time ? "default" : "outline"}
+                variant={selectedTime === time ? "default" : "secondary"}
                 className="w-full rounded-full"
                 onClick={() => onTimeSelect(time)}
               >

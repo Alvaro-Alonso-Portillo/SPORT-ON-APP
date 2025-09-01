@@ -10,7 +10,7 @@ import { collection, doc, getDocs, query, updateDoc, arrayRemove, where } from "
 import type { ClassInfo } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Loader2, CalendarX, CalendarPlus, MoreHorizontal, Trash2 } from "lucide-react";
+import { Loader2, CalendarX, CalendarPlus, MoreHorizontal, Trash2, Pencil } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -126,6 +126,12 @@ export default function BookingsList() {
         setBookingToCancel(null);
     }
   };
+  
+  const handleModify = (booking: PopulatedBooking) => {
+    const targetDate = booking.classInfo.date;
+    router.push(`/?date=${targetDate}`);
+  };
+
 
   const formatDate = (dateString: string) => {
     try {
@@ -190,6 +196,10 @@ export default function BookingsList() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
+                       <DropdownMenuItem onSelect={() => handleModify(booking)}>
+                        <Pencil className="mr-2 h-4 w-4" />
+                        <span>Modificar Reserva</span>
+                      </DropdownMenuItem>
                       <DropdownMenuItem onSelect={() => setBookingToCancel(booking)}>
                         <Trash2 className="mr-2 h-4 w-4 text-destructive" />
                         <span className="text-destructive">Cancelar Reserva</span>

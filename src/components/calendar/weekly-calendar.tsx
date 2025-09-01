@@ -2,12 +2,13 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { useSearchParams } from 'next/navigation'
 import type { ClassInfo, Attendee } from "@/types";
 import { useAuth } from "@/hooks/use-auth";
 import { db } from "@/lib/firebase";
-import { collection, doc, getDoc, getDocs, query, runTransaction, where, writeBatch, arrayRemove, arrayUnion } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, query, runTransaction, where, arrayRemove, arrayUnion } from "firebase/firestore";
 import { Loader2, Calendar as CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react";
-import { format, startOfWeek, addDays, isBefore, subDays, parseISO, isToday, isTomorrow, endOfWeek, startOfDay } from 'date-fns';
+import { format, startOfWeek, addDays, isBefore, subDays, parseISO, isToday, isTomorrow, endOfWeek, startOfDay, isValid } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 import DaySelector from "./day-selector";
@@ -56,13 +57,26 @@ const generateClassesForDate = (date: Date, existingClasses: ClassInfo[]): Class
 };
 
 
-export default function WeeklyCalendar() {
+function WeeklyCalendarInternal() {
   const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
+  const searchParams = useSearchParams()
+  const dateParam = searchParams.get('date');
+
+  const getInitialDate = () => {
+    if (dateParam) {
+      const dateFromURL = parseISO(dateParam);
+      if (isValid(dateFromURL)) {
+        return dateFromURL;
+      }
+    }
+    return new Date();
+  };
+
   const [allClasses, setAllClasses] = useState<ClassInfo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
-  const [currentDate, setCurrentDate] = useState(new Date());
+  const [currentDate, setCurrentDate] = useState(getInitialDate);
   
   const [isScrolling, setIsScrolling] = useState(false);
 
@@ -345,5 +359,13 @@ export default function WeeklyCalendar() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function WeeklyCalendar() {
+  return (
+    <React.Suspense fallback={<div className="flex justify-center items-center h-[calc(100vh-10rem)]"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>}>
+      <WeeklyCalendarInternal />
+    </React.Suspense>
   );
 }

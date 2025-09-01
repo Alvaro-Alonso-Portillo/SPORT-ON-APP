@@ -1,3 +1,4 @@
+
 import type { Metadata } from 'next';
 import './globals.css';
 import { AuthProvider } from '@/hooks/use-auth';
@@ -26,7 +27,7 @@ export default function RootLayout({
       </head>
       <body className={cn("font-body antialiased bg-background text-foreground")}>
         <AuthProvider>
-          <div className="flex min-h-screen flex-col md:flex-row">
+          <div className="flex min-h-screen flex-col md:flex-row overflow-x-hidden">
             <Sidebar />
             <div className="flex-1 flex flex-col">
               <Header />

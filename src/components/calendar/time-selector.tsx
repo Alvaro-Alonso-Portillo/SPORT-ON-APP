@@ -34,7 +34,7 @@ export default function TimeSelector({ timeSlots, selectedTime, onTimeSelect }: 
 
 
   return (
-    <div className="relative border-y border-border py-4">
+    <div className="relative border-y border-border py-4 overflow-hidden">
        <Carousel setApi={setApi} opts={{ align: "start", slidesToScroll: 3, dragFree: true }}>
         <CarouselContent className="-ml-2">
           {timeSlots.map((time, index) => (

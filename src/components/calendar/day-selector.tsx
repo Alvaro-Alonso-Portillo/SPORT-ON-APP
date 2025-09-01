@@ -21,7 +21,7 @@ interface DaySelectorProps {
 
 export default function DaySelector({ currentDate, setCurrentDate, weekDates }: DaySelectorProps) {
   return (
-    <div className="relative mb-6">
+    <div className="relative mb-6 overflow-hidden">
       <Carousel opts={{ align: "start", slidesToScroll: 3, dragFree: true }}>
         <CarouselContent className="-ml-2">
           {weekDates.map((day, index) => (

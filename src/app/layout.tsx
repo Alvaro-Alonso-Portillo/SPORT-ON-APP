@@ -26,7 +26,7 @@ export default function RootLayout({
       </head>
       <body className={cn("font-body antialiased bg-background text-foreground")}>
         <AuthProvider>
-          <div className="flex min-h-screen">
+          <div className="flex min-h-screen flex-col md:flex-row">
             <Sidebar />
             <div className="flex-1 flex flex-col">
               <Header />

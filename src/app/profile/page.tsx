@@ -4,8 +4,8 @@ export default function ProfilePage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-headline text-3xl md:text-4xl font-bold">Mi Perfil</h1>
-        <p className="text-muted-foreground">
+        <h1 className="font-headline text-2xl md:text-4xl font-bold">Mi Perfil</h1>
+        <p className="text-muted-foreground text-sm md:text-base">
           Gestiona tu información personal. Los cambios se guardarán en tu perfil.
         </p>
       </div>

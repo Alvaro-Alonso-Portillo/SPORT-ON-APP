@@ -30,7 +30,7 @@ export default function Header() {
               </SheetContent>
             </Sheet>
           </div>
-           <Link href="/" className="text-2xl md:text-3xl font-headline font-bold text-foreground hidden sm:block">
+           <Link href="/" className="text-xl md:text-3xl font-headline font-bold text-foreground hidden sm:block">
              Sport <span className="text-primary">ON</span>
           </Link>
       </div>

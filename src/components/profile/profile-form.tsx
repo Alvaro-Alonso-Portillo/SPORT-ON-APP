@@ -37,6 +37,15 @@ const profileFormSchema = z.object({
 
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
 
+const motivationalQuotes = [
+  "La disciplina es el puente entre las metas y los logros.",
+  "Tu único límite es tu mente.",
+  "No te detengas hasta que te sientas orgulloso.",
+  "El dolor que sientes hoy será la fuerza que sentirás mañana.",
+  "Cada entrenamiento cuenta.",
+  "Cree en ti mismo y todo lo que eres. Sé consciente de que hay algo en tu interior que es más grande que cualquier obstáculo.",
+];
+
 export default function ProfileForm() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
@@ -45,10 +54,15 @@ export default function ProfileForm() {
   const [isLoading, setIsLoading] = useState(true);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [quote, setQuote] = useState("");
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
   });
+  
+  useEffect(() => {
+    setQuote(motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]);
+  }, []);
 
   useEffect(() => {
     if (authLoading) return;
@@ -146,14 +160,21 @@ export default function ProfileForm() {
   return (
     <Card className="max-w-2xl mx-auto">
       <CardHeader>
-        <div className="flex items-center gap-4">
-          <Avatar className="h-20 w-20">
+        <div className="flex items-start gap-4">
+          <Avatar className="h-20 w-20 flex-shrink-0">
             <AvatarImage src={currentAvatar} />
             <AvatarFallback>{profile?.name?.charAt(0)}</AvatarFallback>
           </Avatar>
-          <div>
+          <div className="flex-1">
             <CardTitle className="text-2xl">{profile?.name || user?.displayName}</CardTitle>
             <CardDescription>{profile?.email || user?.email}</CardDescription>
+             {quote && (
+              <div className="mt-4 p-3 border-l-4 border-primary bg-accent rounded-r-lg">
+                <p className="text-sm italic text-accent-foreground">
+                  "{quote}"
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </CardHeader>

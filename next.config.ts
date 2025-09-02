@@ -1,6 +1,7 @@
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
+  output: 'export',
   /* config options here */
   typescript: {
     ignoreBuildErrors: true,
@@ -9,6 +10,7 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   },
   images: {
+    unoptimized: true,
     remotePatterns: [
       {
         protocol: 'https',
@@ -23,6 +25,11 @@ const nextConfig: NextConfig = {
         pathname: '/**',
       },
     ],
+  },
+  experimental: {
+    // This allows the Next.js dev server to accept requests from a different
+    // origin. This is necessary for the Studio preview iframe to work correctly.
+    allowedDevOrigins: ['https://*.googleusercontent.com'],
   },
   env: {
     NEXT_PUBLIC_FIREBASE_API_KEY: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,

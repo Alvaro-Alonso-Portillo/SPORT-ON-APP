@@ -6,10 +6,14 @@ import { useAuth } from "@/hooks/use-auth";
 import Welcome from "@/components/layout/welcome";
 
 export default function Home() {
-  const { loading } = useAuth();
+  const { user, loading } = useAuth();
 
   if (loading) {
     return <Welcome />;
+  }
+  
+  if (!user) {
+      return <Welcome />;
   }
 
   return (

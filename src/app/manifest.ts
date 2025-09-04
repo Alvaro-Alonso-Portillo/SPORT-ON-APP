@@ -1,4 +1,8 @@
 import { MetadataRoute } from 'next'
+
+// Estas dos líneas son CRÍTICAS para static export
+export const dynamic = 'force-static'
+export const revalidate = false
  
 export default function manifest(): MetadataRoute.Manifest {
   return {

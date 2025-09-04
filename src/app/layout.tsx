@@ -10,10 +10,6 @@ import { cn } from '@/lib/utils';
 export const metadata: Metadata = {
   title: 'Sport ON | Calendario de Clases',
   description: 'Gestiona tus reservas de clases con facilidad.',
-  icons: {
-    icon: '/icon.png',
-    apple: '/apple-icon.png',
-  }
 };
 
 export default function RootLayout({

@@ -73,6 +73,11 @@ export default function PhoneAuthForm() {
         description = "El número de teléfono proporcionado no parece ser válido.";
       } else if (error.code === 'auth/too-many-requests') {
           description = "Has intentado enviar demasiados códigos. Por favor, inténtalo más tarde."
+      } else if (error.code === 'auth/captcha-check-failed') {
+          description = "El dominio de la aplicación no está autorizado. Por favor, añádelo en la configuración de Authentication de tu consola de Firebase."
+          toast({ variant: "destructive", title: "Error de Verificación", description });
+          setIsLoading(false);
+          return;
       }
       toast({ variant: "destructive", title: "Error al enviar el código", description });
     } finally {

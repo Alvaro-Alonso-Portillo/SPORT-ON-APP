@@ -46,7 +46,7 @@ export default function SidebarContent({ onLinkClick }: SidebarContentProps) {
     if (onLinkClick) onLinkClick();
     try {
       await signOut(auth);
-      router.push("/login");
+      router.push("/welcome");
     } catch (error) {
         toast({
             variant: "destructive",
@@ -99,7 +99,7 @@ export default function SidebarContent({ onLinkClick }: SidebarContentProps) {
     return (
        <div className="flex flex-col h-full bg-card text-card-foreground p-4 items-center justify-center text-center">
           <div className="p-6 border-b">
-             <Link href="/" onClick={onLinkClick}>
+             <Link href="/welcome" onClick={onLinkClick}>
                 {logo}
             </Link>
           </div>

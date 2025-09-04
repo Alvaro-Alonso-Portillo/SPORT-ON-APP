@@ -11,8 +11,8 @@ export const metadata: Metadata = {
   title: 'Sport ON | Calendario de Clases',
   description: 'Gestiona tus reservas de clases con facilidad.',
   icons: {
-    icon: '/icon.svg',
-    apple: '/icon.svg',
+    icon: '/icon.png',
+    apple: '/apple-icon.png',
   }
 };
 

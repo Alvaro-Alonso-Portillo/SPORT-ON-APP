@@ -52,7 +52,9 @@ export default function PhoneAuthForm() {
     }
 
     try {
-      const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
+      const sanitizedNumber = phoneNumber.replace(/\s+/g, '');
+      const fullPhoneNumber = `+34${sanitizedNumber}`;
+      const confirmationResult = await signInWithPhoneNumber(auth, fullPhoneNumber, appVerifier);
       window.confirmationResult = confirmationResult;
       setOtpSent(true);
       toast({ title: "Código enviado", description: "Revisa tus mensajes para encontrar el código de 6 dígitos." });
@@ -68,7 +70,7 @@ export default function PhoneAuthForm() {
       }
       let description = "Ha ocurrido un error. Por favor, inténtalo de nuevo.";
       if (error.code === 'auth/invalid-phone-number') {
-        description = "El número de teléfono no es válido. Asegúrate de incluir el prefijo internacional (ej. +34 para España).";
+        description = "El número de teléfono proporcionado no parece ser válido.";
       } else if (error.code === 'auth/too-many-requests') {
           description = "Has intentado enviar demasiados códigos. Por favor, inténtalo más tarde."
       }
@@ -134,16 +136,21 @@ export default function PhoneAuthForm() {
           {!otpSent ? (
             <div className="grid gap-2">
               <Label htmlFor="phone">Número de Teléfono</Label>
-              <Input
-                id="phone"
-                type="tel"
-                placeholder="+34 600 000 000"
-                required
-                value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
-                disabled={isLoading}
-                className="bg-secondary"
-              />
+              <div className="flex items-center gap-2">
+                <span className="flex h-10 items-center justify-center rounded-md border border-input bg-background px-3 text-base text-muted-foreground">
+                    +34
+                </span>
+                <Input
+                    id="phone"
+                    type="tel"
+                    placeholder="600 000 000"
+                    required
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value)}
+                    disabled={isLoading}
+                    className="bg-secondary"
+                />
+              </div>
             </div>
           ) : (
             <div className="grid gap-2">

@@ -30,6 +30,7 @@ export interface UserProfile {
     uid: string;
     name: string;
     email: string;
+    phoneNumber?: string | null;
     createdAt: Date | Timestamp;
     dob?: Date | Timestamp;
     bio?: string;

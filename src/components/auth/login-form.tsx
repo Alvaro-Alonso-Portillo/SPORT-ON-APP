@@ -15,17 +15,34 @@ import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
 
 export default function LoginForm() {
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
 
-  const handleLogin = async (e: React.FormEvent) => {
+ const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      let emailToLogin = identifier;
+
+      // Check if identifier is a phone number
+      if (!identifier.includes('@')) {
+        const usersRef = collection(db, "users");
+        const q = query(usersRef, where("phoneNumber", "==", identifier));
+        const querySnapshot = await getDocs(q);
+
+        if (!querySnapshot.empty) {
+          const userDoc = querySnapshot.docs[0];
+          emailToLogin = userDoc.data().email;
+        } else {
+           throw new Error("No se ha encontrado ninguna cuenta con este teléfono o correo electrónico.");
+        }
+      }
+
+      const userCredential = await signInWithEmailAndPassword(auth, emailToLogin, password);
       const user = userCredential.user;
 
       const userDocRef = doc(db, "users", user.uid);
@@ -34,7 +51,6 @@ export default function LoginForm() {
       if (userDoc.exists()) {
         const userData = userDoc.data();
         const correctName = userData.name;
-
         if (user.displayName !== correctName) {
           await updateProfile(user, { displayName: correctName });
         }
@@ -44,11 +60,11 @@ export default function LoginForm() {
 
       router.push("/");
     } catch (error: any) {
-      let description = "Por favor, comprueba tu correo y contraseña e inténtalo de nuevo.";
+      let description = "Por favor, comprueba tus credenciales e inténtalo de nuevo.";
       if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential' || error.code === 'auth/invalid-api-key') {
         description = "Credenciales incorrectas. Por favor, inténtalo de nuevo.";
-      } else if (error.code === 'auth/user-not-found') {
-        description = "No se ha encontrado ninguna cuenta con este correo electrónico.";
+      } else if (error.code === 'auth/user-not-found' || error.message.includes("No se ha encontrado")) {
+        description = "No se ha encontrado ninguna cuenta con este teléfono o correo electrónico.";
       }
 
       toast({
@@ -61,18 +77,19 @@ export default function LoginForm() {
     }
   };
 
+
   return (
     <form onSubmit={handleLogin}>
       <CardContent className="grid gap-4 pt-6">
         <div className="grid gap-2">
-          <Label htmlFor="email">Correo Electrónico</Label>
+          <Label htmlFor="identifier">Correo Electrónico o Teléfono</Label>
           <Input
-            id="email"
-            type="email"
-            placeholder="tu@correo.com"
+            id="identifier"
+            type="text"
+            placeholder="tu@correo.com o tu teléfono"
             required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            value={identifier}
+            onChange={(e) => setIdentifier(e.target.value)}
             disabled={isLoading}
             className="bg-secondary"
           />

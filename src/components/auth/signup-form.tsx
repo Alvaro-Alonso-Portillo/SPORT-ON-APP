@@ -17,6 +17,7 @@ import { Loader2 } from "lucide-react";
 export default function SignupForm() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
@@ -30,19 +31,28 @@ export default function SignupForm() {
         toast({
             variant: "destructive",
             title: "Fallo de registro",
-            description: "Por favor, completa todos los campos.",
+            description: "Por favor, completa todos los campos requeridos.",
         });
         setIsLoading(false);
         return;
     }
 
     try {
+      // Check for existing username
       const usersRef = collection(db, "users");
-      const q = query(usersRef, where("name", "==", name));
-      const querySnapshot = await getDocs(q);
-
-      if (!querySnapshot.empty) {
+      const nameQuery = query(usersRef, where("name", "==", name));
+      const nameQuerySnapshot = await getDocs(nameQuery);
+      if (!nameQuerySnapshot.empty) {
         throw new Error("El nombre de usuario ya existe.");
+      }
+
+      // Check for existing phone number if provided
+      if (phoneNumber) {
+        const phoneQuery = query(usersRef, where("phoneNumber", "==", phoneNumber));
+        const phoneQuerySnapshot = await getDocs(phoneQuery);
+        if (!phoneQuerySnapshot.empty) {
+          throw new Error("Este número de teléfono ya está en uso.");
+        }
       }
 
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -54,6 +64,7 @@ export default function SignupForm() {
         uid: user.uid,
         name,
         email: user.email,
+        phoneNumber: phoneNumber || null,
         createdAt: new Date(),
       });
       
@@ -82,7 +93,7 @@ export default function SignupForm() {
   };
 
   return (
-    <Card className="w-full mx-auto bg-card text-card-foreground">
+    <Card className="w-full max-w-sm mx-auto bg-card text-card-foreground">
       <CardHeader>
         <CardTitle className="text-2xl font-headline">Regístrate</CardTitle>
         <CardDescription>
@@ -113,6 +124,18 @@ export default function SignupForm() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              disabled={isLoading}
+              className="bg-secondary"
+            />
+          </div>
+           <div className="grid gap-2">
+            <Label htmlFor="phone">Teléfono (Opcional)</Label>
+            <Input
+              id="phone"
+              type="tel"
+              placeholder="Tu número de teléfono"
+              value={phoneNumber}
+              onChange={(e) => setPhoneNumber(e.target.value)}
               disabled={isLoading}
               className="bg-secondary"
             />

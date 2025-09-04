@@ -15,15 +15,7 @@ export default function SignupPage() {
             <SignupForm />
           </TabsContent>
           <TabsContent value="phone">
-             <Card className="bg-card text-card-foreground">
-                <CardHeader>
-                    <CardTitle className="text-2xl font-headline">Regístrate con tu Teléfono</CardTitle>
-                    <CardDescription>
-                     No se necesita contraseña. Recibirás un código de un solo uso por SMS para verificar tu número.
-                    </CardDescription>
-                </CardHeader>
-                <PhoneAuthForm />
-             </Card>
+             <PhoneAuthForm />
           </TabsContent>
         </Tabs>
     </div>

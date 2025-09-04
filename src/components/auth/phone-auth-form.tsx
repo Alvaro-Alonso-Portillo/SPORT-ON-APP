@@ -8,7 +8,7 @@ import { doc, setDoc, getDoc } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { CardContent, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
@@ -65,7 +65,9 @@ export default function PhoneAuthForm() {
       // Reset reCAPTCHA on error
       if (window.recaptchaVerifier) {
           window.recaptchaVerifier.render().then((widgetId) => {
-              window.grecaptcha.reset(widgetId);
+              if (window.grecaptcha) {
+                window.grecaptcha.reset(widgetId);
+              }
           });
       }
       let description = "Ha ocurrido un error. Por favor, inténtalo de nuevo.";
@@ -134,53 +136,63 @@ export default function PhoneAuthForm() {
 
 
   return (
-    <>
-      <div id="recaptcha-container"></div>
-      <form onSubmit={otpSent ? onVerifyOtp : onSignInSubmit}>
-        <CardContent className="grid gap-4 pt-6">
-          {!otpSent ? (
-            <div className="grid gap-2">
-              <Label htmlFor="phone">Número de Teléfono</Label>
-              <div className="flex items-center gap-2">
-                <span className="flex h-10 items-center justify-center rounded-md border border-input bg-background px-3 text-base text-muted-foreground">
-                    +34
-                </span>
+    <Card className="bg-card text-card-foreground">
+        <CardHeader>
+            <CardTitle className="text-2xl font-headline">
+                {otpSent ? "Verifica tu Teléfono" : "Regístrate con tu Teléfono"}
+            </CardTitle>
+            <CardDescription>
+                {otpSent
+                ? "Introduce el código de 6 dígitos que te hemos enviado por SMS."
+                : "No se necesita contraseña. Recibirás un código de un solo uso por SMS para verificar tu número."}
+            </CardDescription>
+        </CardHeader>
+        <div id="recaptcha-container"></div>
+        <form onSubmit={otpSent ? onVerifyOtp : onSignInSubmit}>
+            <CardContent className="grid gap-4 pt-6">
+            {!otpSent ? (
+                <div className="grid gap-2">
+                <Label htmlFor="phone">Número de Teléfono</Label>
+                <div className="flex items-center gap-2">
+                    <span className="flex h-10 items-center justify-center rounded-md border border-input bg-background px-3 text-base text-muted-foreground">
+                        +34
+                    </span>
+                    <Input
+                        id="phone"
+                        type="tel"
+                        placeholder="600 000 000"
+                        required
+                        value={phoneNumber}
+                        onChange={(e) => setPhoneNumber(e.target.value)}
+                        disabled={isLoading}
+                        className="bg-secondary"
+                    />
+                </div>
+                </div>
+            ) : (
+                <div className="grid gap-2">
+                <Label htmlFor="otp">Código de Verificación</Label>
                 <Input
-                    id="phone"
-                    type="tel"
-                    placeholder="600 000 000"
+                    id="otp"
+                    type="text"
+                    maxLength={6}
+                    placeholder="123456"
                     required
-                    value={phoneNumber}
-                    onChange={(e) => setPhoneNumber(e.target.value)}
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value)}
                     disabled={isLoading}
                     className="bg-secondary"
                 />
-              </div>
-            </div>
-          ) : (
-            <div className="grid gap-2">
-              <Label htmlFor="otp">Código de Verificación</Label>
-              <Input
-                id="otp"
-                type="text"
-                maxLength={6}
-                placeholder="123456"
-                required
-                value={otp}
-                onChange={(e) => setOtp(e.target.value)}
-                disabled={isLoading}
-                className="bg-secondary"
-              />
-            </div>
-          )}
-        </CardContent>
-        <CardFooter>
-          <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {otpSent ? "Verificar y Continuar" : "Enviar Código SMS"}
-          </Button>
-        </CardFooter>
-      </form>
-    </>
+                </div>
+            )}
+            </CardContent>
+            <CardFooter>
+            <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {otpSent ? "Verificar y Continuar" : "Enviar Código SMS"}
+            </Button>
+            </CardFooter>
+        </form>
+    </Card>
   );
 }

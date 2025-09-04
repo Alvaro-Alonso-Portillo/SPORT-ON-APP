@@ -1,7 +1,7 @@
-import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
-import { getAuth, Auth } from "firebase/auth";
-import { getFirestore, Firestore } from "firebase/firestore";
-import { getStorage, FirebaseStorage } from "firebase/storage";
+import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
+import { getAuth, type Auth } from "firebase/auth";
+import { getFirestore, type Firestore } from "firebase/firestore";
+import { getStorage, type FirebaseStorage } from "firebase/storage";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -12,27 +12,20 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Declaramos las variables fuera para que puedan ser exportadas
 let app: FirebaseApp;
 let auth: Auth;
 let db: Firestore;
 let storage: FirebaseStorage;
 
-// Esta comprobación es la clave:
-// 'typeof window' solo es 'undefined' en un entorno de servidor.
-if (typeof window !== 'undefined' && !getApps().length) {
-  // Si estamos en el navegador y Firebase no se ha inicializado...
+if (getApps().length) {
+  app = getApp();
+} else {
   app = initializeApp(firebaseConfig);
-  auth = getAuth(app);
-  db = getFirestore(app);
-storage = getStorage(app);
-} else if (getApps().length) {
-  // Si ya se ha inicializado, usa la app existente.
-  app = getApps()[0];
-  auth = getAuth(app);
-  db = getFirestore(app);
-  storage = getStorage(app);
 }
 
-// Exportamos las variables.
+auth = getAuth(app);
+db = getFirestore(app);
+storage = getStorage(app);
+
+
 export { app, auth, db, storage };

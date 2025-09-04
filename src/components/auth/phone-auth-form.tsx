@@ -29,23 +29,21 @@ export default function PhoneAuthForm() {
   const { toast } = useToast();
 
   useEffect(() => {
-    if ('recaptchaVerifier' in window && window.recaptchaVerifier) {
-        // Cleanup previous instance if it exists
-        window.recaptchaVerifier.clear();
-    }
-
-    window.recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha-container", {
-      'size': 'invisible',
-      'callback': (response: any) => {
-        // reCAPTCHA solved, allow signInWithPhoneNumber.
-      }
-    });
-
-    return () => {
-        if (window.recaptchaVerifier) {
-            window.recaptchaVerifier.clear();
+    if (!window.recaptchaVerifier) {
+      window.recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha-container", {
+        'size': 'invisible',
+        'callback': (response: any) => {
+          // reCAPTCHA solved, allow signInWithPhoneNumber.
         }
+      });
     }
+  
+    // Cleanup function to run when component unmounts
+    return () => {
+      if (window.recaptchaVerifier) {
+        window.recaptchaVerifier.clear();
+      }
+    };
   }, []);
 
   const onSignInSubmit = async (e: React.FormEvent) => {
@@ -64,8 +62,16 @@ export default function PhoneAuthForm() {
       window.confirmationResult = confirmationResult;
       setOtpSent(true);
       toast({ title: "Código enviado", description: "Revisa tus mensajes para encontrar el código de 6 dígitos." });
-    } catch (error: any) {
+    } catch (error: any)
+      {
       console.error(error);
+      // Reset reCAPTCHA on error
+      if (window.recaptchaVerifier) {
+          window.recaptchaVerifier.render().then((widgetId) => {
+              // @ts-ignore
+              window.grecaptcha.reset(widgetId);
+          });
+      }
       let description = "Ha ocurrido un error. Por favor, inténtalo de nuevo.";
       if (error.code === 'auth/invalid-phone-number') {
         description = "El número de teléfono no es válido. Asegúrate de incluir el prefijo internacional (ej. +34 para España).";

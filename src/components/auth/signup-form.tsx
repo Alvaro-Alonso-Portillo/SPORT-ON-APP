@@ -82,7 +82,7 @@ export default function SignupForm() {
   };
 
   return (
-    <Card className="w-full max-w-sm mx-auto bg-card text-card-foreground">
+    <Card className="w-full mx-auto bg-card text-card-foreground">
       <CardHeader>
         <CardTitle className="text-2xl font-headline">Regístrate</CardTitle>
         <CardDescription>

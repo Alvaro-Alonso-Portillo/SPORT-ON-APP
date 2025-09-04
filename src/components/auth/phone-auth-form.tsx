@@ -17,6 +17,7 @@ declare global {
   interface Window {
     recaptchaVerifier?: RecaptchaVerifier;
     confirmationResult?: ConfirmationResult;
+    grecaptcha?: any;
   }
 }
 
@@ -64,7 +65,6 @@ export default function PhoneAuthForm() {
       // Reset reCAPTCHA on error
       if (window.recaptchaVerifier) {
           window.recaptchaVerifier.render().then((widgetId) => {
-              // @ts-ignore
               window.grecaptcha.reset(widgetId);
           });
       }

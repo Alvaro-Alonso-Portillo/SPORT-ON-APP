@@ -8,8 +8,12 @@ import Sidebar from '@/components/layout/sidebar';
 import { cn } from '@/lib/utils';
 
 export const metadata: Metadata = {
-  title: 'Calendario de Clases',
+  title: 'Sport ON | Calendario de Clases',
   description: 'Gestiona tus reservas de clases con facilidad.',
+  icons: {
+    icon: '/icon.svg',
+    apple: '/icon.svg',
+  }
 };
 
 export default function RootLayout({

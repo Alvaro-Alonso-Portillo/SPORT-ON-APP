@@ -36,14 +36,8 @@ export default function PhoneAuthForm() {
           // reCAPTCHA solved, allow signInWithPhoneNumber.
         }
       });
+      window.recaptchaVerifier.render();
     }
-  
-    // Cleanup function to run when component unmounts
-    return () => {
-      if (window.recaptchaVerifier) {
-        window.recaptchaVerifier.clear();
-      }
-    };
   }, []);
 
   const onSignInSubmit = async (e: React.FormEvent) => {

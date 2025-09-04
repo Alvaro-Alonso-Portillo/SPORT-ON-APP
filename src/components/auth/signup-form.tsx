@@ -83,13 +83,6 @@ export default function SignupForm() {
   };
 
   return (
-    <Card className="w-full max-w-sm mx-auto bg-card text-card-foreground">
-      <CardHeader>
-        <CardTitle className="text-2xl font-headline">Regístrate</CardTitle>
-        <CardDescription>
-          Crea una cuenta para empezar a reservar clases.
-        </CardDescription>
-      </CardHeader>
       <form onSubmit={handleSignup}>
         <CardContent className="grid gap-4">
            <div className="grid gap-2">
@@ -145,6 +138,5 @@ export default function SignupForm() {
           </div>
         </CardFooter>
       </form>
-    </Card>
   );
 }

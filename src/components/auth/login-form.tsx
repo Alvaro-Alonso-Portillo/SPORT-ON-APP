@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
 
 export default function LoginForm() {
-  const [identifier, setIdentifier] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
@@ -26,23 +26,7 @@ export default function LoginForm() {
     setIsLoading(true);
 
     try {
-      let emailToLogin = identifier;
-
-      // Check if identifier is a phone number
-      if (!identifier.includes('@')) {
-        const usersRef = collection(db, "users");
-        const q = query(usersRef, where("phoneNumber", "==", identifier));
-        const querySnapshot = await getDocs(q);
-
-        if (!querySnapshot.empty) {
-          const userDoc = querySnapshot.docs[0];
-          emailToLogin = userDoc.data().email;
-        } else {
-           throw new Error("No se ha encontrado ninguna cuenta con este teléfono o correo electrónico.");
-        }
-      }
-
-      const userCredential = await signInWithEmailAndPassword(auth, emailToLogin, password);
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
       const userDocRef = doc(db, "users", user.uid);
@@ -63,8 +47,8 @@ export default function LoginForm() {
       let description = "Por favor, comprueba tus credenciales e inténtalo de nuevo.";
       if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential' || error.code === 'auth/invalid-api-key') {
         description = "Credenciales incorrectas. Por favor, inténtalo de nuevo.";
-      } else if (error.code === 'auth/user-not-found' || error.message.includes("No se ha encontrado")) {
-        description = "No se ha encontrado ninguna cuenta con este teléfono o correo electrónico.";
+      } else if (error.code === 'auth/user-not-found') {
+        description = "No se ha encontrado ninguna cuenta con este correo electrónico.";
       }
 
       toast({
@@ -82,14 +66,14 @@ export default function LoginForm() {
     <form onSubmit={handleLogin}>
       <CardContent className="grid gap-4 pt-6">
         <div className="grid gap-2">
-          <Label htmlFor="identifier">Correo Electrónico o Teléfono</Label>
+          <Label htmlFor="email">Correo Electrónico</Label>
           <Input
-            id="identifier"
-            type="text"
-            placeholder="tu@correo.com o tu teléfono"
+            id="email"
+            type="email"
+            placeholder="tu@correo.com"
             required
-            value={identifier}
-            onChange={(e) => setIdentifier(e.target.value)}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             disabled={isLoading}
             className="bg-secondary"
           />

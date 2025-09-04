@@ -29,7 +29,10 @@ export default function PhoneAuthForm() {
   const { toast } = useToast();
 
   useEffect(() => {
-    if ('recaptchaVerifier' in window) return;
+    if ('recaptchaVerifier' in window && window.recaptchaVerifier) {
+        // Cleanup previous instance if it exists
+        window.recaptchaVerifier.clear();
+    }
 
     window.recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha-container", {
       'size': 'invisible',
@@ -37,6 +40,12 @@ export default function PhoneAuthForm() {
         // reCAPTCHA solved, allow signInWithPhoneNumber.
       }
     });
+
+    return () => {
+        if (window.recaptchaVerifier) {
+            window.recaptchaVerifier.clear();
+        }
+    }
   }, []);
 
   const onSignInSubmit = async (e: React.FormEvent) => {

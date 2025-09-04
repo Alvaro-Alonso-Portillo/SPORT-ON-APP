@@ -17,7 +17,6 @@ import { Loader2 } from "lucide-react";
 export default function SignupForm() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [phoneNumber, setPhoneNumber] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
@@ -46,15 +45,6 @@ export default function SignupForm() {
         throw new Error("El nombre de usuario ya existe.");
       }
 
-      // Check for existing phone number if provided
-      if (phoneNumber) {
-        const phoneQuery = query(usersRef, where("phoneNumber", "==", phoneNumber));
-        const phoneQuerySnapshot = await getDocs(phoneQuery);
-        if (!phoneQuerySnapshot.empty) {
-          throw new Error("Este número de teléfono ya está en uso.");
-        }
-      }
-
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
@@ -64,7 +54,7 @@ export default function SignupForm() {
         uid: user.uid,
         name,
         email: user.email,
-        phoneNumber: phoneNumber || null,
+        phoneNumber: null,
         createdAt: new Date(),
       });
       
@@ -124,18 +114,6 @@ export default function SignupForm() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              disabled={isLoading}
-              className="bg-secondary"
-            />
-          </div>
-           <div className="grid gap-2">
-            <Label htmlFor="phone">Teléfono (Opcional)</Label>
-            <Input
-              id="phone"
-              type="tel"
-              placeholder="Tu número de teléfono"
-              value={phoneNumber}
-              onChange={(e) => setPhoneNumber(e.target.value)}
               disabled={isLoading}
               className="bg-secondary"
             />

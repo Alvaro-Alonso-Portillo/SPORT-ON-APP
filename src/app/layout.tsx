@@ -3,9 +3,8 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { AuthProvider } from '@/hooks/use-auth';
 import { Toaster } from "@/components/ui/toaster";
-import Header from '@/components/layout/header';
-import Sidebar from '@/components/layout/sidebar';
 import { cn } from '@/lib/utils';
+import AppLayout from '@/components/layout/app-layout';
 
 export const metadata: Metadata = {
   title: 'Sport ON | Calendario de Clases',
@@ -32,15 +31,9 @@ export default function RootLayout({
       </head>
       <body className={cn("font-body antialiased bg-background text-foreground")}>
         <AuthProvider>
-          <div className="flex min-h-screen flex-col md:flex-row overflow-x-hidden">
-            <Sidebar />
-            <div className="flex-1 flex flex-col">
-              <Header />
-              <main className="flex-1 overflow-y-auto">
-                {children}
-              </main>
-            </div>
-          </div>
+          <AppLayout>
+            {children}
+          </AppLayout>
           <Toaster />
         </AuthProvider>
       </body>

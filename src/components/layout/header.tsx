@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -35,26 +36,27 @@ export default function Header() {
             </Sheet>
           </div>
            <Link href="/" className="hidden sm:block">
-             <img 
-               src="/logo.png" 
-               alt="Sport ON Logo" 
-               width="150"
-               style={{ height: 'auto' }}
-               loading="eager"
-             />
+             <Image
+                src="/logo.png"
+                alt="Sport ON Logo"
+                width={150}
+                height={40}
+                className="w-[150px] h-auto"
+                priority
+              />
           </Link>
       </div>
 
       <div className="flex-1 text-center sm:hidden">
           <Link href="/">
-             <img 
-               src="/logo.png" 
-               alt="Sport ON Logo" 
-               width="120"
-               className="mx-auto" 
-               style={{ height: 'auto' }}
-               loading="eager"
-             />
+             <Image
+                src="/logo.png"
+                alt="Sport ON Logo"
+                width={120}
+                height={32}
+                className="mx-auto w-[120px] h-auto"
+                priority
+              />
           </Link>
       </div>
       

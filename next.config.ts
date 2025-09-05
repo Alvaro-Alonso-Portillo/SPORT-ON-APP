@@ -10,7 +10,7 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   },
   images: {
-    unoptimized: true,
+    unoptimized: process.env.CI === 'true',
     remotePatterns: [
       {
         protocol: 'https',

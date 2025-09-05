@@ -60,7 +60,7 @@ const generateClassesForDate = (date: Date, existingClasses: ClassInfo[]): Class
 
 
 function WeeklyCalendarInternal() {
-  const { user, loading: authLoading } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
   const searchParams = useSearchParams()
   const dateParam = searchParams.get('date');
@@ -106,8 +106,6 @@ function WeeklyCalendarInternal() {
 
 
   useEffect(() => {
-    if (authLoading) return;
-    
     const initialFetch = async () => {
       setIsLoading(true);
       try {
@@ -122,7 +120,7 @@ function WeeklyCalendarInternal() {
     };
 
     initialFetch();
-  }, [user, authLoading, fetchClasses]);
+  }, [fetchClasses]);
 
 
   const userBookings = useMemo(() => {
@@ -293,7 +291,7 @@ function WeeklyCalendarInternal() {
     }
   };
 
-  if (isLoading || authLoading) {
+  if (isLoading) {
     return (
       <div className="flex justify-center items-center h-[calc(100vh-10rem)]">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />

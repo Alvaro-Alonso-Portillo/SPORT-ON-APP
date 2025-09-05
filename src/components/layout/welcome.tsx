@@ -29,10 +29,9 @@ export default function Welcome() {
           src="/logo.png"
           alt="Sport ON Logo"
           width={320}
-          height={0}
+          height={85}
           priority
-          style={{ height: "auto" }}
-          className="mx-auto"
+          className="h-auto w-[320px] mx-auto"
         />
         <p className="mt-4 text-lg md:text-xl text-muted-foreground italic h-7">
           {quote}

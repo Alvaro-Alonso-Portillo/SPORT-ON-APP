@@ -36,13 +36,13 @@ export default function Header() {
             </Sheet>
           </div>
            <Link href="/" className="hidden sm:block">
-             <Image src="/logo.png" alt="Sport ON Logo" width={150} height={0} priority style={{ height: "auto" }} />
+             <Image src="/logo.png" alt="Sport ON Logo" width={150} height={40} priority className="h-auto w-[150px]" />
           </Link>
       </div>
 
       <div className="flex-1 text-center sm:hidden">
           <Link href="/">
-             <Image src="/logo.png" alt="Sport ON Logo" width={120} height={0} priority style={{ height: "auto" }} className="mx-auto" />
+             <Image src="/logo.png" alt="Sport ON Logo" width={120} height={32} priority className="h-auto w-[120px] mx-auto" />
           </Link>
       </div>
       

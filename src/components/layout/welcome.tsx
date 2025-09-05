@@ -12,14 +12,17 @@ const motivationalQuotes = [
   "Cada entrenamiento cuenta.",
   "El esfuerzo de hoy es el éxito de mañana.",
   "Entrena fuerte o permanece igual.",
-  "La constancia vence al talento cuando el talento no es constante.",
   "Tu cuerpo logra lo que tu mente cree.",
-  "El sudor es solo grasa llorando.",
-  "La diferencia entre lo imposible y lo posible está en tu voluntad.",
   "Nunca te rindas, cada repetición te acerca más a tu meta.",
   "Si no te reta, no te cambia.",
-  "El progreso se consigue fuera de la zona de confort.",
-  "Hazlo por ti, no por los demás."
+  "Enciende tu mejor versión con SportON.",
+  "Con SportON no hay excusas, solo resultados.",
+  "SportON: donde tu límite se convierte en tu punto de partida.",
+  "Cada día en SportON es una oportunidad para superarte.",
+  "SportON: activa tu disciplina, activa tu vida.",
+  "El cambio empieza aquí, en SportON.",
+  "En SportON transformas esfuerzo en orgullo.",
+  "SportON: energía que no se apaga."
 ];
 
 export default function Welcome() {

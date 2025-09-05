@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -91,7 +90,7 @@ export default function SidebarContent({ onLinkClick }: SidebarContentProps) {
   }
 
   const logo = (
-     <Image src="/logo.png" alt="Sport ON Logo" width={180} height={48} priority className="h-auto w-[180px]" />
+     <img src="/logo.png" alt="Sport ON Logo" width="180" style={{ height: 'auto' }} loading="eager" />
   );
 
   if (!user) {

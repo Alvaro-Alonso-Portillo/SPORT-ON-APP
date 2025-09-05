@@ -31,7 +31,8 @@ export default function Welcome() {
           width={320}
           height={85}
           priority
-          className="mx-auto w-[320px] h-auto"
+          style={{ width: "320px", height: "auto" }}
+          className="mx-auto"
         />
         <p className="mt-4 text-lg md:text-xl text-muted-foreground italic h-7">
           {quote}

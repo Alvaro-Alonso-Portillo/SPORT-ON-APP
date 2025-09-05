@@ -2,6 +2,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from 'next/navigation'
 import { Home, CalendarDays, User as UserIcon, LogOut, LogIn, Power } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
@@ -90,9 +91,7 @@ export default function SidebarContent({ onLinkClick }: SidebarContentProps) {
   }
 
   const logo = (
-    <span className="text-3xl font-headline font-bold">
-      Sport <span className="text-primary">ON</span>
-    </span>
+     <Image src="/logo.png" alt="Sport ON Logo" width={180} height={48} priority />
   );
 
   if (!user) {

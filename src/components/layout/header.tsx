@@ -3,6 +3,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { LogIn, Menu, UserPlus, Power } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -34,14 +35,14 @@ export default function Header() {
               </SheetContent>
             </Sheet>
           </div>
-           <Link href="/" className="text-xl md:text-3xl font-headline font-bold text-foreground hidden sm:block">
-             Sport <span className="text-primary">ON</span>
+           <Link href="/" className="hidden sm:block">
+             <Image src="/logo.png" alt="Sport ON Logo" width={150} height={40} priority />
           </Link>
       </div>
 
       <div className="flex-1 text-center sm:hidden">
-          <Link href="/" className="text-2xl font-headline font-bold text-foreground">
-             Sport <span className="text-primary">ON</span>
+          <Link href="/">
+             <Image src="/logo.png" alt="Sport ON Logo" width={120} height={32} className="mx-auto" priority />
           </Link>
       </div>
       

@@ -9,7 +9,7 @@ import { doc, setDoc, getDocs, query, collection, where } from "firebase/firesto
 import { auth, db } from "@/lib/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { CardContent, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
@@ -83,8 +83,8 @@ export default function SignupForm() {
   };
 
   return (
-      <form onSubmit={handleSignup}>
-        <CardContent className="grid gap-4">
+      <form onSubmit={handleSignup} className="pt-6">
+        <CardContent className="grid gap-4 p-0">
            <div className="grid gap-2">
             <Label htmlFor="name">Nombre de Usuario</Label>
             <Input
@@ -125,7 +125,7 @@ export default function SignupForm() {
             />
           </div>
         </CardContent>
-        <CardFooter className="flex flex-col gap-4">
+        <CardFooter className="flex flex-col gap-4 p-0 pt-6">
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Crear Cuenta

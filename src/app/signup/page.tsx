@@ -6,7 +6,9 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import Welcome from '@/components/layout/welcome';
 import SignupForm from "@/components/auth/signup-form";
+import PhoneAuthForm from '@/components/auth/phone-auth-form';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function SignupPage() {
   const { user, loading } = useAuth();
@@ -31,7 +33,20 @@ export default function SignupPage() {
             Crea una cuenta para empezar a reservar clases.
           </CardDescription>
         </CardHeader>
-        <SignupForm />
+        <CardContent>
+          <Tabs defaultValue="email" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="email">Email</TabsTrigger>
+              <TabsTrigger value="phone">Teléfono</TabsTrigger>
+            </TabsList>
+            <TabsContent value="email">
+              <SignupForm />
+            </TabsContent>
+            <TabsContent value="phone">
+              <PhoneAuthForm />
+            </TabsContent>
+          </Tabs>
+        </CardContent>
       </Card>
     </div>
   );

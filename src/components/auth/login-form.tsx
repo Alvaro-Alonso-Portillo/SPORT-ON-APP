@@ -63,8 +63,8 @@ export default function LoginForm() {
 
 
   return (
-    <form onSubmit={handleLogin}>
-      <CardContent className="grid gap-4 pt-6">
+    <form onSubmit={handleLogin} className="pt-6">
+      <CardContent className="grid gap-4 p-0">
         <div className="grid gap-2">
           <Label htmlFor="email">Correo Electrónico</Label>
           <Input
@@ -91,7 +91,7 @@ export default function LoginForm() {
           />
         </div>
       </CardContent>
-      <CardFooter className="flex flex-col gap-4">
+      <CardFooter className="flex flex-col gap-4 p-0 pt-6">
         <Button type="submit" className="w-full" disabled={isLoading}>
           {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           Iniciar Sesión

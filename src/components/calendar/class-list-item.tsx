@@ -24,7 +24,6 @@ const anton = Anton({
   weight: '400'
 });
 
-
 interface ClassListItemProps {
   classInfo: ClassInfo;
   user: User | null;

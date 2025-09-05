@@ -1,3 +1,4 @@
+
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
@@ -26,11 +27,10 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  experimental: {
-    // This allows the Next.js dev server to accept requests from a different
-    // origin. This is necessary for the Studio preview iframe to work correctly.
-    allowedDevOrigins: ['https://*.googleusercontent.com'],
-  },
+  // This allows the Next.js dev server to accept requests from a different
+  // origin. This is necessary for the Studio preview iframe to work correctly.
+  experimental: {},
+  allowedDevOrigins: ['https://*.googleusercontent.com'],
   env: {
     NEXT_PUBLIC_FIREBASE_API_KEY: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
     NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,

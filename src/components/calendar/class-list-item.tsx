@@ -158,7 +158,7 @@ export default function ClassListItem({ classInfo, user, isBookedByUser, onBooki
             <AlertDialogAction onClick={handleCancelBooking} disabled={isCancelling}>
                {isCancelling && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                Sí, Cancelar
-            </ADCAction>
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

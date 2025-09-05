@@ -27,7 +27,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, addMinutes } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useToast } from "@/hooks/use-toast";
 
@@ -76,10 +76,20 @@ export default function BookingsList() {
         }));
 
         const querySnapshot = await getDocs(q);
-        const userBookings = querySnapshot.docs.map(doc => ({
-            id: doc.id,
-            classInfo: doc.data() as ClassInfo,
-        }));
+        const now = new Date();
+
+        const userBookings = querySnapshot.docs
+          .map(doc => ({
+              id: doc.id,
+              classInfo: doc.data() as ClassInfo,
+          }))
+          .filter(booking => {
+            const [hours, minutes] = booking.classInfo.time.split(':');
+            const classStartDateTime = new Date(`${booking.classInfo.date}T${hours}:${minutes}:00`);
+            const classEndDateTime = addMinutes(classStartDateTime, booking.classInfo.duration);
+            return classEndDateTime > now;
+          });
+        
         setBookings(userBookings);
 
       } catch (error) {

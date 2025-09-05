@@ -84,7 +84,7 @@ function WeeklyCalendarInternal() {
   const endOfCurrentWeek = useMemo(() => endOfWeek(currentDate, { weekStartsOn: 1 }), [currentDate]);
 
   const fetchClasses = useCallback(async () => {
-    setIsLoading(true);
+    // No establecer isLoading aquí para evitar parpadeos en cada cambio de semana
     try {
         const classesRef = collection(db, 'classes');
         const q = query(classesRef, 
@@ -101,15 +101,27 @@ function WeeklyCalendarInternal() {
             title: "Error",
             description: "No se pudieron cargar las clases. Inténtalo de nuevo más tarde."
         });
-    } finally {
-        setIsLoading(false);
     }
   }, [startOfCurrentWeek, endOfCurrentWeek, toast]);
 
 
   useEffect(() => {
     if (authLoading) return;
-    fetchClasses();
+    
+    const initialFetch = async () => {
+      setIsLoading(true);
+      try {
+        await fetchClasses();
+      } catch (error) {
+        // El toast ya se maneja dentro de fetchClasses
+        console.error("Failed initial fetch of classes:", error);
+      } finally {
+        // Asegurarse de que el estado de carga se desactive siempre
+        setIsLoading(false);
+      }
+    };
+
+    initialFetch();
   }, [user, authLoading, fetchClasses]);
 
 

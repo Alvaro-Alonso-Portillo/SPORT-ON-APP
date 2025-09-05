@@ -22,10 +22,11 @@ export default function Home() {
     // para evitar un parpadeo de contenido vacío mientras se redirige.
     return <Welcome />;
   }
-
+  
+  // Renderiza el calendario solo cuando el usuario está autenticado y la carga ha finalizado.
   return (
     <div className="h-full w-full p-4 md:p-8">
-      <WeeklyCalendar />
+      {user && <WeeklyCalendar />}
     </div>
   );
 }

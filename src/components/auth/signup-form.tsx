@@ -18,6 +18,7 @@ export default function SignupForm() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
@@ -54,7 +55,7 @@ export default function SignupForm() {
         uid: user.uid,
         name,
         email: user.email,
-        phoneNumber: null,
+        phoneNumber: phoneNumber || null,
         createdAt: new Date(),
       });
       
@@ -121,6 +122,18 @@ export default function SignupForm() {
               onChange={(e) => setPassword(e.target.value)}
               disabled={isLoading}
               placeholder="Debe tener al menos 6 caracteres"
+              className="bg-secondary"
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="phone">Número de Teléfono (Opcional)</Label>
+            <Input
+              id="phone"
+              type="tel"
+              placeholder="Tu número de teléfono"
+              value={phoneNumber}
+              onChange={(e) => setPhoneNumber(e.target.value)}
+              disabled={isLoading}
               className="bg-secondary"
             />
           </div>

@@ -29,7 +29,7 @@ export default function Welcome() {
           src="/logo.png"
           alt="Sport ON Logo"
           width={320}
-          height={88}
+          height={85}
           priority
           className="mx-auto"
         />

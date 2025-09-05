@@ -2,7 +2,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Loader2, Power } from "lucide-react";
+import Image from "next/image";
+import { Loader2 } from "lucide-react";
 
 const motivationalQuotes = [
   "La disciplina es el puente entre las metas y los logros.",
@@ -22,10 +23,15 @@ export default function Welcome() {
 
   return (
     <div className="flex flex-col items-center justify-center h-full w-full bg-background text-foreground">
-      <div className="text-center">
-        <h1 className="text-6xl md:text-8xl font-headline font-bold">
-          Sport <span className="text-primary">ON</span>
-        </h1>
+      <div className="text-center p-4">
+        <Image
+          src="/logo.png"
+          alt="Sport ON Logo"
+          width={320}
+          height={88}
+          priority
+          className="mx-auto"
+        />
         <p className="mt-4 text-lg md:text-xl text-muted-foreground italic h-7">
           {quote}
         </p>

@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import { Loader2 } from "lucide-react";
 
+// Motivational quotes for the welcome screen
 const motivationalQuotes = [
   "La disciplina es el puente entre las metas y los logros.",
   "Tu único límite es tu mente.",

@@ -220,7 +220,7 @@ export default function ProfileForm() {
   const currentAvatar = croppedImage ? URL.createObjectURL(croppedImage) : auth.currentUser?.photoURL || profile?.photoURL || `https://api.dicebear.com/8.x/bottts/svg?seed=${user?.uid}`;
 
   return (
-    <>
+    <Form {...form}>
       <Card className="max-w-2xl mx-auto">
         <CardHeader>
           <div className="flex items-start gap-4">
@@ -241,54 +241,52 @@ export default function ProfileForm() {
             </div>
           </div>
         </CardHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)}>
-            <CardContent className="space-y-6">
-              <FormField
-                control={form.control}
-                name="dob"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Fecha de Nacimiento</FormLabel>
-                    <FormControl>
-                      <Input type="date" {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      Tu fecha de nacimiento no será pública.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="profileImage"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Imagen del perfil</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="file"
-                        accept="image/png, image/jpeg"
-                        onChange={handleFileChange}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      Sube una foto de perfil (JPG o PNG).
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </CardContent>
-            <CardFooter>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Guardar Cambios
-              </Button>
-            </CardFooter>
-          </form>
-        </Form>
+        <form onSubmit={form.handleSubmit(onSubmit)}>
+          <CardContent className="space-y-6">
+            <FormField
+              control={form.control}
+              name="dob"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Fecha de Nacimiento</FormLabel>
+                  <FormControl>
+                    <Input type="date" {...field} />
+                  </FormControl>
+                  <FormDescription>
+                    Tu fecha de nacimiento no será pública.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="profileImage"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Imagen del perfil</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="file"
+                      accept="image/png, image/jpeg"
+                      onChange={handleFileChange}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Sube una foto de perfil (JPG o PNG).
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </CardContent>
+          <CardFooter>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Guardar Cambios
+            </Button>
+          </CardFooter>
+        </form>
       </Card>
       
       <Dialog open={isCropping} onOpenChange={(open) => !open && onCropCancel()}>
@@ -330,6 +328,6 @@ export default function ProfileForm() {
           </div>
         </DialogContent>
       </Dialog>
-    </>
+    </Form>
   );
 }

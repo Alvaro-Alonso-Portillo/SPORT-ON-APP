@@ -78,7 +78,7 @@ function WeeklyCalendarInternal() {
   const [allClasses, setAllClasses] = useState<ClassInfo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [currentDate, setCurrentDate] = useState(getInitialDate);
-  const [changingBookingId, setChangingBookingId] = useState<string | null>(null);
+  const [changingBooking, setChangingBooking] = useState<{ classId: string, attendee: Attendee } | null>(null);
   
   const startOfCurrentWeek = useMemo(() => startOfWeek(currentDate, { weekStartsOn: 1 }), [currentDate]);
   const endOfCurrentWeek = useMemo(() => endOfWeek(currentDate, { weekStartsOn: 1 }), [currentDate]);
@@ -130,17 +130,17 @@ function WeeklyCalendarInternal() {
 
   const handleNextWeek = () => {
     setCurrentDate(addDays(startOfCurrentWeek, 7));
-    setChangingBookingId(null);
+    setChangingBooking(null);
   };
 
   const handlePreviousWeek = () => {
     setCurrentDate(subDays(startOfCurrentWeek, 7));
-    setChangingBookingId(null);
+    setChangingBooking(null);
   };
   
   const handleSetCurrentDate = (date: Date) => {
       setCurrentDate(date);
-      setChangingBookingId(null);
+      setChangingBooking(null);
   };
 
   const formattedSelectedDate = useMemo(() => {
@@ -159,8 +159,8 @@ function WeeklyCalendarInternal() {
     return generated.sort((a,b) => a.time.localeCompare(b.time));
   }, [currentDate, allClasses]);
 
-  const handleBookingUpdate = async (classInfo: ClassInfo, newAttendee: Attendee | null, oldClassId?: string, attendeeToRemoveAdmin?: Attendee) => {
-    if (!user) {
+  const handleBookingUpdate = async (classInfo: ClassInfo, newAttendee: Attendee | null, oldClassId?: string, attendeeToUpdate?: Attendee) => {
+    if (!user && !isSuperAdmin) {
          toast({
             title: "Acción requerida",
             description: "Debes iniciar sesión para reservar una clase.",
@@ -168,31 +168,33 @@ function WeeklyCalendarInternal() {
         return;
     }
     
-    // User booking a new class (not moving)
-    if (newAttendee && !oldClassId) {
+    const userForCheck = attendeeToUpdate || newAttendee;
+
+    // Normal user booking a new class (not moving)
+    if (newAttendee && !oldClassId && !isSuperAdmin) {
       const userHasBookingOnThisDay = userBookings.some(bookingId => 
           bookingId.startsWith(classInfo.date)
       );
 
-      if (userHasBookingOnThisDay && !isSuperAdmin) {
+      if (userHasBookingOnThisDay) {
           toast({
               variant: "destructive",
               title: "Límite de reservas alcanzado",
               description: "Ya tienes una reserva para este día. No puedes reservar más de una clase diaria.",
           });
-          setChangingBookingId(null);
+          setChangingBooking(null);
           return;
       }
     }
     
     try {
         await runTransaction(db, async (transaction) => {
-            // ADMIN REMOVING A USER
-            if (attendeeToRemoveAdmin && isSuperAdmin) {
+            // ADMIN REMOVING A USER or USER CANCELLING
+            if (!newAttendee && attendeeToUpdate) {
                 const classDocRef = doc(db, "classes", classInfo.id);
                 const classDoc = await transaction.get(classDocRef);
                 if (classDoc.exists()) {
-                    const existingAttendee = classDoc.data().attendees.find((a: Attendee) => a.uid === attendeeToRemoveAdmin.uid);
+                    const existingAttendee = classDoc.data().attendees.find((a: Attendee) => a.uid === attendeeToUpdate.uid);
                     if (existingAttendee) {
                         transaction.update(classDocRef, { attendees: arrayRemove(existingAttendee) });
                     }
@@ -201,7 +203,7 @@ function WeeklyCalendarInternal() {
             }
 
             // MOVE BOOKING
-            if (oldClassId && newAttendee) {
+            if (oldClassId && newAttendee && attendeeToUpdate) {
                 const oldClassDocRef = doc(db, "classes", oldClassId);
                 const newClassDocRef = doc(db, "classes", classInfo.id);
                 
@@ -212,7 +214,7 @@ function WeeklyCalendarInternal() {
                 
                 // Remove from old class
                 if (oldClassDoc.exists()) {
-                    const attendeeToRemove = oldClassDoc.data().attendees.find((a: Attendee) => a.uid === user.uid);
+                    const attendeeToRemove = oldClassDoc.data().attendees.find((a: Attendee) => a.uid === attendeeToUpdate.uid);
                     if (attendeeToRemove) {
                         transaction.update(oldClassDocRef, { attendees: arrayRemove(attendeeToRemove) });
                     }
@@ -229,38 +231,28 @@ function WeeklyCalendarInternal() {
                     transaction.update(newClassDocRef, { attendees: arrayUnion(newAttendee) });
                 }
 
-            } else { // BOOK OR CANCEL
+            } else if (newAttendee) { // BOOK
                 const classDocRef = doc(db, "classes", classInfo.id);
                 const classDoc = await transaction.get(classDocRef);
                 
-                if (newAttendee) { // Add/Book
-                    if (!classDoc.exists()) {
-                        transaction.set(classDocRef, { ...classInfo, attendees: [newAttendee] });
-                    } else {
-                        const currentClassData = classDoc.data() as ClassInfo;
-                        if (currentClassData.attendees.length >= currentClassData.capacity) {
-                            throw new Error("La clase está llena. No se pudo completar la reserva.");
-                        }
-                        if (currentClassData.attendees.some(a => a.uid === newAttendee.uid)) return;
-                        transaction.update(classDocRef, { attendees: arrayUnion(newAttendee) });
+                if (!classDoc.exists()) {
+                    transaction.set(classDocRef, { ...classInfo, attendees: [newAttendee] });
+                } else {
+                    const currentClassData = classDoc.data() as ClassInfo;
+                    if (currentClassData.attendees.length >= currentClassData.capacity) {
+                        throw new Error("La clase está llena. No se pudo completar la reserva.");
                     }
-                } else { // Cancel
-                     if (classDoc.exists()) {
-                        const attendeeToRemove = classDoc.data().attendees.find((a: Attendee) => a.uid === user.uid);
-                        if (attendeeToRemove) {
-                            transaction.update(classDocRef, { attendees: arrayRemove(attendeeToRemove) });
-                        }
-                    }
+                    if (currentClassData.attendees.some(a => a.uid === newAttendee.uid)) return;
+                    transaction.update(classDocRef, { attendees: arrayUnion(newAttendee) });
                 }
             }
         });
-
-        if (attendeeToRemoveAdmin) {
-            toast({ title: "Reserva Eliminada (Admin)", description: `Has eliminado a ${attendeeToRemoveAdmin.name} de la clase.` });
+        
+        if (attendeeToUpdate && !newAttendee) {
+            toast({ title: "Reserva cancelada/eliminada", description: `La plaza para ${attendeeToUpdate.name} ha sido liberada.` });
         } else if (newAttendee) {
-            toast({ title: oldClassId ? "¡Reserva cambiada!" : "¡Reserva confirmada!", description: `Has asegurado tu plaza para ${classInfo.name} a las ${classInfo.time}.` });
-        } else {
-            toast({ title: "Reserva cancelada", description: `Tu plaza para ${classInfo.name} ha sido cancelada.` });
+            const message = oldClassId ? "¡Reserva cambiada!" : "¡Reserva confirmada!";
+            toast({ title: message, description: `${newAttendee.name} tiene su plaza para ${classInfo.name} a las ${classInfo.time}.` });
         }
         
         await fetchClasses();
@@ -274,7 +266,7 @@ function WeeklyCalendarInternal() {
         });
         await fetchClasses(); // Refetch even on error to get the latest state
     } finally {
-        setChangingBookingId(null);
+        setChangingBooking(null);
     }
   };
 
@@ -325,8 +317,8 @@ function WeeklyCalendarInternal() {
                     user={user}
                     isBookedByUser={userBookings.includes(classInfo.id)}
                     onBookingUpdate={handleBookingUpdate}
-                    changingBookingId={changingBookingId}
-                    setChangingBookingId={setChangingBookingId}
+                    changingBooking={changingBooking}
+                    setChangingBooking={setChangingBooking}
                 />
             ))
          ) : (

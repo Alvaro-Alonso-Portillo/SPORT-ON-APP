@@ -3,10 +3,10 @@
 
 import { useState } from 'react';
 import type { User } from 'firebase/auth';
-import type { ClassInfo, Attendee } from '@/types';
+import type { ClassInfo, Attendee, UserProfile } from '@/types';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Users, Loader2, Trash2 } from 'lucide-react';
+import { Users, Loader2, Trash2, Pencil } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,6 +21,7 @@ import { isBefore, parse } from 'date-fns';
 import { Anton } from 'next/font/google';
 import { cn, generateColorFromUID, getInitials } from '@/lib/utils';
 import UserProfileModal from '@/components/profile/user-profile-modal';
+import AdminBookingModal from './admin-booking-modal';
 import { useAuth } from '@/hooks/use-auth';
 
 const anton = Anton({
@@ -32,43 +33,58 @@ interface ClassListItemProps {
   classInfo: ClassInfo;
   user: User | null;
   isBookedByUser: boolean;
-  onBookingUpdate: (classInfo: ClassInfo, newAttendee: Attendee | null, oldClassId?: string, attendeeToRemove?: Attendee) => Promise<void>;
-  changingBookingId: string | null;
-  setChangingBookingId: (id: string | null) => void;
+  onBookingUpdate: (classInfo: ClassInfo, newAttendee: Attendee | null, oldClassId?: string, attendeeToUpdate?: Attendee) => Promise<void>;
+  changingBooking: { classId: string, attendee: Attendee } | null;
+  setChangingBooking: (booking: { classId: string, attendee: Attendee } | null) => void;
 }
 
-export default function ClassListItem({ classInfo, user, isBookedByUser, onBookingUpdate, changingBookingId, setChangingBookingId }: ClassListItemProps) {
+export default function ClassListItem({ classInfo, user, isBookedByUser, onBookingUpdate, changingBooking, setChangingBooking }: ClassListItemProps) {
   const { isSuperAdmin } = useAuth();
   const [isBooking, setIsBooking] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [selectedAttendee, setSelectedAttendee] = useState<Attendee | null>(null);
   const [attendeeToRemove, setAttendeeToRemove] = useState<Attendee | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const handleBookClass = async () => {
-    // Guard Clause: Ensure user is available before proceeding.
+  const handleBookClass = async (selectedUser?: UserProfile) => {
     if (!user) return;
 
+    if (isSuperAdmin && !selectedUser) {
+      setIsModalOpen(true);
+      return;
+    }
+    
     setIsBooking(true);
     
-    // Safely create the new attendee object
+    const userForBooking = isSuperAdmin && selectedUser ? selectedUser : user;
+    const displayName = isSuperAdmin && selectedUser ? selectedUser.name : user.displayName;
+    
     const newAttendee: Attendee = {
-      uid: user.uid,
-      name: user.displayName || user.email?.split('@')[0] || "Usuario",
-      // Only include photoURL if it exists to avoid sending `undefined` to Firestore
-      ...(user.photoURL && { photoURL: user.photoURL }),
+      uid: userForBooking.uid,
+      name: displayName || userForBooking.email?.split('@')[0] || "Usuario",
+      ...(userForBooking.photoURL && { photoURL: userForBooking.photoURL }),
     };
+
+    const oldClassId = changingBooking?.classId;
+    const attendeeToUpdate = changingBooking?.attendee;
     
-    const oldClassId = changingBookingId || undefined;
-    
-    await onBookingUpdate(classInfo, newAttendee, oldClassId);
+    await onBookingUpdate(classInfo, newAttendee, oldClassId, attendeeToUpdate);
     setIsBooking(false);
+    setIsModalOpen(false);
   };
 
   const handleCancelBooking = async () => {
     if (!user) return;
     setIsCancelling(true);
-    await onBookingUpdate(classInfo, null);
+
+    const attendeeData = {
+        uid: user.uid,
+        name: user.displayName || 'Usuario',
+        photoURL: user.photoURL || undefined
+    };
+
+    await onBookingUpdate(classInfo, null, undefined, attendeeData);
     setIsCancelling(false);
     setShowCancelConfirm(false);
   };
@@ -81,8 +97,8 @@ export default function ClassListItem({ classInfo, user, isBookedByUser, onBooki
     setAttendeeToRemove(null);
   }
   
-  const handleStartChange = () => {
-      setChangingBookingId(classInfo.id);
+  const handleStartChange = (attendee: Attendee) => {
+      setChangingBooking({ classId: classInfo.id, attendee });
   };
 
   const renderAttendees = () => {
@@ -103,14 +119,23 @@ export default function ClassListItem({ classInfo, user, isBookedByUser, onBooki
                 </AvatarFallback>
                 </Avatar>
             </button>
-             {isSuperAdmin && user?.uid !== attendee.uid && (
+             {isSuperAdmin && (
+              <div className="absolute -top-2 -right-2 flex flex-col gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button 
+                    onClick={() => handleStartChange(attendee)}
+                    className="bg-secondary text-secondary-foreground rounded-full p-1 shadow-md"
+                    aria-label={`Modificar a ${attendee.name}`}
+                >
+                    <Pencil className="h-3 w-3" />
+                </button>
                 <button 
                     onClick={() => setAttendeeToRemove(attendee)}
-                    className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="bg-destructive text-destructive-foreground rounded-full p-1 shadow-md"
                     aria-label={`Eliminar a ${attendee.name}`}
                 >
                     <Trash2 className="h-3 w-3" />
                 </button>
+              </div>
             )}
             <span className="text-xs mt-1 truncate w-12">{attendee.name}</span>
           </div>
@@ -129,13 +154,14 @@ export default function ClassListItem({ classInfo, user, isBookedByUser, onBooki
     }
     
     const isFull = classInfo.attendees.length >= classInfo.capacity;
-    const isChangingThis = changingBookingId === classInfo.id;
-    
-    if (changingBookingId && !isChangingThis) {
-        if(isBookedByUser || isFull) return <Button disabled>No disponible</Button>;
+    const isChangingThisClass = changingBooking?.classId === classInfo.id;
+    const isCurrentUserBeingChanged = isBookedByUser && isChangingThisClass;
+
+    if (changingBooking && !isChangingThisClass) {
+        if(isFull) return <Button disabled>Completo</Button>;
         return (
             <div className="flex items-center gap-2">
-                <Button onClick={handleBookClass}>
+                <Button onClick={() => handleBookClass()}>
                     {isBooking ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Moviendo...</> : "Mover aquí"}
                 </Button>
             </div>
@@ -145,10 +171,14 @@ export default function ClassListItem({ classInfo, user, isBookedByUser, onBooki
     if (isBookedByUser) {
       return (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2 w-full md:w-auto">
-            <Button onClick={isChangingThis ? () => setChangingBookingId(null) : handleStartChange} variant={isChangingThis ? "ghost" : "default"} disabled={isBooking || isCancelling || (!!changingBookingId && !isChangingThis)} className="md:w-32">
-                {isChangingThis ? "Cancelar cambio" : "Cambiar"}
+            <Button 
+                onClick={isCurrentUserBeingChanged ? () => setChangingBooking(null) : () => handleStartChange({ uid: user!.uid, name: user!.displayName || 'user', photoURL: user!.photoURL || undefined })} 
+                variant={isCurrentUserBeingChanged ? "ghost" : "default"} 
+                disabled={isBooking || isCancelling || (!!changingBooking && !isCurrentUserBeingChanged)} className="md:w-32"
+            >
+                {isCurrentUserBeingChanged ? "Cancelar cambio" : "Cambiar"}
             </Button>
-            <Button variant="destructive" onClick={() => setShowCancelConfirm(true)} disabled={isBooking || isCancelling || !!changingBookingId}>
+            <Button variant="destructive" onClick={() => setShowCancelConfirm(true)} disabled={isBooking || isCancelling || !!changingBooking}>
                 Cancelar
             </Button>
         </div>
@@ -160,7 +190,7 @@ export default function ClassListItem({ classInfo, user, isBookedByUser, onBooki
     }
 
     return (
-      <Button onClick={handleBookClass} disabled={isBooking || !!changingBookingId}>
+      <Button onClick={() => handleBookClass()} disabled={isBooking || !!changingBooking}>
         {isBooking ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Reservando...</> : "Reservar"}
       </Button>
     );
@@ -229,6 +259,14 @@ export default function ClassListItem({ classInfo, user, isBookedByUser, onBooki
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {isSuperAdmin && (
+        <AdminBookingModal
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+            onConfirm={handleBookClass}
+        />
+      )}
     </>
   );
 }

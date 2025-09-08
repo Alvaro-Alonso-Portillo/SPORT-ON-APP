@@ -43,12 +43,17 @@ export default function ClassListItem({ classInfo, user, isBookedByUser, onBooki
   const [selectedAttendee, setSelectedAttendee] = useState<Attendee | null>(null);
 
   const handleBookClass = async () => {
+    // Guard Clause: Ensure user is available before proceeding.
     if (!user) return;
+
     setIsBooking(true);
+    
+    // Safely create the new attendee object
     const newAttendee: Attendee = {
       uid: user.uid,
       name: user.displayName || user.email?.split('@')[0] || "Usuario",
-      photoURL: user.photoURL || undefined
+      // Only include photoURL if it exists to avoid sending `undefined` to Firestore
+      ...(user.photoURL && { photoURL: user.photoURL }),
     };
     
     const oldClassId = changingBookingId || undefined;

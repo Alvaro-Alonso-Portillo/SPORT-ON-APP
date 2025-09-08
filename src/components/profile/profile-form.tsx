@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { db, storage, auth } from "@/lib/firebase";
 import { doc, getDoc, updateDoc, Timestamp } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 import { updateProfile } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -15,6 +15,7 @@ import { z } from "zod";
 import { format } from "date-fns";
 import Cropper, { type Area } from "react-easy-crop";
 import getCroppedImg from "@/lib/cropImage";
+import { useUserStore } from "@/store/user-store";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -29,7 +30,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Loader2 } from "lucide-react";
+import { Loader2, Trash2 } from "lucide-react";
 import type { UserProfile } from "@/types";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -60,12 +61,11 @@ const motivationalQuotes = [
 ];
 
 export default function ProfileForm() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, userProfile, loading: authLoading } = useAuth();
+  const { setUserProfile } = useUserStore();
   const router = useRouter();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [quote, setQuote] = useState("");
 
   // States for image cropping
@@ -85,36 +85,23 @@ export default function ProfileForm() {
   }, []);
 
   useEffect(() => {
-    if (authLoading) return;
-    if (!user) {
+    if (!authLoading && !user) {
       router.replace("/login");
-      return;
     }
-
-    const fetchProfile = async () => {
-      setIsLoading(true);
-      const docRef = doc(db, "users", user.uid);
-      const docSnap = await getDoc(docRef);
-
-      if (docSnap.exists()) {
-        const data = docSnap.data() as UserProfile;
+  }, [user, authLoading, router]);
+  
+  useEffect(() => {
+    if (userProfile) {
         let dobString = "";
-        
-        if (data.dob) {
-          const dobDate = data.dob instanceof Timestamp ? data.dob.toDate() : new Date(data.dob);
+        if (userProfile.dob) {
+          const dobDate = userProfile.dob instanceof Timestamp ? userProfile.dob.toDate() : new Date(userProfile.dob);
           dobString = format(dobDate, "yyyy-MM-dd");
         }
-        
-        setProfile(data);
         form.reset({
           dob: dobString,
         });
-      }
-      setIsLoading(false);
-    };
-
-    fetchProfile();
-  }, [user, authLoading, router, form]);
+    }
+  }, [userProfile, form]);
 
   const onCropComplete = useCallback((croppedArea: Area, croppedAreaPixels: Area) => {
     setCroppedAreaPixels(croppedAreaPixels);
@@ -138,7 +125,7 @@ export default function ProfileForm() {
       const croppedImageBlob = await getCroppedImg(imageSrc, croppedAreaPixels);
       setCroppedImage(croppedImageBlob);
       setIsCropping(false);
-      setImageSrc(null); // Clear the source to prevent re-opening modal on submit
+      setImageSrc(null);
       toast({
           title: "Imagen Recortada",
           description: "La nueva imagen está lista para ser guardada. Haz clic en 'Guardar Cambios' para subirla.",
@@ -156,8 +143,53 @@ export default function ProfileForm() {
   const onCropCancel = () => {
       setIsCropping(false);
       setImageSrc(null);
-      form.setValue('profileImage', null); // Reset file input using react-hook-form
+      form.setValue('profileImage', null);
   };
+  
+  const handleDeletePhoto = async () => {
+    if (!user || !userProfile || !userProfile.photoURL) return;
+    setIsSubmitting(true);
+    try {
+        const storageRef = ref(storage, `profile-pictures/${user.uid}/profile.jpg`);
+        await deleteObject(storageRef);
+
+        const userDocRef = doc(db, "users", user.uid);
+        await updateDoc(userDocRef, { photoURL: null });
+        if(auth.currentUser) {
+            await updateProfile(auth.currentUser, { photoURL: null });
+        }
+        
+        const updatedProfile = { ...userProfile, photoURL: undefined };
+        setUserProfile(updatedProfile as UserProfile);
+
+        toast({
+            title: "Foto eliminada",
+            description: "Tu foto de perfil ha sido eliminada.",
+        });
+
+    } catch (error: any) {
+        // Handle case where file doesn't exist in storage but URL is in profile
+        if (error.code === 'storage/object-not-found') {
+            const userDocRef = doc(db, "users", user.uid);
+            await updateDoc(userDocRef, { photoURL: null });
+             if(auth.currentUser) {
+                await updateProfile(auth.currentUser, { photoURL: null });
+            }
+            const updatedProfile = { ...userProfile, photoURL: undefined };
+            setUserProfile(updatedProfile as UserProfile);
+            toast({ title: "Foto eliminada" });
+        } else {
+             toast({
+                variant: "destructive",
+                title: "Error",
+                description: "No se pudo eliminar tu foto. Por favor, inténtalo de nuevo.",
+            });
+        }
+    } finally {
+        setIsSubmitting(false);
+    }
+  };
+
 
   async function onSubmit(data: ProfileFormValues) {
     if (!user || !auth.currentUser) return;
@@ -165,34 +197,33 @@ export default function ProfileForm() {
 
     try {
       const userDocRef = doc(db, "users", user.uid);
-      let photoURL = profile?.photoURL;
+      let newPhotoURL = userProfile?.photoURL;
       const updateData: Partial<UserProfile> = {};
 
-      // Handle file upload with cropped image
       if (croppedImage) {
         const storageRef = ref(storage, `profile-pictures/${user.uid}/profile.jpg`);
         const snapshot = await uploadBytes(storageRef, croppedImage, { contentType: 'image/jpeg' });
-        photoURL = await getDownloadURL(snapshot.ref);
-        updateData.photoURL = photoURL;
+        newPhotoURL = await getDownloadURL(snapshot.ref);
+        updateData.photoURL = newPhotoURL;
         
-        await updateProfile(auth.currentUser, { photoURL });
-        await auth.currentUser.reload();
+        await updateProfile(auth.currentUser, { photoURL: newPhotoURL });
       }
       
-      // Handle date of birth
-      const profileDobString = profile?.dob ? format((profile.dob instanceof Timestamp ? profile.dob.toDate() : new Date(profile.dob)), "yyyy-MM-dd") : '';
+      const profileDobString = userProfile?.dob ? format((userProfile.dob instanceof Timestamp ? userProfile.dob.toDate() : new Date(userProfile.dob)), "yyyy-MM-dd") : '';
       if (data.dob !== profileDobString) {
         if (data.dob) {
           updateData.dob = Timestamp.fromDate(new Date(data.dob.replace(/-/g, '/')));
         } else {
-          // Explicitly set to null if the date is cleared
           updateData.dob = null;
         }
       }
       
       if (Object.keys(updateData).length > 0) {
         await updateDoc(userDocRef, updateData);
-        setProfile(prev => prev ? { ...prev, ...updateData, photoURL: photoURL || prev.photoURL } : null);
+        if (userProfile) {
+            const updatedProfile = { ...userProfile, ...updateData, photoURL: newPhotoURL || userProfile.photoURL };
+            setUserProfile(updatedProfile as UserProfile);
+        }
       }
 
       toast({
@@ -214,7 +245,7 @@ export default function ProfileForm() {
     }
   }
 
-  if (authLoading || isLoading) {
+  if (authLoading) {
     return (
       <div className="flex justify-center items-center h-48 bg-card rounded-lg shadow-sm">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -222,8 +253,8 @@ export default function ProfileForm() {
     );
   }
   
-  const currentAvatar = croppedImage ? URL.createObjectURL(croppedImage) : auth.currentUser?.photoURL || profile?.photoURL;
-  const userName = profile?.name || user?.displayName || "Usuario";
+  const currentAvatar = croppedImage ? URL.createObjectURL(croppedImage) : userProfile?.photoURL;
+  const userName = userProfile?.name || user?.displayName || "Usuario";
 
   return (
     <Form {...form}>
@@ -242,7 +273,7 @@ export default function ProfileForm() {
               </Avatar>
               <div className="flex-1">
                 <CardTitle className="text-2xl">{userName}</CardTitle>
-                <CardDescription>{profile?.email || user?.email}</CardDescription>
+                <CardDescription>{userProfile?.email || user?.email}</CardDescription>
                 {quote && (
                   <div className="mt-4 p-3 border-l-4 border-primary bg-accent rounded-r-lg">
                     <p className="text-sm italic text-accent-foreground">
@@ -276,17 +307,27 @@ export default function ProfileForm() {
                 name="profileImage"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Imagen del perfil</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="file"
-                        accept="image/png, image/jpeg"
-                        onChange={handleFileChange}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      Sube una foto de perfil (JPG o PNG).
-                    </FormDescription>
+                    <div className="flex items-end gap-4">
+                      <div className="flex-1">
+                        <FormLabel>Imagen del perfil</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="file"
+                            accept="image/png, image/jpeg"
+                            onChange={handleFileChange}
+                            disabled={isSubmitting}
+                          />
+                        </FormControl>
+                         <FormDescription>
+                           Sube una foto de perfil (JPG o PNG).
+                         </FormDescription>
+                      </div>
+                      {userProfile?.photoURL && (
+                        <Button variant="destructive" size="icon" onClick={handleDeletePhoto} disabled={isSubmitting}>
+                            <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}

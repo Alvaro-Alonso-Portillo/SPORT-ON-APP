@@ -1,39 +1,31 @@
 "use client";
 
-import type { User } from "firebase/auth";
-import { onAuthStateChanged } from "firebase/auth";
-import { createContext, useContext, useEffect, useState } from "react";
+import { useEffect, type ReactNode } from "react";
+import { onAuthStateChanged, type User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
-import type { ReactNode } from "react";
-
-type AuthContextType = {
-  user: User | null;
-  loading: boolean;
-};
-
-const AuthContext = createContext<AuthContextType>({
-  user: null,
-  loading: true,
-});
+import { useUserStore } from "@/store/user-store";
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { setUser, fetchUserProfile, clearUser } = useUserStore();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
-      setLoading(false);
+      if (user) {
+        setUser(user);
+        fetchUserProfile(user.uid);
+      } else {
+        clearUser();
+      }
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [setUser, fetchUserProfile, clearUser]);
 
-  return (
-    <AuthContext.Provider value={{ user, loading }}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <>{children}</>;
 };
 
-export const useAuth = () => useContext(AuthContext);
+// Custom hook to access auth state, now sourced from Zustand
+export const useAuth = () => {
+    const { user, userProfile, isLoading } = useUserStore();
+    return { user, userProfile, loading: isLoading };
+};

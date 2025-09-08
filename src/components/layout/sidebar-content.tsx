@@ -3,17 +3,14 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from 'next/navigation'
-import { Home, CalendarDays, User as UserIcon, LogOut, LogIn, Power } from "lucide-react";
+import { Home, CalendarDays, User as UserIcon, LogOut, LogIn } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { cn, getInitials, generateColorFromUID } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "../ui/button";
-import { auth, db } from "@/lib/firebase";
+import { auth } from "@/lib/firebase";
 import { signOut } from "firebase/auth";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { doc, onSnapshot } from "firebase/firestore";
-import type { UserProfile } from "@/types";
 import { useToast } from "@/hooks/use-toast";
 
 interface SidebarContentProps {
@@ -21,26 +18,10 @@ interface SidebarContentProps {
 }
 
 export default function SidebarContent({ onLinkClick }: SidebarContentProps) {
-  const { user, loading } = useAuth();
+  const { user, userProfile, loading } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
   const { toast } = useToast();
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-
-  useEffect(() => {
-    if (user) {
-      const docRef = doc(db, "users", user.uid);
-      const unsubscribe = onSnapshot(docRef, (docSnap) => {
-        if (docSnap.exists()) {
-          setProfile(docSnap.data() as UserProfile);
-        } else {
-          setProfile(null);
-        }
-      });
-      return () => unsubscribe();
-    }
-  }, [user]);
-
 
   const handleSignOut = async () => {
     if (onLinkClick) onLinkClick();
@@ -93,7 +74,7 @@ export default function SidebarContent({ onLinkClick }: SidebarContentProps) {
      <img src="/logo.png" alt="Sport ON Logo" width="180" style={{ height: 'auto' }} loading="eager" />
   );
 
-  if (!user) {
+  if (!user || !userProfile) {
     return (
        <div className="flex flex-col h-full bg-card text-card-foreground p-4 items-center justify-center text-center">
           <div className="p-6 border-b">
@@ -114,7 +95,7 @@ export default function SidebarContent({ onLinkClick }: SidebarContentProps) {
     );
   }
 
-  const userName = user.displayName || user.email?.split('@')[0] || "Usuario";
+  const userName = userProfile.name || user.displayName || user.email?.split('@')[0] || "Usuario";
 
   return (
     <div className="flex flex-col h-full bg-card text-card-foreground">
@@ -126,7 +107,7 @@ export default function SidebarContent({ onLinkClick }: SidebarContentProps) {
         <div className="p-6 border-b">
           <div className="flex items-center gap-4">
               <Avatar className="h-12 w-12">
-                  <AvatarImage src={profile?.photoURL} />
+                  <AvatarImage src={userProfile?.photoURL} />
                   <AvatarFallback 
                     className="text-white font-bold"
                     style={{ backgroundColor: generateColorFromUID(user.uid) }}

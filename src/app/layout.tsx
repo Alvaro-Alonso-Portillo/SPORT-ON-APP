@@ -1,7 +1,7 @@
 
 import type { Metadata } from 'next';
 import './globals.css';
-import { AuthProvider } from '@/hooks/use-auth';
+import { AuthProvider } from '@/hooks/auth-provider';
 import { Toaster } from "@/components/ui/toaster";
 import { cn } from '@/lib/utils';
 import AppLayout from '@/components/layout/app-layout';

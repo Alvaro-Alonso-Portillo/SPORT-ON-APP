@@ -1,3 +1,4 @@
+
 {
   "name": "nextn",
   "version": "0.1.0",
@@ -12,7 +13,8 @@
     "typecheck": "tsc --noEmit",
     "cap:sync": "npm run build && npx cap sync",
     "cap:open:android": "npx cap open android",
-    "cap:open:ios": "npx cap open ios"
+    "cap:open:ios": "npx cap open ios",
+    "set-superadmin": "node scripts/set-superadmin.js"
   },
   "dependencies": {
     "@genkit-ai/googleai": "^1.14.1",
@@ -68,6 +70,7 @@
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "firebase-admin": "^12.1.1",
     "genkit-cli": "^1.14.1",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",

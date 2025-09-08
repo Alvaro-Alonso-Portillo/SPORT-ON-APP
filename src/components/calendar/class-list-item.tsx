@@ -18,6 +18,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Anton } from 'next/font/google';
+import { isBefore, parse } from 'date-fns';
 
 const anton = Anton({
   subsets: ['latin'],
@@ -83,8 +84,15 @@ export default function ClassListItem({ classInfo, user, isBookedByUser, onBooki
       return <div key={index} className="h-12 w-12 bg-muted rounded-md" />;
     });
   };
+  
+  const classDateTime = parse(`${classInfo.date} ${classInfo.time}`, 'yyyy-MM-dd HH:mm', new Date());
+  const isPastClass = isBefore(classDateTime, new Date());
 
   const renderButton = () => {
+    if(isPastClass) {
+        return <Button disabled>Finalizada</Button>;
+    }
+    
     const isFull = classInfo.attendees.length >= classInfo.capacity;
     const isChangingThis = changingBookingId === classInfo.id;
     

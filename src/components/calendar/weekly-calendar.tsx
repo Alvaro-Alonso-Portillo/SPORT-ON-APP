@@ -68,7 +68,8 @@ function WeeklyCalendarInternal() {
   const getInitialDate = () => {
     if (dateParam) {
       const dateFromURL = parseISO(dateParam);
-      if (isValid(dateFromURL) && !isBefore(dateFromURL, startOfDay(new Date()))) {
+      // Allow past dates from URL param
+      if (isValid(dateFromURL)) {
         return dateFromURL;
       }
     }
@@ -84,7 +85,6 @@ function WeeklyCalendarInternal() {
   const endOfCurrentWeek = useMemo(() => endOfWeek(currentDate, { weekStartsOn: 1 }), [currentDate]);
 
   const fetchClasses = useCallback(async () => {
-    // No establecer isLoading aquí para evitar parpadeos en cada cambio de semana
     try {
         const classesRef = collection(db, 'classes');
         const q = query(classesRef, 
@@ -111,10 +111,8 @@ function WeeklyCalendarInternal() {
       try {
         await fetchClasses();
       } catch (error) {
-        // El toast ya se maneja dentro de fetchClasses
         console.error("Failed initial fetch of classes:", error);
       } finally {
-        // Asegurarse de que el estado de carga se desactive siempre
         setIsLoading(false);
       }
     };
@@ -133,15 +131,10 @@ function WeeklyCalendarInternal() {
   const weekDates = useMemo(() => {
     return Array.from({ length: 7 }).map((_, i) => addDays(startOfCurrentWeek, i));
   }, [startOfCurrentWeek]);
-
-  const isPastWeek = isBefore(startOfCurrentWeek, startOfWeek(new Date(), { weekStartsOn: 1 }));
   
   const isDateDisabled = (date: Date) => {
     const dayName = format(date, 'eeee', { locale: es });
-    if (dayName === 'sábado' || dayName === 'domingo') {
-        return true;
-    }
-    return isBefore(date, startOfDay(new Date()));
+    return dayName === 'sábado' || dayName === 'domingo';
   };
 
   const handleNextWeek = () => {
@@ -150,7 +143,6 @@ function WeeklyCalendarInternal() {
   };
 
   const handlePreviousWeek = () => {
-    if (isPastWeek) return;
     setCurrentDate(subDays(startOfCurrentWeek, 7));
     setChangingBookingId(null);
   };
@@ -172,19 +164,7 @@ function WeeklyCalendarInternal() {
 
 
   const dailyClasses = useMemo(() => {
-    if(isBefore(startOfDay(currentDate), startOfDay(new Date()))) return [];
     const generated = generateClassesForDate(currentDate, allClasses);
-    const now = new Date();
-
-    if (isToday(currentDate)) {
-      return generated.filter(classInfo => {
-        const [hours, minutes] = classInfo.time.split(':');
-        const classDateTime = new Date(currentDate);
-        classDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
-        return isBefore(now, classDateTime);
-      });
-    }
-    
     return generated.sort((a,b) => a.time.localeCompare(b.time));
   }, [currentDate, allClasses]);
 
@@ -310,7 +290,7 @@ function WeeklyCalendarInternal() {
               </div>
           </div>
           <div className="flex items-center gap-2">
-              <Button variant="outline" size="icon" onClick={handlePreviousWeek} disabled={isPastWeek}>
+              <Button variant="outline" size="icon" onClick={handlePreviousWeek}>
                   <ChevronLeft className="h-4 w-4" />
               </Button>
               <Button variant="outline" size="icon" onClick={handleNextWeek}>

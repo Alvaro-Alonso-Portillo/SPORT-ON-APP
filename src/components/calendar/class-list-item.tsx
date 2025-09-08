@@ -20,6 +20,7 @@ import {
 import { isBefore, parse } from 'date-fns';
 import { Anton } from 'next/font/google';
 import { cn, generateColorFromUID, getInitials } from '@/lib/utils';
+import UserProfileModal from '@/components/profile/user-profile-modal';
 
 const anton = Anton({
   subsets: ['latin'],
@@ -39,6 +40,7 @@ export default function ClassListItem({ classInfo, user, isBookedByUser, onBooki
   const [isBooking, setIsBooking] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [selectedAttendee, setSelectedAttendee] = useState<Attendee | null>(null);
 
   const handleBookClass = async () => {
     if (!user) return;
@@ -74,15 +76,17 @@ export default function ClassListItem({ classInfo, user, isBookedByUser, onBooki
       if (attendee) {
         return (
           <div key={attendee.uid} className="flex flex-col items-center text-center">
-            <Avatar className="h-12 w-12 rounded-md">
-              <AvatarImage src={attendee.photoURL} alt={attendee.name} />
-              <AvatarFallback 
-                className="rounded-md text-white font-bold"
-                style={{ backgroundColor: generateColorFromUID(attendee.uid) }}
-              >
-                {getInitials(attendee.name)}
-              </AvatarFallback>
-            </Avatar>
+            <button onClick={() => setSelectedAttendee(attendee)} className="rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
+                <Avatar className="h-12 w-12 rounded-md">
+                <AvatarImage src={attendee.photoURL} alt={attendee.name} />
+                <AvatarFallback 
+                    className="rounded-md text-white font-bold"
+                    style={{ backgroundColor: generateColorFromUID(attendee.uid) }}
+                >
+                    {getInitials(attendee.name)}
+                </AvatarFallback>
+                </Avatar>
+            </button>
             <span className="text-xs mt-1 truncate w-12">{attendee.name}</span>
           </div>
         );
@@ -158,6 +162,12 @@ export default function ClassListItem({ classInfo, user, isBookedByUser, onBooki
         </div>
 
       </div>
+
+      <UserProfileModal 
+        attendee={selectedAttendee}
+        isOpen={!!selectedAttendee}
+        onClose={() => setSelectedAttendee(null)}
+      />
       
        <AlertDialog open={showCancelConfirm} onOpenChange={setShowCancelConfirm}>
         <AlertDialogContent>

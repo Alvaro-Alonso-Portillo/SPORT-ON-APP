@@ -69,22 +69,22 @@ export default function BookingsList() {
       setIsLoading(true);
       try {
         const classesRef = collection(db, "classes");
-        const attendeeQuery = {
-          uid: user.uid,
-          name: user.displayName || user.email?.split('@')[0] || "Usuario",
-        };
+        const q = query(classesRef, where("attendees", "array-contains", { 
+            uid: user.uid, 
+            name: user.displayName 
+        }));
         
-        // Find the full attendee object, including photoURL if it exists
-        const q = query(classesRef, where("attendees", "array-contains", {
-            ...attendeeQuery,
+        const qWithPhoto = query(classesRef, where("attendees", "array-contains", { 
+            uid: user.uid, 
+            name: user.displayName,
             photoURL: user.photoURL || undefined
         }));
-        const qLegacy = query(classesRef, where("attendees", "array-contains", attendeeQuery));
 
-        const [querySnapshot, legacySnapshot] = await Promise.all([getDocs(q), getDocs(qLegacy)]);
+        const [querySnapshot, photoQuerySnapshot] = await Promise.all([getDocs(q), getDocs(qWithPhoto)]);
 
         const now = new Date();
-        const combinedDocs = [...querySnapshot.docs, ...legacySnapshot.docs];
+        
+        const combinedDocs = [...querySnapshot.docs, ...photoQuerySnapshot.docs];
         const uniqueDocs = Array.from(new Map(combinedDocs.map(doc => [doc.id, doc])).values());
 
 

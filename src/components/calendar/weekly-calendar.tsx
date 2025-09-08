@@ -9,7 +9,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { db } from "@/lib/firebase";
 import { collection, doc, getDocs, query, runTransaction, where, arrayRemove, arrayUnion } from "firebase/firestore";
 import { Loader2, Calendar as CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react";
-import { format, startOfWeek, addDays, isBefore, subDays, parseISO, isToday, isTomorrow, endOfWeek, startOfDay, isValid } from 'date-fns';
+import { format, startOfWeek, addDays, subDays, parseISO, isToday, isTomorrow, endOfWeek, isValid } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 import DaySelector from "./day-selector";
@@ -68,7 +68,6 @@ function WeeklyCalendarInternal() {
   const getInitialDate = () => {
     if (dateParam) {
       const dateFromURL = parseISO(dateParam);
-      // Allow past dates from URL param
       if (isValid(dateFromURL)) {
         return dateFromURL;
       }
@@ -85,6 +84,7 @@ function WeeklyCalendarInternal() {
   const endOfCurrentWeek = useMemo(() => endOfWeek(currentDate, { weekStartsOn: 1 }), [currentDate]);
 
   const fetchClasses = useCallback(async () => {
+    setIsLoading(true);
     try {
         const classesRef = collection(db, 'classes');
         const q = query(classesRef, 
@@ -92,7 +92,7 @@ function WeeklyCalendarInternal() {
             where('date', '<=', format(endOfCurrentWeek, 'yyyy-MM-dd'))
         );
         const querySnapshot = await getDocs(q);
-        const fetchedClasses = querySnapshot.docs.map(doc => doc.data() as ClassInfo);
+        const fetchedClasses = querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }) as ClassInfo);
         setAllClasses(fetchedClasses);
     } catch (error) {
         console.error("Error fetching classes:", error);
@@ -101,23 +101,14 @@ function WeeklyCalendarInternal() {
             title: "Error",
             description: "No se pudieron cargar las clases. Inténtalo de nuevo más tarde."
         });
+    } finally {
+        setIsLoading(false);
     }
   }, [startOfCurrentWeek, endOfCurrentWeek, toast]);
 
 
   useEffect(() => {
-    const initialFetch = async () => {
-      setIsLoading(true);
-      try {
-        await fetchClasses();
-      } catch (error) {
-        console.error("Failed initial fetch of classes:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    initialFetch();
+    fetchClasses();
   }, [fetchClasses]);
 
 

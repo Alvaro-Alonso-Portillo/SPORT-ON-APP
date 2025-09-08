@@ -17,8 +17,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Anton } from 'next/font/google';
 import { isBefore, parse } from 'date-fns';
+import { Anton } from 'next/font/google';
+import { cn, generateColorFromUID, getInitials } from '@/lib/utils';
 
 const anton = Anton({
   subsets: ['latin'],
@@ -45,7 +46,7 @@ export default function ClassListItem({ classInfo, user, isBookedByUser, onBooki
     const newAttendee: Attendee = {
       uid: user.uid,
       name: user.displayName || user.email?.split('@')[0] || "Usuario",
-      photoURL: user.photoURL || `https://api.dicebear.com/8.x/bottts/svg?seed=${user.uid}`
+      photoURL: user.photoURL || undefined
     };
     
     const oldClassId = changingBookingId || undefined;
@@ -75,7 +76,12 @@ export default function ClassListItem({ classInfo, user, isBookedByUser, onBooki
           <div key={attendee.uid} className="flex flex-col items-center text-center">
             <Avatar className="h-12 w-12 rounded-md">
               <AvatarImage src={attendee.photoURL} alt={attendee.name} />
-              <AvatarFallback className="rounded-md">{attendee.name.charAt(0)}</AvatarFallback>
+              <AvatarFallback 
+                className="rounded-md text-white font-bold"
+                style={{ backgroundColor: generateColorFromUID(attendee.uid) }}
+              >
+                {getInitials(attendee.name)}
+              </AvatarFallback>
             </Avatar>
             <span className="text-xs mt-1 truncate w-12">{attendee.name}</span>
           </div>
@@ -135,7 +141,7 @@ export default function ClassListItem({ classInfo, user, isBookedByUser, onBooki
     <>
       <div id={`class-${classInfo.time.replace(':', '')}`} className="w-full bg-card p-4 rounded-lg shadow-sm border-t-4 border-primary overflow-hidden">
         <div className="flex items-center justify-between gap-4 mb-4">
-            <h3 className={`${anton.className} text-2xl md:text-3xl text-foreground uppercase`}>{classInfo.name}</h3>
+            <h3 className={cn(anton.className, "text-2xl md:text-3xl text-foreground uppercase")}>{classInfo.name}</h3>
             <span className="text-lg font-bold text-foreground">{classInfo.time}</span>
         </div>
         

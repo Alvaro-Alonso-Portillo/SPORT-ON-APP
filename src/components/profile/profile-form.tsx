@@ -40,6 +40,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Slider } from "@/components/ui/slider";
+import { generateColorFromUID, getInitials } from "@/lib/utils";
 
 const profileFormSchema = z.object({
   dob: z.string().optional(),
@@ -154,7 +155,7 @@ export default function ProfileForm() {
   const onCropCancel = () => {
       setIsCropping(false);
       setImageSrc(null);
-      form.reset({ ...form.getValues(), profileImage: null }); // Reset file input
+      form.setValue('profileImage', null); // Reset file input using react-hook-form
   };
 
   async function onSubmit(data: ProfileFormValues) {
@@ -178,11 +179,13 @@ export default function ProfileForm() {
       }
       
       // Handle date of birth
-      if (data.dob !== (profile?.dob ? format((profile.dob as Timestamp).toDate(), "yyyy-MM-dd") : '')) {
+      const profileDobString = profile?.dob ? format((profile.dob instanceof Timestamp ? profile.dob.toDate() : new Date(profile.dob)), "yyyy-MM-dd") : '';
+      if (data.dob !== profileDobString) {
         if (data.dob) {
           updateData.dob = Timestamp.fromDate(new Date(data.dob.replace(/-/g, '/')));
         } else {
-          updateData.dob = undefined;
+          // Explicitly set to null if the date is cleared
+          updateData.dob = null;
         }
       }
       
@@ -206,6 +209,7 @@ export default function ProfileForm() {
       setIsSubmitting(false);
       form.reset(form.getValues());
       setCroppedImage(null);
+      form.setValue('profileImage', null);
     }
   }
 
@@ -217,77 +221,84 @@ export default function ProfileForm() {
     );
   }
   
-  const currentAvatar = croppedImage ? URL.createObjectURL(croppedImage) : auth.currentUser?.photoURL || profile?.photoURL || `https://api.dicebear.com/8.x/bottts/svg?seed=${user?.uid}`;
+  const currentAvatar = croppedImage ? URL.createObjectURL(croppedImage) : auth.currentUser?.photoURL || profile?.photoURL;
+  const userName = profile?.name || user?.displayName || "Usuario";
 
   return (
     <Form {...form}>
-      <Card className="max-w-2xl mx-auto">
-        <CardHeader>
-          <div className="flex items-start gap-4">
-            <Avatar className="h-20 w-20 flex-shrink-0">
-              <AvatarImage src={currentAvatar} />
-              <AvatarFallback>{profile?.name?.charAt(0)}</AvatarFallback>
-            </Avatar>
-            <div className="flex-1">
-              <CardTitle className="text-2xl">{profile?.name || user?.displayName}</CardTitle>
-              <CardDescription>{profile?.email || user?.email}</CardDescription>
-              {quote && (
-                <div className="mt-4 p-3 border-l-4 border-primary bg-accent rounded-r-lg">
-                  <p className="text-sm italic text-accent-foreground">
-                    "{quote}"
-                  </p>
-                </div>
-              )}
+       <form onSubmit={form.handleSubmit(onSubmit)}>
+        <Card className="max-w-2xl mx-auto">
+          <CardHeader>
+            <div className="flex items-start gap-4">
+              <Avatar className="h-20 w-20 flex-shrink-0">
+                <AvatarImage src={currentAvatar} />
+                <AvatarFallback 
+                  className="text-white font-bold text-2xl"
+                  style={{ backgroundColor: generateColorFromUID(user?.uid || '') }}
+                >
+                  {getInitials(userName)}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1">
+                <CardTitle className="text-2xl">{userName}</CardTitle>
+                <CardDescription>{profile?.email || user?.email}</CardDescription>
+                {quote && (
+                  <div className="mt-4 p-3 border-l-4 border-primary bg-accent rounded-r-lg">
+                    <p className="text-sm italic text-accent-foreground">
+                      "{quote}"
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        </CardHeader>
-        <form onSubmit={form.handleSubmit(onSubmit)}>
-          <CardContent className="space-y-6">
-            <FormField
-              control={form.control}
-              name="dob"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Fecha de Nacimiento</FormLabel>
-                  <FormControl>
-                    <Input type="date" {...field} />
-                  </FormControl>
-                  <FormDescription>
-                    Tu fecha de nacimiento no será pública.
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="profileImage"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Imagen del perfil</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="file"
-                      accept="image/png, image/jpeg"
-                      onChange={handleFileChange}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    Sube una foto de perfil (JPG o PNG).
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </CardContent>
-          <CardFooter>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Guardar Cambios
-            </Button>
-          </CardFooter>
-        </form>
-      </Card>
+          </CardHeader>
+          
+            <CardContent className="space-y-6">
+              <FormField
+                control={form.control}
+                name="dob"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Fecha de Nacimiento</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      Tu fecha de nacimiento no será pública.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="profileImage"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Imagen del perfil</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="file"
+                        accept="image/png, image/jpeg"
+                        onChange={handleFileChange}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Sube una foto de perfil (JPG o PNG).
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </CardContent>
+            <CardFooter>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Guardar Cambios
+              </Button>
+            </CardFooter>
+        </Card>
+      </form>
       
       <Dialog open={isCropping} onOpenChange={(open) => !open && onCropCancel()}>
         <DialogContent className="max-w-lg h-[80vh] flex flex-col p-0 gap-0">
@@ -312,7 +323,7 @@ export default function ProfileForm() {
           </div>
           <div className="p-6 space-y-4">
             <div className="flex items-center gap-4">
-              <FormLabel>Zoom</FormLabel>
+              <Label>Zoom</Label>
               <Slider
                 value={[zoom]}
                 min={1}

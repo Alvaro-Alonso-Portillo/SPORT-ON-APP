@@ -56,6 +56,7 @@ export default function SignupForm() {
         name,
         email: user.email,
         phoneNumber: phoneNumber || null,
+        photoURL: null,
         createdAt: new Date(),
       });
       

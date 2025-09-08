@@ -32,7 +32,7 @@ export interface UserProfile {
     email: string;
     phoneNumber?: string | null;
     createdAt: Date | Timestamp;
-    dob?: Date | Timestamp;
+    dob?: Date | Timestamp | null;
     bio?: string;
     photoURL?: string;
 }

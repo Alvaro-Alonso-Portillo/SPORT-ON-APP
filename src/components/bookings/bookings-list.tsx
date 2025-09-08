@@ -69,23 +69,32 @@ export default function BookingsList() {
       setIsLoading(true);
       try {
         const classesRef = collection(db, "classes");
-        const q = query(classesRef, where("attendees", "array-contains", { 
-            uid: user.uid,
-            name: user.displayName || user.email?.split('@')[0],
-            photoURL: user.photoURL || `https://api.dicebear.com/8.x/bottts/svg?seed=${user.uid}`
+        const attendeeQuery = {
+          uid: user.uid,
+          name: user.displayName || user.email?.split('@')[0] || "Usuario",
+        };
+        
+        // Find the full attendee object, including photoURL if it exists
+        const q = query(classesRef, where("attendees", "array-contains", {
+            ...attendeeQuery,
+            photoURL: user.photoURL || undefined
         }));
+        const qLegacy = query(classesRef, where("attendees", "array-contains", attendeeQuery));
 
-        const querySnapshot = await getDocs(q);
+        const [querySnapshot, legacySnapshot] = await Promise.all([getDocs(q), getDocs(qLegacy)]);
+
         const now = new Date();
+        const combinedDocs = [...querySnapshot.docs, ...legacySnapshot.docs];
+        const uniqueDocs = Array.from(new Map(combinedDocs.map(doc => [doc.id, doc])).values());
 
-        const userBookings = querySnapshot.docs
+
+        const userBookings = uniqueDocs
           .map(doc => ({
               id: doc.id,
               classInfo: doc.data() as ClassInfo,
           }))
           .filter(booking => {
-            const [hours, minutes] = booking.classInfo.time.split(':');
-            const classStartDateTime = new Date(`${booking.classInfo.date}T${hours}:${minutes}:00`);
+            const classStartDateTime = parseISO(`${booking.classInfo.date}T${booking.classInfo.time}:00`);
             const classEndDateTime = addMinutes(classStartDateTime, booking.classInfo.duration);
             return classEndDateTime > now;
           });
@@ -108,7 +117,7 @@ export default function BookingsList() {
 
   const groupedBookings = useMemo(() => {
     const sortedBookings = [...bookings].sort((a, b) => 
-        a.classInfo.date.localeCompare(b.classInfo.date) || a.classInfo.time.localeCompare(b.classInfo.time)
+        new Date(a.classInfo.date).getTime() - new Date(b.classInfo.date).getTime() || a.classInfo.time.localeCompare(b.classInfo.time)
     );
 
     return sortedBookings.reduce((acc, booking) => {

@@ -17,6 +17,7 @@ import { signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { generateColorFromUID, getInitials } from "@/lib/utils";
 
 export default function UserMenu() {
   const { user } = useAuth();
@@ -29,16 +30,23 @@ export default function UserMenu() {
 
   if (!user) return null;
 
+  const userName = user.displayName || "User";
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-10 w-10 rounded-full">
           <Avatar className="h-10 w-10">
             <AvatarImage
-              src={user.photoURL || `https://api.dicebear.com/8.x/bottts/svg?seed=${user.uid}`}
-              alt={user.displayName || "User"}
+              src={user.photoURL || undefined}
+              alt={userName}
             />
-            <AvatarFallback>{user.displayName?.charAt(0) || user.email?.charAt(0)}</AvatarFallback>
+            <AvatarFallback 
+              className="text-white font-bold"
+              style={{ backgroundColor: generateColorFromUID(user.uid) }}
+            >
+              {getInitials(userName)}
+            </AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>

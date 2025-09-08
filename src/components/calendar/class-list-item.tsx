@@ -17,6 +17,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { isBefore, parse } from 'date-fns';
 import { Anton } from 'next/font/google';
 import { cn, generateColorFromUID, getInitials } from '@/lib/utils';
@@ -43,15 +51,18 @@ export default function ClassListItem({ classInfo, user, isBookedByUser, onBooki
   const [isBooking, setIsBooking] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
-  const [selectedAttendee, setSelectedAttendee] = useState<Attendee | null>(null);
+  
+  // State for modals
+  const [selectedAttendeeForProfile, setSelectedAttendeeForProfile] = useState<Attendee | null>(null);
+  const [selectedAttendeeForAction, setSelectedAttendeeForAction] = useState<Attendee | null>(null);
   const [attendeeToRemove, setAttendeeToRemove] = useState<Attendee | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
 
   const handleBookClass = async (selectedUser?: UserProfile) => {
     if (!user) return;
 
     if (isSuperAdmin && !selectedUser && !changingBooking) {
-      setIsModalOpen(true);
+      setIsBookingModalOpen(true);
       return;
     }
     
@@ -64,16 +75,20 @@ export default function ClassListItem({ classInfo, user, isBookedByUser, onBooki
     const newAttendee: Attendee = {
       uid: userForBooking.uid,
       name: displayName || userForBooking.email?.split('@')[0] || "Usuario",
-      ...(isBookingForOther && selectedUser.photoURL && { photoURL: selectedUser.photoURL }),
-      ...(!isBookingForOther && userForBooking.photoURL && { photoURL: userForBooking.photoURL }),
     };
+
+    if (isBookingForOther && selectedUser.photoURL) {
+      newAttendee.photoURL = selectedUser.photoURL;
+    } else if (!isBookingForOther && user.photoURL) {
+      newAttendee.photoURL = user.photoURL;
+    }
 
     const oldClassId = changingBooking?.classId;
     const attendeeToUpdate = changingBooking?.attendee;
     
     await onBookingUpdate(classInfo, newAttendee, oldClassId, attendeeToUpdate);
     setIsBooking(false);
-    setIsModalOpen(false);
+    setIsBookingModalOpen(false);
   };
 
   const handleCancelBooking = async () => {
@@ -101,7 +116,17 @@ export default function ClassListItem({ classInfo, user, isBookedByUser, onBooki
   
   const handleStartChange = (attendee: Attendee) => {
       setChangingBooking({ classId: classInfo.id, attendee });
+      setSelectedAttendeeForAction(null); // Close action modal after selection
   };
+  
+  const handleOpenAdminActionModal = (attendee: Attendee) => {
+    if (isSuperAdmin) {
+      setSelectedAttendeeForAction(attendee);
+    } else {
+      setSelectedAttendeeForProfile(attendee);
+    }
+  };
+
 
   const renderAttendees = () => {
     const totalSlots = Array.from({ length: classInfo.capacity });
@@ -110,7 +135,7 @@ export default function ClassListItem({ classInfo, user, isBookedByUser, onBooki
       if (attendee) {
         return (
           <div key={attendee.uid} className="relative group flex flex-col items-center text-center">
-            <button onClick={() => setSelectedAttendee(attendee)} className="rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
+            <button onClick={() => handleOpenAdminActionModal(attendee)} className="rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
                 <Avatar className="h-12 w-12 rounded-md">
                 <AvatarImage src={attendee.photoURL} alt={attendee.name} />
                 <AvatarFallback 
@@ -122,7 +147,7 @@ export default function ClassListItem({ classInfo, user, isBookedByUser, onBooki
                 </Avatar>
             </button>
              {isSuperAdmin && (
-              <div className="absolute -top-2 -right-2 flex flex-col gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="absolute -top-2 -right-2 hidden md:flex flex-col gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button 
                     onClick={() => handleStartChange(attendee)}
                     className="bg-secondary text-secondary-foreground rounded-full p-1 shadow-md"
@@ -252,10 +277,39 @@ export default function ClassListItem({ classInfo, user, isBookedByUser, onBooki
       </div>
 
       <UserProfileModal 
-        attendee={selectedAttendee}
-        isOpen={!!selectedAttendee}
-        onClose={() => setSelectedAttendee(null)}
+        attendee={selectedAttendeeForProfile}
+        isOpen={!!selectedAttendeeForProfile}
+        onClose={() => setSelectedAttendeeForProfile(null)}
       />
+
+      {selectedAttendeeForAction && (
+        <Dialog open={!!selectedAttendeeForAction} onOpenChange={() => setSelectedAttendeeForAction(null)}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Gestionar a {selectedAttendeeForAction.name}</DialogTitle>
+                    <DialogDescription>
+                        Selecciona una acción para la reserva de este cliente.
+                    </DialogDescription>
+                </DialogHeader>
+                <DialogFooter className="grid grid-cols-2 gap-4 pt-4">
+                    <Button
+                        variant="destructive"
+                        onClick={() => {
+                            setAttendeeToRemove(selectedAttendeeForAction);
+                            setSelectedAttendeeForAction(null);
+                        }}
+                    >
+                        <Trash2 className="mr-2" /> Eliminar Reserva
+                    </Button>
+                    <Button
+                        onClick={() => handleStartChange(selectedAttendeeForAction)}
+                    >
+                        <Pencil className="mr-2" /> Modificar Reserva
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+      )}
       
        <AlertDialog open={showCancelConfirm} onOpenChange={setShowCancelConfirm}>
         <AlertDialogContent>
@@ -295,11 +349,13 @@ export default function ClassListItem({ classInfo, user, isBookedByUser, onBooki
 
       {isSuperAdmin && (
         <AdminBookingModal
-            isOpen={isModalOpen}
-            onClose={() => setIsModalOpen(false)}
+            isOpen={isBookingModalOpen}
+            onClose={() => setIsBookingModalOpen(false)}
             onConfirm={handleBookClass}
         />
       )}
     </>
   );
 }
+
+  

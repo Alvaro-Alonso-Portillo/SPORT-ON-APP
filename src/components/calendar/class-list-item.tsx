@@ -4,7 +4,7 @@
 import { useState } from 'react';
 import type { User } from 'firebase/auth';
 import type { ClassInfo, Attendee } from '@/types';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Users, Loader2, Trash2 } from 'lucide-react';
 import {

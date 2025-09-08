@@ -8,17 +8,29 @@ interface UserState {
   user: User | null;
   userProfile: UserProfile | null;
   isLoading: boolean;
+  isSuperAdmin: boolean;
   setUser: (user: User | null) => void;
   fetchUserProfile: (uid: string) => Promise<void>;
   clearUser: () => void;
   setUserProfile: (profile: UserProfile | null) => void;
 }
 
-export const useUserStore = create<UserState>((set) => ({
+export const useUserStore = create<UserState>((set, get) => ({
   user: null,
   userProfile: null,
   isLoading: true,
-  setUser: (user) => set({ user }),
+  isSuperAdmin: false,
+  setUser: (user) => {
+    set({ user });
+    if (user) {
+      user.getIdTokenResult().then(idTokenResult => {
+        const isSuperAdmin = !!idTokenResult.claims.role && idTokenResult.claims.role === 'superadmin';
+        set({ isSuperAdmin });
+      });
+    } else {
+      set({ isSuperAdmin: false });
+    }
+  },
   fetchUserProfile: async (uid: string) => {
     set({ isLoading: true });
     try {
@@ -34,6 +46,6 @@ export const useUserStore = create<UserState>((set) => ({
       set({ userProfile: null, isLoading: false });
     }
   },
-  clearUser: () => set({ user: null, userProfile: null, isLoading: false }),
+  clearUser: () => set({ user: null, userProfile: null, isLoading: false, isSuperAdmin: false }),
   setUserProfile: (profile) => set({ userProfile: profile }),
 }));

@@ -6,7 +6,7 @@ import type { User } from 'firebase/auth';
 import type { ClassInfo, Attendee } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Users, Loader2 } from 'lucide-react';
+import { Users, Loader2, Trash2 } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,6 +21,7 @@ import { isBefore, parse } from 'date-fns';
 import { Anton } from 'next/font/google';
 import { cn, generateColorFromUID, getInitials } from '@/lib/utils';
 import UserProfileModal from '@/components/profile/user-profile-modal';
+import { useAuth } from '@/hooks/use-auth';
 
 const anton = Anton({
   subsets: ['latin'],
@@ -31,16 +32,18 @@ interface ClassListItemProps {
   classInfo: ClassInfo;
   user: User | null;
   isBookedByUser: boolean;
-  onBookingUpdate: (classInfo: ClassInfo, newAttendee: Attendee | null, oldClassId?: string) => Promise<void>;
+  onBookingUpdate: (classInfo: ClassInfo, newAttendee: Attendee | null, oldClassId?: string, attendeeToRemove?: Attendee) => Promise<void>;
   changingBookingId: string | null;
   setChangingBookingId: (id: string | null) => void;
 }
 
 export default function ClassListItem({ classInfo, user, isBookedByUser, onBookingUpdate, changingBookingId, setChangingBookingId }: ClassListItemProps) {
+  const { isSuperAdmin } = useAuth();
   const [isBooking, setIsBooking] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [selectedAttendee, setSelectedAttendee] = useState<Attendee | null>(null);
+  const [attendeeToRemove, setAttendeeToRemove] = useState<Attendee | null>(null);
 
   const handleBookClass = async () => {
     // Guard Clause: Ensure user is available before proceeding.
@@ -69,6 +72,14 @@ export default function ClassListItem({ classInfo, user, isBookedByUser, onBooki
     setIsCancelling(false);
     setShowCancelConfirm(false);
   };
+
+  const handleAdminRemoveBooking = async () => {
+    if (!user || !isSuperAdmin || !attendeeToRemove) return;
+    setIsCancelling(true);
+    await onBookingUpdate(classInfo, null, undefined, attendeeToRemove);
+    setIsCancelling(false);
+    setAttendeeToRemove(null);
+  }
   
   const handleStartChange = () => {
       setChangingBookingId(classInfo.id);
@@ -80,7 +91,7 @@ export default function ClassListItem({ classInfo, user, isBookedByUser, onBooki
       const attendee = classInfo.attendees[index];
       if (attendee) {
         return (
-          <div key={attendee.uid} className="flex flex-col items-center text-center">
+          <div key={attendee.uid} className="relative group flex flex-col items-center text-center">
             <button onClick={() => setSelectedAttendee(attendee)} className="rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
                 <Avatar className="h-12 w-12 rounded-md">
                 <AvatarImage src={attendee.photoURL} alt={attendee.name} />
@@ -92,6 +103,15 @@ export default function ClassListItem({ classInfo, user, isBookedByUser, onBooki
                 </AvatarFallback>
                 </Avatar>
             </button>
+             {isSuperAdmin && user?.uid !== attendee.uid && (
+                <button 
+                    onClick={() => setAttendeeToRemove(attendee)}
+                    className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                    aria-label={`Eliminar a ${attendee.name}`}
+                >
+                    <Trash2 className="h-3 w-3" />
+                </button>
+            )}
             <span className="text-xs mt-1 truncate w-12">{attendee.name}</span>
           </div>
         );
@@ -187,6 +207,24 @@ export default function ClassListItem({ classInfo, user, isBookedByUser, onBooki
             <AlertDialogAction onClick={handleCancelBooking} disabled={isCancelling}>
                {isCancelling && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                Sí, Cancelar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!attendeeToRemove} onOpenChange={(open) => !open && setAttendeeToRemove(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Eliminación (Admin)</AlertDialogTitle>
+            <AlertDialogDescription>
+              Estás a punto de eliminar la reserva de <strong>{attendeeToRemove?.name}</strong> de la clase {classInfo.name} a las {classInfo.time}. Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isCancelling} onClick={() => setAttendeeToRemove(null)}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleAdminRemoveBooking} disabled={isCancelling} className={buttonVariants({ variant: "destructive" })}>
+               {isCancelling && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+               Sí, Eliminar Reserva
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

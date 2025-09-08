@@ -60,7 +60,7 @@ const generateClassesForDate = (date: Date, existingClasses: ClassInfo[]): Class
 
 
 function WeeklyCalendarInternal() {
-  const { user } = useAuth();
+  const { user, isSuperAdmin } = useAuth();
   const { toast } = useToast();
   const searchParams = useSearchParams()
   const dateParam = searchParams.get('date');
@@ -159,7 +159,7 @@ function WeeklyCalendarInternal() {
     return generated.sort((a,b) => a.time.localeCompare(b.time));
   }, [currentDate, allClasses]);
 
-  const handleBookingUpdate = async (classInfo: ClassInfo, newAttendee: Attendee | null, oldClassId?: string) => {
+  const handleBookingUpdate = async (classInfo: ClassInfo, newAttendee: Attendee | null, oldClassId?: string, attendeeToRemoveAdmin?: Attendee) => {
     if (!user) {
          toast({
             title: "Acción requerida",
@@ -168,12 +168,13 @@ function WeeklyCalendarInternal() {
         return;
     }
     
+    // User booking a new class (not moving)
     if (newAttendee && !oldClassId) {
       const userHasBookingOnThisDay = userBookings.some(bookingId => 
           bookingId.startsWith(classInfo.date)
       );
 
-      if (userHasBookingOnThisDay) {
+      if (userHasBookingOnThisDay && !isSuperAdmin) {
           toast({
               variant: "destructive",
               title: "Límite de reservas alcanzado",
@@ -186,6 +187,19 @@ function WeeklyCalendarInternal() {
     
     try {
         await runTransaction(db, async (transaction) => {
+            // ADMIN REMOVING A USER
+            if (attendeeToRemoveAdmin && isSuperAdmin) {
+                const classDocRef = doc(db, "classes", classInfo.id);
+                const classDoc = await transaction.get(classDocRef);
+                if (classDoc.exists()) {
+                    const existingAttendee = classDoc.data().attendees.find((a: Attendee) => a.uid === attendeeToRemoveAdmin.uid);
+                    if (existingAttendee) {
+                        transaction.update(classDocRef, { attendees: arrayRemove(existingAttendee) });
+                    }
+                }
+                return;
+            }
+
             // MOVE BOOKING
             if (oldClassId && newAttendee) {
                 const oldClassDocRef = doc(db, "classes", oldClassId);
@@ -241,7 +255,9 @@ function WeeklyCalendarInternal() {
             }
         });
 
-        if (newAttendee) {
+        if (attendeeToRemoveAdmin) {
+            toast({ title: "Reserva Eliminada (Admin)", description: `Has eliminado a ${attendeeToRemoveAdmin.name} de la clase.` });
+        } else if (newAttendee) {
             toast({ title: oldClassId ? "¡Reserva cambiada!" : "¡Reserva confirmada!", description: `Has asegurado tu plaza para ${classInfo.name} a las ${classInfo.time}.` });
         } else {
             toast({ title: "Reserva cancelada", description: `Tu plaza para ${classInfo.name} ha sido cancelada.` });

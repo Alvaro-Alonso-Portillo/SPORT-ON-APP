@@ -50,7 +50,7 @@ export default function ClassListItem({ classInfo, user, isBookedByUser, onBooki
   const handleBookClass = async (selectedUser?: UserProfile) => {
     if (!user) return;
 
-    if (isSuperAdmin && !selectedUser) {
+    if (isSuperAdmin && !selectedUser && !changingBooking) {
       setIsModalOpen(true);
       return;
     }
@@ -156,6 +156,7 @@ export default function ClassListItem({ classInfo, user, isBookedByUser, onBooki
     const isFull = classInfo.attendees.length >= classInfo.capacity;
     const isChangingThisClass = changingBooking?.classId === classInfo.id;
     const isCurrentUserBeingChanged = isBookedByUser && isChangingThisClass;
+    const isOtherUserBeingChanged = !!changingBooking && changingBooking.attendee.uid !== user?.uid;
 
     if (changingBooking && !isChangingThisClass) {
         if(isFull) return <Button disabled>Completo</Button>;
@@ -184,6 +185,18 @@ export default function ClassListItem({ classInfo, user, isBookedByUser, onBooki
         </div>
       );
     }
+    
+    if (isSuperAdmin && isOtherUserBeingChanged) {
+        if (isFull) {
+            return <Button disabled>Completo</Button>;
+        }
+        return (
+            <Button onClick={() => handleBookClass()} disabled={isBooking}>
+                {isBooking ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Moviendo...</> : "Mover aquí"}
+            </Button>
+        );
+    }
+
 
     if (isFull) {
       return <Button disabled>Completo</Button>;

@@ -6,7 +6,7 @@ import type { User } from 'firebase/auth';
 import type { ClassInfo, Attendee, UserProfile } from '@/types';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Users, Loader2, Trash2, Pencil } from 'lucide-react';
+import { Users, Loader2, Trash2, Pencil, UserPlus } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -64,7 +64,8 @@ export default function ClassListItem({ classInfo, user, isBookedByUser, onBooki
     const newAttendee: Attendee = {
       uid: userForBooking.uid,
       name: displayName || userForBooking.email?.split('@')[0] || "Usuario",
-      ...(userForBooking.photoURL && { photoURL: userForBooking.photoURL }),
+      ...(isBookingForOther && selectedUser.photoURL && { photoURL: selectedUser.photoURL }),
+      ...(!isBookingForOther && userForBooking.photoURL && { photoURL: userForBooking.photoURL }),
     };
 
     const oldClassId = changingBooking?.classId;
@@ -142,6 +143,19 @@ export default function ClassListItem({ classInfo, user, isBookedByUser, onBooki
           </div>
         );
       }
+      // Empty Slot rendering
+      if (isSuperAdmin) {
+        return (
+            <button 
+                key={index} 
+                onClick={() => handleBookClass()} 
+                className="h-12 w-12 bg-muted rounded-md flex items-center justify-center text-muted-foreground/50 hover:bg-accent hover:text-accent-foreground transition-colors group"
+                aria-label="Añadir cliente"
+            >
+                <UserPlus className="h-6 w-6 group-hover:scale-110 transition-transform" />
+            </button>
+        );
+      }
       return <div key={index} className="h-12 w-12 bg-muted rounded-md" />;
     });
   };
@@ -201,6 +215,11 @@ export default function ClassListItem({ classInfo, user, isBookedByUser, onBooki
 
     if (isFull) {
       return <Button disabled>Completo</Button>;
+    }
+
+    if(isSuperAdmin) {
+        // Admin sees no general "Book" button, they should click on empty slots.
+        return null;
     }
 
     return (

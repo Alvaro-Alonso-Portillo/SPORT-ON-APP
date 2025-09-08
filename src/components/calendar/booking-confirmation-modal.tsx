@@ -36,7 +36,7 @@ export default function BookingConfirmationModal({ classInfo, isOpen, onClose, o
         const newAttendee: Attendee = {
             uid: user.uid,
             name: user.displayName || user.email?.split('@')[0] || "Usuario",
-            photoURL: user.photoURL || `https://api.dicebear.com/8.x/bottts/svg?seed=${user.uid}`
+            photoURL: user.photoURL || undefined
         };
         await onConfirm(classInfo, newAttendee);
     } finally {

@@ -57,8 +57,9 @@ export default function ClassListItem({ classInfo, user, isBookedByUser, onBooki
     
     setIsBooking(true);
     
-    const userForBooking = isSuperAdmin && selectedUser ? selectedUser : user;
-    const displayName = isSuperAdmin && selectedUser ? selectedUser.name : user.displayName;
+    const isBookingForOther = isSuperAdmin && selectedUser;
+    const userForBooking = isBookingForOther ? selectedUser : user;
+    const displayName = isBookingForOther ? selectedUser.name : user.displayName;
     
     const newAttendee: Attendee = {
       uid: userForBooking.uid,
@@ -78,10 +79,10 @@ export default function ClassListItem({ classInfo, user, isBookedByUser, onBooki
     if (!user) return;
     setIsCancelling(true);
 
-    const attendeeData = {
+    const attendeeData: Attendee = {
         uid: user.uid,
         name: user.displayName || 'Usuario',
-        photoURL: user.photoURL || undefined
+        ...(user.photoURL && { photoURL: user.photoURL })
     };
 
     await onBookingUpdate(classInfo, null, undefined, attendeeData);

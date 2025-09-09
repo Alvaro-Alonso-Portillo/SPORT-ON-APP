@@ -5,9 +5,8 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { db, storage, auth } from "@/lib/firebase";
-import { doc, getDoc, updateDoc, Timestamp } from "firebase/firestore";
+import { doc, getDoc, updateDoc, Timestamp, runTransaction, collection, query, where, getDocs, writeBatch } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
-import { updateProfile } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -31,7 +30,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Loader2, Trash2 } from "lucide-react";
-import type { UserProfile } from "@/types";
+import type { UserProfile, ClassInfo, Attendee } from "@/types";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
@@ -146,6 +145,34 @@ export default function ProfileForm() {
       form.setValue('profileImage', null);
   };
   
+  const updateUserPhotoInBookings = async (userId: string, newPhotoURL: string | null) => {
+    const classesRef = collection(db, "classes");
+    // Find all classes where the user is an attendee
+    const q = query(classesRef, where("attendees", "array-contains-any", [
+        { uid: userId, name: userProfile?.name || '' },
+        { uid: userId, name: userProfile?.name || '', photoURL: userProfile?.photoURL }
+    ]));
+    
+    try {
+        await runTransaction(db, async (transaction) => {
+            const querySnapshot = await getDocs(q);
+            querySnapshot.forEach(docSnap => {
+                const classData = docSnap.data() as ClassInfo;
+                const updatedAttendees = classData.attendees.map(attendee => {
+                    if (attendee.uid === userId) {
+                        return { ...attendee, photoURL: newPhotoURL || undefined };
+                    }
+                    return attendee;
+                });
+                transaction.update(docSnap.ref, { attendees: updatedAttendees });
+            });
+        });
+    } catch (error) {
+        console.error("Transaction failed: ", error);
+        throw new Error("Failed to update bookings with new photo.");
+    }
+  };
+  
   const handleDeletePhoto = async () => {
     if (!user || !userProfile || !userProfile.photoURL) return;
     setIsSubmitting(true);
@@ -155,9 +182,9 @@ export default function ProfileForm() {
 
         const userDocRef = doc(db, "users", user.uid);
         await updateDoc(userDocRef, { photoURL: null });
-        if(auth.currentUser) {
-            await updateProfile(auth.currentUser, { photoURL: null });
-        }
+        
+        // Update photo in existing bookings
+        await updateUserPhotoInBookings(user.uid, null);
         
         const updatedProfile = { ...userProfile, photoURL: undefined };
         setUserProfile(updatedProfile as UserProfile);
@@ -168,13 +195,10 @@ export default function ProfileForm() {
         });
 
     } catch (error: any) {
-        // Handle case where file doesn't exist in storage but URL is in profile
         if (error.code === 'storage/object-not-found') {
             const userDocRef = doc(db, "users", user.uid);
             await updateDoc(userDocRef, { photoURL: null });
-             if(auth.currentUser) {
-                await updateProfile(auth.currentUser, { photoURL: null });
-            }
+            await updateUserPhotoInBookings(user.uid, null);
             const updatedProfile = { ...userProfile, photoURL: undefined };
             setUserProfile(updatedProfile as UserProfile);
             toast({ title: "Foto eliminada" });
@@ -206,7 +230,10 @@ export default function ProfileForm() {
         newPhotoURL = await getDownloadURL(snapshot.ref);
         updateData.photoURL = newPhotoURL;
         
-        await updateProfile(auth.currentUser, { photoURL: newPhotoURL });
+        // Now, update the photo in all bookings
+        if (newPhotoURL) {
+            await updateUserPhotoInBookings(user.uid, newPhotoURL);
+        }
       }
       
       const profileDobString = userProfile?.dob ? format((userProfile.dob instanceof Timestamp ? userProfile.dob.toDate() : new Date(userProfile.dob)), "yyyy-MM-dd") : '';

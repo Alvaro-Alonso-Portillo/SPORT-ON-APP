@@ -67,6 +67,7 @@ export default function SignupForm() {
       router.push("/");
 
     } catch (error: any) {
+        console.error('Error de registro no capturado:', error);
         let description = "Ha ocurrido un error inesperado. Inténtalo de nuevo.";
         
         switch (error.code) {

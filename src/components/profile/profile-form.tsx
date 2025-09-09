@@ -291,9 +291,9 @@ export default function ProfileForm() {
                 name="profileImage"
                 render={({ field }) => (
                   <FormItem>
+                    <FormLabel>Imagen del perfil</FormLabel>
                     <div className="flex items-end gap-4">
                       <div className="flex-1">
-                        <FormLabel>Imagen del perfil</FormLabel>
                         <FormControl>
                           <Input
                             type="file"
@@ -302,9 +302,6 @@ export default function ProfileForm() {
                             disabled={isSubmitting}
                           />
                         </FormControl>
-                         <FormDescription>
-                           Sube una foto de perfil (JPG o PNG).
-                         </FormDescription>
                       </div>
                       {userProfile?.photoURL && (
                         <Button type="button" variant="destructive" size="icon" onClick={handleDeletePhoto} disabled={isSubmitting}>
@@ -312,6 +309,9 @@ export default function ProfileForm() {
                         </Button>
                       )}
                     </div>
+                    <FormDescription>
+                      Sube una foto de perfil (JPG o PNG).
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}

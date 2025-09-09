@@ -43,7 +43,8 @@ export default function SignupForm() {
       const nameQuery = query(usersRef, where("name", "==", name));
       const nameQuerySnapshot = await getDocs(nameQuery);
       if (!nameQuerySnapshot.empty) {
-        throw new Error("El nombre de usuario ya existe.");
+        // Use a custom error object or just a message
+        throw { code: 'auth/username-already-in-use' };
       }
 
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -63,15 +64,24 @@ export default function SignupForm() {
       router.push("/");
 
     } catch (error: any) {
-        let description = error.message || "Ha ocurrido un error. Por favor, inténtalo de nuevo.";
-        if (error.code === 'auth/email-already-in-use') {
-            description = "Este correo electrónico ya está en uso.";
-        } else if (error.code === 'auth/weak-password') {
-            description = "La contraseña es demasiado débil. Debe tener al menos 6 caracteres.";
-        } else if (error.code === 'auth/invalid-email') {
-            description = "El formato del correo electrónico no es válido.";
-        } else if (error.code === 'auth/invalid-api-key') {
-            description = "Error de configuración. Por favor, contacta con el administrador.";
+        let description = "Ha ocurrido un error. Por favor, inténtalo de nuevo.";
+        
+        switch (error.code) {
+            case 'auth/email-already-in-use':
+                description = "Este correo ya está registrado. Por favor, inicia sesión.";
+                break;
+            case 'auth/weak-password':
+                description = "La contraseña no es segura. Debe tener al menos 6 caracteres.";
+                break;
+            case 'auth/invalid-email':
+                description = "El formato del correo electrónico no es válido.";
+                break;
+            case 'auth/username-already-in-use':
+                description = "El nombre de usuario ya existe. Por favor, elige otro.";
+                break;
+             case 'auth/invalid-api-key':
+                description = "Error de configuración. Por favor, contacta con el administrador.";
+                break;
         }
         
       toast({

@@ -32,15 +32,22 @@ export const updateAttendeePhotoOnProfileChange = functions.firestore
     );
 
     try {
-      // Find all classes where the user is an attendee
+      // Find all classes where the user is an attendee, using their OLD data to find them.
       const classesQuerySnapshot = await db.collection("classes")
         .where("attendees", "array-contains", {
           uid: userId,
+          name: beforeData.name, // Use old name to match the existing record
+          photoURL: beforeData.photoURL, // Use old photoURL to find the record
+        }).get();
+        
+      // Also query for cases where the user had no photoURL before
+      const classesWithoutPhotoSnapshot = await db.collection("classes")
+        .where("attendees", "array-contains", {
+          uid: userId,
           name: beforeData.name,
-          photoURL: beforeData.photoURL,
         }).get();
 
-      if (classesQuerySnapshot.empty) {
+      if (classesQuerySnapshot.empty && classesWithoutPhotoSnapshot.empty) {
         functions.logger.log(
           `No classes found for user ${userId} to update.`,
         );
@@ -48,9 +55,23 @@ export const updateAttendeePhotoOnProfileChange = functions.firestore
       }
 
       const batch = db.batch();
+      const docsToUpdate = new Map();
 
+      // Process first query results
       classesQuerySnapshot.forEach((doc) => {
-        const classData = doc.data();
+          docsToUpdate.set(doc.id, doc.data());
+      });
+      
+      // Process second query results, avoiding duplicates
+      classesWithoutPhotoSnapshot.forEach((doc) => {
+        if (!docsToUpdate.has(doc.id)) {
+            docsToUpdate.set(doc.id, doc.data());
+        }
+      });
+
+
+      docsToUpdate.forEach((classData, id) => {
+        const docRef = db.collection("classes").doc(id);
         const attendees = classData.attendees as {
             uid: string,
             name: string,
@@ -65,14 +86,14 @@ export const updateAttendeePhotoOnProfileChange = functions.firestore
           return attendee;
         });
 
-        batch.update(doc.ref, { attendees: updatedAttendees });
+        batch.update(docRef, { attendees: updatedAttendees });
       });
 
       await batch.commit();
       functions.logger.log(
-        `Successfully updated photoURL for user ${userId} in ${classesQuerySnapshot.size} classes.`,
+        `Successfully updated photoURL for user ${userId} in ${docsToUpdate.size} classes.`,
       );
-      return { success: true, updatedClasses: classesQuerySnapshot.size };
+      return { success: true, updatedClasses: docsToUpdate.size };
     } catch (error) {
       functions.logger.error(
         "Error updating attendee photo URLs:",
@@ -86,3 +107,4 @@ export const updateAttendeePhotoOnProfileChange = functions.firestore
       );
     }
   });
+

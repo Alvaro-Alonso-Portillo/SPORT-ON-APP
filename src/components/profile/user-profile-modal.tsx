@@ -6,6 +6,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import type { Attendee } from "@/types";
 import UserAvatar from "../ui/user-avatar";
@@ -26,6 +27,9 @@ export default function UserProfileModal({ attendee, isOpen, onClose }: UserProf
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle className="text-center text-2xl font-bold">{attendee.name}</DialogTitle>
+          <DialogDescription className="text-center">
+            Perfil del Asistente
+          </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col items-center justify-center p-4">
           <UserAvatar user={attendee} className="h-48 w-48 text-6xl" />
@@ -34,3 +38,5 @@ export default function UserProfileModal({ attendee, isOpen, onClose }: UserProf
     </Dialog>
   );
 }
+
+    

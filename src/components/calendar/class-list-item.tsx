@@ -75,13 +75,8 @@ export default function ClassListItem({ classInfo, user, isBookedByUser, onBooki
     const newAttendee: Attendee = {
       uid: userForBooking.uid,
       name: displayName || userForBooking.email?.split('@')[0] || "Usuario",
+      ...(userForBooking.photoURL && { photoURL: userForBooking.photoURL }),
     };
-
-    if (isBookingForOther && selectedUser.photoURL) {
-      newAttendee.photoURL = selectedUser.photoURL;
-    } else if (!isBookingForOther && user.photoURL) {
-      newAttendee.photoURL = user.photoURL;
-    }
 
     const oldClassId = changingBooking?.classId;
     const attendeeToUpdate = changingBooking?.attendee;
@@ -350,4 +345,4 @@ export default function ClassListItem({ classInfo, user, isBookedByUser, onBooki
   );
 }
 
-  
+    

@@ -15,7 +15,6 @@ import { z } from "zod";
 import { format } from "date-fns";
 import Cropper, { type Area } from "react-easy-crop";
 import getCroppedImg from "@/lib/cropImage";
-import { useUserStore } from "@/store/user-store";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -61,7 +60,6 @@ const motivationalQuotes = [
 
 export default function ProfileForm() {
   const { user, userProfile, loading: authLoading, fetchUserProfile } = useAuth();
-  const { setUserProfile } = useUserStore();
   const router = useRouter();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -77,6 +75,9 @@ export default function ProfileForm() {
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
+    defaultValues: {
+        dob: "",
+    },
   });
   
   useEffect(() => {
@@ -209,7 +210,7 @@ export default function ProfileForm() {
       }
       
       // Update Firebase Auth profile if photo changed
-      if (newPhotoURL !== userProfile.photoURL) {
+      if (newPhotoURL !== user.photoURL) {
          await updateProfile(auth.currentUser, { photoURL: newPhotoURL });
       }
 
@@ -366,3 +367,5 @@ export default function ProfileForm() {
     </Form>
   );
 }
+
+    

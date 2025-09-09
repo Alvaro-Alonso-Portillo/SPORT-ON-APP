@@ -64,7 +64,7 @@ export default function SignupForm() {
       router.push("/");
 
     } catch (error: any) {
-        let description = "Ha ocurrido un error. Por favor, inténtalo de nuevo.";
+        let description = "Ha ocurrido un error inesperado.";
         
         switch (error.code) {
             case 'auth/email-already-in-use':

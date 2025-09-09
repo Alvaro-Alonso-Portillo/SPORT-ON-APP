@@ -38,20 +38,22 @@ export default function SignupForm() {
     }
 
     try {
-      // Check for existing username
+      // 1. Check for existing username before creating the user
       const usersRef = collection(db, "users");
       const nameQuery = query(usersRef, where("name", "==", name));
       const nameQuerySnapshot = await getDocs(nameQuery);
       if (!nameQuerySnapshot.empty) {
-        // Use a custom error object or just a message
         throw { code: 'auth/username-already-in-use' };
       }
 
+      // 2. Create user in Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
+      // 3. Update Auth profile
       await updateProfile(user, { displayName: name });
 
+      // 4. Create user document in Firestore
       await setDoc(doc(db, "users", user.uid), {
         uid: user.uid,
         name,
@@ -61,10 +63,11 @@ export default function SignupForm() {
         createdAt: new Date(),
       });
       
+      // 5. Redirect on success
       router.push("/");
 
     } catch (error: any) {
-        let description = "Ha ocurrido un error inesperado.";
+        let description = "Ha ocurrido un error inesperado. Inténtalo de nuevo.";
         
         switch (error.code) {
             case 'auth/email-already-in-use':

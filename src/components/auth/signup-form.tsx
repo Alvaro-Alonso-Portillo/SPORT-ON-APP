@@ -38,22 +38,15 @@ export default function SignupForm() {
     }
 
     try {
-      // 1. Check for existing username before creating the user
-      const usersRef = collection(db, "users");
-      const nameQuery = query(usersRef, where("name", "==", name));
-      const nameQuerySnapshot = await getDocs(nameQuery);
-      if (!nameQuerySnapshot.empty) {
-        throw { code: 'auth/username-already-in-use' };
-      }
-
-      // 2. Create user in Firebase Auth
+      // 1. Create user in Firebase Auth FIRST. This establishes an authenticated session.
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      // 3. Update Auth profile
+      // 2. Now that the user is authenticated, we have permission to write to Firestore.
+      // Update Auth profile
       await updateProfile(user, { displayName: name });
 
-      // 4. Create user document in Firestore
+      // 3. Create user document in Firestore
       await setDoc(doc(db, "users", user.uid), {
         uid: user.uid,
         name,
@@ -63,7 +56,7 @@ export default function SignupForm() {
         createdAt: new Date(),
       });
       
-      // 5. Redirect on success
+      // 4. Redirect on success
       router.push("/");
 
     } catch (error: any) {
@@ -79,9 +72,6 @@ export default function SignupForm() {
                 break;
             case 'auth/invalid-email':
                 description = "El formato del correo electrónico no es válido.";
-                break;
-            case 'auth/username-already-in-use':
-                description = "El nombre de usuario ya existe. Por favor, elige otro.";
                 break;
              case 'auth/invalid-api-key':
                 description = "Error de configuración. Por favor, contacta con el administrador.";

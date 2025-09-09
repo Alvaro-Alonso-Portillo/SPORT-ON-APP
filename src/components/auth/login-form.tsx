@@ -29,6 +29,8 @@ export default function LoginForm() {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
+      // After successful login, Firestore reads are permitted.
+      // Sync displayName from Firestore to Auth if they differ.
       const userDocRef = doc(db, "users", user.uid);
       const userDoc = await getDoc(userDocRef);
 
@@ -39,6 +41,7 @@ export default function LoginForm() {
           await updateProfile(user, { displayName: correctName });
         }
       } else {
+        // This case is unlikely if signup is working correctly, but good to handle.
         console.warn("No user document found in Firestore for this user.");
       }
 

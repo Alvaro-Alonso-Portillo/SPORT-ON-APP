@@ -170,6 +170,7 @@ export default function ProfileForm() {
         });
 
     } catch (error: any) {
+         console.error("Error detallado al eliminar perfil:", error);
          toast({
             variant: "destructive",
             title: "Error",
@@ -367,5 +368,3 @@ export default function ProfileForm() {
     </Form>
   );
 }
-
-    

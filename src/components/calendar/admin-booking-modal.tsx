@@ -16,9 +16,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Loader2 } from 'lucide-react';
-import { generateColorFromUID, getInitials } from '@/lib/utils';
+import UserAvatar from '@/components/ui/user-avatar';
 
 interface AdminBookingModalProps {
   isOpen: boolean;
@@ -100,15 +99,7 @@ export default function AdminBookingModal({ isOpen, onClose, onConfirm }: AdminB
                             onClick={() => setSelectedUser(user)}
                             className={`w-full text-left p-2 rounded-md flex items-center gap-3 transition-colors ${selectedUser?.uid === user.uid ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'}`}
                         >
-                            <Avatar className="h-9 w-9">
-                                <AvatarImage src={user.photoURL} alt={user.name} />
-                                <AvatarFallback 
-                                    className="text-white font-bold"
-                                    style={{ backgroundColor: generateColorFromUID(user.uid) }}
-                                >
-                                    {getInitials(user.name)}
-                                </AvatarFallback>
-                            </Avatar>
+                            <UserAvatar user={user} className="h-9 w-9" />
                             <div>
                                 <p className="font-semibold">{user.name}</p>
                                 <p className={`text-sm ${selectedUser?.uid === user.uid ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>{user.email}</p>

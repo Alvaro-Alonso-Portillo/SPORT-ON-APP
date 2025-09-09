@@ -28,7 +28,6 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Loader2, Trash2 } from "lucide-react";
 import type { UserProfile, ClassInfo } from "@/types";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -41,7 +40,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Slider } from "@/components/ui/slider";
-import { generateColorFromUID, getInitials } from "@/lib/utils";
+import UserAvatar from "../ui/user-avatar";
 
 const profileFormSchema = z.object({
   dob: z.string().optional(),
@@ -270,7 +269,7 @@ export default function ProfileForm({ userBookings }: ProfileFormProps) {
     }
   }
 
-  if (authLoading) {
+  if (authLoading || !userProfile) {
     return (
       <div className="flex justify-center items-center h-48 bg-card rounded-lg shadow-sm">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -278,8 +277,8 @@ export default function ProfileForm({ userBookings }: ProfileFormProps) {
     );
   }
   
-  const currentAvatar = croppedImage ? URL.createObjectURL(croppedImage) : userProfile?.photoURL;
-  const userName = userProfile?.name || user?.displayName || "Usuario";
+  const currentAvatarURL = croppedImage ? URL.createObjectURL(croppedImage) : userProfile.photoURL;
+  const avatarUser = { ...userProfile, photoURL: currentAvatarURL };
 
   return (
     <Form {...form}>
@@ -287,18 +286,10 @@ export default function ProfileForm({ userBookings }: ProfileFormProps) {
         <Card className="max-w-2xl mx-auto">
           <CardHeader>
             <div className="flex items-start gap-4">
-              <Avatar className="h-20 w-20 flex-shrink-0">
-                <AvatarImage src={currentAvatar} />
-                <AvatarFallback 
-                  className="text-white font-bold text-2xl"
-                  style={{ backgroundColor: generateColorFromUID(user?.uid || '') }}
-                >
-                  {getInitials(userName)}
-                </AvatarFallback>
-              </Avatar>
+              <UserAvatar user={avatarUser} className="h-20 w-20 flex-shrink-0 text-2xl" />
               <div className="flex-1">
-                <CardTitle className="text-2xl">{userName}</CardTitle>
-                <CardDescription>{userProfile?.email || user?.email}</CardDescription>
+                <CardTitle className="text-2xl">{userProfile.name}</CardTitle>
+                <CardDescription>{userProfile.email}</CardDescription>
                 {quote && (
                   <div className="mt-4 p-3 border-l-4 border-primary bg-accent rounded-r-lg">
                     <p className="text-sm italic text-accent-foreground">

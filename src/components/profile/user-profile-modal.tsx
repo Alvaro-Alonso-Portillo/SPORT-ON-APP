@@ -7,9 +7,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { generateColorFromUID, getInitials } from "@/lib/utils";
 import type { Attendee } from "@/types";
+import UserAvatar from "../ui/user-avatar";
 
 interface UserProfileModalProps {
   attendee: Attendee | null;
@@ -29,15 +28,7 @@ export default function UserProfileModal({ attendee, isOpen, onClose }: UserProf
           <DialogTitle className="text-center text-2xl font-bold">{attendee.name}</DialogTitle>
         </DialogHeader>
         <div className="flex flex-col items-center justify-center p-4">
-          <Avatar className="h-48 w-48">
-            <AvatarImage src={attendee.photoURL} alt={attendee.name} className="object-cover" />
-            <AvatarFallback
-              className="text-white font-bold text-6xl"
-              style={{ backgroundColor: generateColorFromUID(attendee.uid) }}
-            >
-              {getInitials(attendee.name)}
-            </AvatarFallback>
-          </Avatar>
+          <UserAvatar user={attendee} className="h-48 w-48 text-6xl" />
         </div>
       </DialogContent>
     </Dialog>

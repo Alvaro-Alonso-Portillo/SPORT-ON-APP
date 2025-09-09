@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -5,13 +6,13 @@ import Image from "next/image";
 import { usePathname } from 'next/navigation'
 import { Home, CalendarDays, User as UserIcon, LogOut, LogIn } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
-import { cn, getInitials, generateColorFromUID } from "@/lib/utils";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
 import { auth } from "@/lib/firebase";
 import { signOut } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
+import UserAvatar from "../ui/user-avatar";
 
 interface SidebarContentProps {
   onLinkClick?: () => void;
@@ -106,15 +107,7 @@ export default function SidebarContent({ onLinkClick }: SidebarContentProps) {
         </div>
         <div className="p-6 border-b">
           <div className="flex items-center gap-4">
-              <Avatar className="h-12 w-12">
-                  <AvatarImage src={userProfile?.photoURL} />
-                  <AvatarFallback 
-                    className="text-white font-bold"
-                    style={{ backgroundColor: generateColorFromUID(user.uid) }}
-                  >
-                      {getInitials(userName)}
-                  </AvatarFallback>
-              </Avatar>
+              <UserAvatar user={userProfile} className="h-12 w-12" />
               <div>
                   <p className="font-semibold">{userName}</p>
                   <p className="text-sm text-muted-foreground truncate">{user.email}</p>

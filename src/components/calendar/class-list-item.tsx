@@ -5,7 +5,6 @@ import { useState } from 'react';
 import type { User } from 'firebase/auth';
 import type { ClassInfo, Attendee, UserProfile } from '@/types';
 import { Button, buttonVariants } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Users, Loader2, Trash2, Pencil, UserPlus } from 'lucide-react';
 import {
   AlertDialog,
@@ -27,10 +26,11 @@ import {
 } from "@/components/ui/dialog";
 import { isBefore, parse } from 'date-fns';
 import { Anton } from 'next/font/google';
-import { cn, generateColorFromUID, getInitials } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import UserProfileModal from '@/components/profile/user-profile-modal';
 import AdminBookingModal from './admin-booking-modal';
 import { useAuth } from '@/hooks/use-auth';
+import UserAvatar from '../ui/user-avatar';
 
 const anton = Anton({
   subsets: ['latin'],
@@ -136,15 +136,7 @@ export default function ClassListItem({ classInfo, user, isBookedByUser, onBooki
         return (
           <div key={attendee.uid} className="relative group flex flex-col items-center text-center">
             <button onClick={() => handleOpenAdminActionModal(attendee)} className="rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
-                <Avatar className="h-12 w-12 rounded-md">
-                <AvatarImage src={attendee.photoURL} alt={attendee.name} />
-                <AvatarFallback 
-                    className="rounded-md text-white font-bold"
-                    style={{ backgroundColor: generateColorFromUID(attendee.uid) }}
-                >
-                    {getInitials(attendee.name)}
-                </AvatarFallback>
-                </Avatar>
+              <UserAvatar user={attendee} className="h-12 w-12 rounded-md" />
             </button>
              {isSuperAdmin && (
               <div className="absolute -top-2 -right-2 hidden md:flex flex-col gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">

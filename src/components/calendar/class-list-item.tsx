@@ -24,13 +24,14 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { isBefore, parse } from 'date-fns';
+import { isBefore, parse, endOfWeek, addWeeks, isAfter } from 'date-fns';
 import { Anton } from 'next/font/google';
 import { cn } from '@/lib/utils';
 import UserProfileModal from '@/components/profile/user-profile-modal';
 import AdminBookingModal from './admin-booking-modal';
 import { useAuth } from '@/hooks/use-auth';
 import UserAvatar from '../ui/user-avatar';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 
 const anton = Anton({
   subsets: ['latin'],
@@ -58,8 +59,23 @@ export default function ClassListItem({ classInfo, user, isBookedByUser, onBooki
   const [attendeeToRemove, setAttendeeToRemove] = useState<Attendee | null>(null);
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
 
+  // --- Date & Business Logic ---
+  const classDateTime = parse(`${classInfo.date} ${classInfo.time}`, 'yyyy-MM-dd HH:mm', new Date());
+  const isPastClass = isBefore(classDateTime, new Date());
+  const bookingDeadline = endOfWeek(addWeeks(new Date(), 1), { weekStartsOn: 1 });
+  const isBookingAllowed = !isAfter(classDateTime, bookingDeadline);
+
+  const getTooltipMessage = () => {
+    if (isPastClass) return "Esta clase ya ha finalizado.";
+    if (!isBookingAllowed) return "Solo puedes reservar con hasta una semana de antelación.";
+    return null;
+  };
+
+  const tooltipMessage = getTooltipMessage();
+  // --- End of Date & Business Logic ---
+
   const handleBookClass = async (selectedUser?: UserProfile) => {
-    if (!user) return;
+    if (!user || !isBookingAllowed) return;
 
     if (isSuperAdmin && !selectedUser && !changingBooking) {
       setIsBookingModalOpen(true);
@@ -163,6 +179,7 @@ export default function ClassListItem({ classInfo, user, isBookedByUser, onBooki
                 onClick={() => handleBookClass()} 
                 className="h-12 w-12 bg-muted rounded-md flex items-center justify-center text-muted-foreground/50 hover:bg-accent hover:text-accent-foreground transition-colors group"
                 aria-label="Añadir cliente"
+                disabled={isPastClass || !isBookingAllowed}
             >
                 <UserPlus className="h-6 w-6 group-hover:scale-110 transition-transform" />
             </button>
@@ -172,9 +189,6 @@ export default function ClassListItem({ classInfo, user, isBookedByUser, onBooki
     });
   };
   
-  const classDateTime = parse(`${classInfo.date} ${classInfo.time}`, 'yyyy-MM-dd HH:mm', new Date());
-  const isPastClass = isBefore(classDateTime, new Date());
-
   const renderButton = () => {
     if(isPastClass) {
         return <Button disabled>Finalizada</Button>;
@@ -189,7 +203,7 @@ export default function ClassListItem({ classInfo, user, isBookedByUser, onBooki
         if(isFull) return <Button disabled>Completo</Button>;
         return (
             <div className="flex items-center gap-2">
-                <Button onClick={() => handleBookClass()}>
+                <Button onClick={() => handleBookClass()} disabled={!isBookingAllowed}>
                     {isBooking ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Moviendo...</> : "Mover aquí"}
                 </Button>
             </div>
@@ -202,11 +216,11 @@ export default function ClassListItem({ classInfo, user, isBookedByUser, onBooki
             <Button 
                 onClick={isCurrentUserBeingChanged ? () => setChangingBooking(null) : () => handleStartChange({ uid: user!.uid, name: user!.displayName || 'user', photoURL: user!.photoURL || undefined })} 
                 variant={isCurrentUserBeingChanged ? "ghost" : "default"} 
-                disabled={isBooking || isCancelling || (!!changingBooking && !isCurrentUserBeingChanged)} className="md:w-32"
+                disabled={isBooking || isCancelling || (!!changingBooking && !isCurrentUserBeingChanged) || !isBookingAllowed} className="md:w-32"
             >
                 {isCurrentUserBeingChanged ? "Cancelar cambio" : "Cambiar"}
             </Button>
-            <Button variant="destructive" onClick={() => setShowCancelConfirm(true)} disabled={isBooking || isCancelling || !!changingBooking}>
+            <Button variant="destructive" onClick={() => setShowCancelConfirm(true)} disabled={isBooking || isCancelling || !!changingBooking || !isBookingAllowed}>
                 Cancelar
             </Button>
         </div>
@@ -218,7 +232,7 @@ export default function ClassListItem({ classInfo, user, isBookedByUser, onBooki
             return <Button disabled>Completo</Button>;
         }
         return (
-            <Button onClick={() => handleBookClass()} disabled={isBooking}>
+            <Button onClick={() => handleBookClass()} disabled={isBooking || !isBookingAllowed}>
                 {isBooking ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Moviendo...</> : "Mover aquí"}
             </Button>
         );
@@ -233,12 +247,29 @@ export default function ClassListItem({ classInfo, user, isBookedByUser, onBooki
         // Admin sees no general "Book" button, they should click on empty slots.
         return null;
     }
-
-    return (
-      <Button onClick={() => handleBookClass()} disabled={isBooking || !!changingBooking}>
-        {isBooking ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Reservando...</> : "Reservar"}
-      </Button>
+    
+    const BookButton = (
+        <Button onClick={() => handleBookClass()} disabled={isBooking || !!changingBooking || !isBookingAllowed}>
+            {isBooking ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Reservando...</> : "Reservar"}
+        </Button>
     );
+
+    if (tooltipMessage) {
+        return (
+            <TooltipProvider>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <span>{BookButton}</span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p>{tooltipMessage}</p>
+                    </TooltipContent>
+                </Tooltip>
+            </TooltipProvider>
+        );
+    }
+    
+    return BookButton;
   };
 
   return (

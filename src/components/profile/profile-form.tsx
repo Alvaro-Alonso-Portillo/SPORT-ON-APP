@@ -5,8 +5,9 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { db, storage, auth } from "@/lib/firebase";
-import { doc, getDoc, updateDoc, Timestamp, collection, writeBatch, getDocs, query, where } from "firebase/firestore";
+import { doc, updateDoc, Timestamp } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
+import { updateProfile } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -29,7 +30,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, Trash2 } from "lucide-react";
-import type { UserProfile, ClassInfo } from "@/types";
+import type { UserProfile } from "@/types";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
@@ -58,12 +59,8 @@ const motivationalQuotes = [
   "Cree en ti mismo y todo lo que eres. Sé consciente de que hay algo en tu interior que es más grande que cualquier obstáculo.",
 ];
 
-interface ProfileFormProps {
-  userBookings: string[];
-}
-
-export default function ProfileForm({ userBookings }: ProfileFormProps) {
-  const { user, userProfile, loading: authLoading } = useAuth();
+export default function ProfileForm() {
+  const { user, userProfile, loading: authLoading, fetchUserProfile } = useAuth();
   const { setUserProfile } = useUserStore();
   const router = useRouter();
   const { toast } = useToast();
@@ -148,52 +145,24 @@ export default function ProfileForm({ userBookings }: ProfileFormProps) {
       form.setValue('profileImage', null);
   };
   
-  const updateUserPhotoInBookings = async (userId: string, newPhotoURL: string | null) => {
-    if (!userProfile || userBookings.length === 0) return;
-
-    const batch = writeBatch(db);
-    
-    for (const classId of userBookings) {
-        const classDocRef = doc(db, "classes", classId);
-        // We need to get the current attendees array to update it correctly.
-        // This is a limitation of batching array updates without transactions.
-        const classDoc = await getDoc(classDocRef);
-        if (classDoc.exists()) {
-            const classData = classDoc.data() as ClassInfo;
-            const updatedAttendees = classData.attendees.map(attendee => {
-                if (attendee.uid === userId) {
-                    return { ...attendee, photoURL: newPhotoURL || undefined };
-                }
-                return attendee;
-            });
-            batch.update(classDocRef, { attendees: updatedAttendees });
-        }
-    }
-    await batch.commit();
-  };
-  
   const handleDeletePhoto = async () => {
-    if (!user || !userProfile || !userProfile.photoURL) return;
+    if (!user || !auth.currentUser || !userProfile || !userProfile.photoURL) return;
     setIsSubmitting(true);
     try {
         const storageRef = ref(storage, `profile-pictures/${user.uid}/profile.jpg`);
         await deleteObject(storageRef).catch(error => {
-            // Ignore not found error, as the DB is the source of truth
             if (error.code !== 'storage/object-not-found') {
                 throw error;
             }
         });
 
-        // Update photo in existing bookings to null
-        await updateUserPhotoInBookings(user.uid, null);
-        
-        // Update user profile in Firestore
         const userDocRef = doc(db, "users", user.uid);
         await updateDoc(userDocRef, { photoURL: null });
-        
-        const updatedProfile = { ...userProfile, photoURL: undefined };
-        setUserProfile(updatedProfile as UserProfile);
+        await updateProfile(auth.currentUser, { photoURL: "" });
 
+        // Force a re-fetch of the profile from the store
+        await fetchUserProfile(user.uid);
+        
         toast({
             title: "Foto eliminada",
             description: "Tu foto de perfil ha sido eliminada.",
@@ -217,38 +186,35 @@ export default function ProfileForm({ userBookings }: ProfileFormProps) {
 
     try {
       const userDocRef = doc(db, "users", user.uid);
-      let newPhotoURL = userProfile.photoURL;
       const updateData: Partial<UserProfile> = {};
+      let newPhotoURL: string | null = userProfile.photoURL || null;
 
-      // Handle photo upload and update
+      // Handle photo upload
       if (croppedImage) {
         const storageRef = ref(storage, `profile-pictures/${user.uid}/profile.jpg`);
         const snapshot = await uploadBytes(storageRef, croppedImage, { contentType: 'image/jpeg' });
         newPhotoURL = await getDownloadURL(snapshot.ref);
         updateData.photoURL = newPhotoURL;
-        
-        // Now, update the photo in all bookings
-        if (newPhotoURL) {
-            await updateUserPhotoInBookings(user.uid, newPhotoURL);
-        }
       }
       
       // Handle date of birth update
       const profileDobString = userProfile.dob ? format((userProfile.dob instanceof Timestamp ? userProfile.dob.toDate() : new Date(userProfile.dob)), "yyyy-MM-dd") : '';
       if (data.dob !== profileDobString) {
-        if (data.dob) {
-          updateData.dob = Timestamp.fromDate(new Date(data.dob.replace(/-/g, '/')));
-        } else {
-          updateData.dob = null;
-        }
+        updateData.dob = data.dob ? Timestamp.fromDate(new Date(data.dob.replace(/-/g, '/'))) : null;
       }
       
-      // Commit all changes to the user's profile document
+      // Update Firestore document
       if (Object.keys(updateData).length > 0) {
         await updateDoc(userDocRef, updateData);
-        const updatedProfile = { ...userProfile, ...updateData, photoURL: newPhotoURL || userProfile.photoURL };
-        setUserProfile(updatedProfile as UserProfile);
       }
+      
+      // Update Firebase Auth profile if photo changed
+      if (newPhotoURL !== userProfile.photoURL) {
+         await updateProfile(auth.currentUser, { photoURL: newPhotoURL });
+      }
+
+      // Force a re-fetch of the profile from the store to update UI everywhere
+      await fetchUserProfile(user.uid);
 
       toast({
         title: "Perfil actualizado",

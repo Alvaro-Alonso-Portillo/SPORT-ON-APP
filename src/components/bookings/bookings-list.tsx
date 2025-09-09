@@ -68,32 +68,27 @@ export default function BookingsList() {
     const fetchBookings = async () => {
       setIsLoading(true);
       try {
-        const classesRef = collection(db, "classes");
-        const q = query(classesRef, where("attendees", "array-contains", { 
-            uid: user.uid, 
-            name: user.displayName 
-        }));
-        
-        const qWithPhoto = query(classesRef, where("attendees", "array-contains", { 
-            uid: user.uid, 
-            name: user.displayName,
-            photoURL: user.photoURL || undefined
-        }));
-
-        const [querySnapshot, photoQuerySnapshot] = await Promise.all([getDocs(q), getDocs(qWithPhoto)]);
-
         const now = new Date();
+        const todayString = format(now, 'yyyy-MM-dd');
         
-        const combinedDocs = [...querySnapshot.docs, ...photoQuerySnapshot.docs];
-        const uniqueDocs = Array.from(new Map(combinedDocs.map(doc => [doc.id, doc])).values());
+        const classesRef = collection(db, "classes");
+        // Query for all classes from today onwards.
+        const q = query(classesRef, where("date", ">=", todayString));
+        
+        const querySnapshot = await getDocs(q);
 
+        const allFutureClasses = querySnapshot.docs.map(doc => ({
+            id: doc.id,
+            classInfo: doc.data() as ClassInfo,
+        }));
 
-        const userBookings = uniqueDocs
-          .map(doc => ({
-              id: doc.id,
-              classInfo: doc.data() as ClassInfo,
-          }))
+        // Filter on the client-side to find the user's bookings.
+        const userBookings = allFutureClasses
+          .filter(booking => 
+            booking.classInfo.attendees.some(attendee => attendee.uid === user.uid)
+          )
           .filter(booking => {
+            // Further filter to ensure we only show classes that haven't ended yet today.
             const classStartDateTime = parseISO(`${booking.classInfo.date}T${booking.classInfo.time}:00`);
             const classEndDateTime = addMinutes(classStartDateTime, booking.classInfo.duration);
             return classEndDateTime > now;

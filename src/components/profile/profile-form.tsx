@@ -222,7 +222,7 @@ export default function ProfileForm() {
       });
 
     } catch (error) {
-      console.error("Error updating profile: ", error);
+      console.error("Error detallado al actualizar perfil:", error);
       toast({
         variant: "destructive",
         title: "Error",

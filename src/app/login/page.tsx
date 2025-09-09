@@ -2,7 +2,9 @@
 "use client";
 
 import LoginForm from "@/components/auth/login-form";
+import PhoneAuthForm from "@/components/auth/phone-auth-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function LoginPage() {
   return (
@@ -11,11 +13,22 @@ export default function LoginPage() {
           <CardHeader>
             <CardTitle className="text-2xl font-headline">Iniciar Sesión</CardTitle>
             <CardDescription>
-              Introduce tu correo y contraseña para acceder a tu cuenta.
+              Elige un método para acceder a tu cuenta.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <LoginForm />
+            <Tabs defaultValue="email" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="email">Correo</TabsTrigger>
+                <TabsTrigger value="phone">Teléfono</TabsTrigger>
+              </TabsList>
+              <TabsContent value="email">
+                <LoginForm />
+              </TabsContent>
+              <TabsContent value="phone">
+                <PhoneAuthForm />
+              </TabsContent>
+            </Tabs>
           </CardContent>
         </Card>
     </div>

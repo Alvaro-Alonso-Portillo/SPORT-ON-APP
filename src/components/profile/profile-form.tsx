@@ -5,7 +5,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { db, storage, auth } from "@/lib/firebase";
-import { doc, getDoc, updateDoc, Timestamp, runTransaction, collection, query, where, getDocs, writeBatch } from "firebase/firestore";
+import { doc, getDoc, updateDoc, Timestamp, collection, writeBatch, getDocs, query, where } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 import { useToast } from "@/hooks/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -30,7 +30,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Loader2, Trash2 } from "lucide-react";
-import type { UserProfile, ClassInfo, Attendee } from "@/types";
+import type { UserProfile, ClassInfo } from "@/types";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
@@ -59,7 +59,11 @@ const motivationalQuotes = [
   "Cree en ti mismo y todo lo que eres. Sé consciente de que hay algo en tu interior que es más grande que cualquier obstáculo.",
 ];
 
-export default function ProfileForm() {
+interface ProfileFormProps {
+  userBookings: string[];
+}
+
+export default function ProfileForm({ userBookings }: ProfileFormProps) {
   const { user, userProfile, loading: authLoading } = useAuth();
   const { setUserProfile } = useUserStore();
   const router = useRouter();
@@ -146,31 +150,27 @@ export default function ProfileForm() {
   };
   
   const updateUserPhotoInBookings = async (userId: string, newPhotoURL: string | null) => {
-    const classesRef = collection(db, "classes");
-    // Find all classes where the user is an attendee
-    const q = query(classesRef, where("attendees", "array-contains-any", [
-        { uid: userId, name: userProfile?.name || '' },
-        { uid: userId, name: userProfile?.name || '', photoURL: userProfile?.photoURL }
-    ]));
+    if (!userProfile || userBookings.length === 0) return;
+
+    const batch = writeBatch(db);
     
-    try {
-        await runTransaction(db, async (transaction) => {
-            const querySnapshot = await getDocs(q);
-            querySnapshot.forEach(docSnap => {
-                const classData = docSnap.data() as ClassInfo;
-                const updatedAttendees = classData.attendees.map(attendee => {
-                    if (attendee.uid === userId) {
-                        return { ...attendee, photoURL: newPhotoURL || undefined };
-                    }
-                    return attendee;
-                });
-                transaction.update(docSnap.ref, { attendees: updatedAttendees });
+    for (const classId of userBookings) {
+        const classDocRef = doc(db, "classes", classId);
+        // We need to get the current attendees array to update it correctly.
+        // This is a limitation of batching array updates without transactions.
+        const classDoc = await getDoc(classDocRef);
+        if (classDoc.exists()) {
+            const classData = classDoc.data() as ClassInfo;
+            const updatedAttendees = classData.attendees.map(attendee => {
+                if (attendee.uid === userId) {
+                    return { ...attendee, photoURL: newPhotoURL || undefined };
+                }
+                return attendee;
             });
-        });
-    } catch (error) {
-        console.error("Transaction failed: ", error);
-        throw new Error("Failed to update bookings with new photo.");
+            batch.update(classDocRef, { attendees: updatedAttendees });
+        }
     }
+    await batch.commit();
   };
   
   const handleDeletePhoto = async () => {
@@ -178,13 +178,19 @@ export default function ProfileForm() {
     setIsSubmitting(true);
     try {
         const storageRef = ref(storage, `profile-pictures/${user.uid}/profile.jpg`);
-        await deleteObject(storageRef);
+        await deleteObject(storageRef).catch(error => {
+            // Ignore not found error, as the DB is the source of truth
+            if (error.code !== 'storage/object-not-found') {
+                throw error;
+            }
+        });
 
+        // Update photo in existing bookings to null
+        await updateUserPhotoInBookings(user.uid, null);
+        
+        // Update user profile in Firestore
         const userDocRef = doc(db, "users", user.uid);
         await updateDoc(userDocRef, { photoURL: null });
-        
-        // Update photo in existing bookings
-        await updateUserPhotoInBookings(user.uid, null);
         
         const updatedProfile = { ...userProfile, photoURL: undefined };
         setUserProfile(updatedProfile as UserProfile);
@@ -195,20 +201,11 @@ export default function ProfileForm() {
         });
 
     } catch (error: any) {
-        if (error.code === 'storage/object-not-found') {
-            const userDocRef = doc(db, "users", user.uid);
-            await updateDoc(userDocRef, { photoURL: null });
-            await updateUserPhotoInBookings(user.uid, null);
-            const updatedProfile = { ...userProfile, photoURL: undefined };
-            setUserProfile(updatedProfile as UserProfile);
-            toast({ title: "Foto eliminada" });
-        } else {
-             toast({
-                variant: "destructive",
-                title: "Error",
-                description: "No se pudo eliminar tu foto. Por favor, inténtalo de nuevo.",
-            });
-        }
+         toast({
+            variant: "destructive",
+            title: "Error",
+            description: "No se pudo eliminar tu foto. Por favor, inténtalo de nuevo.",
+        });
     } finally {
         setIsSubmitting(false);
     }
@@ -216,14 +213,15 @@ export default function ProfileForm() {
 
 
   async function onSubmit(data: ProfileFormValues) {
-    if (!user || !auth.currentUser) return;
+    if (!user || !auth.currentUser || !userProfile) return;
     setIsSubmitting(true);
 
     try {
       const userDocRef = doc(db, "users", user.uid);
-      let newPhotoURL = userProfile?.photoURL;
+      let newPhotoURL = userProfile.photoURL;
       const updateData: Partial<UserProfile> = {};
 
+      // Handle photo upload and update
       if (croppedImage) {
         const storageRef = ref(storage, `profile-pictures/${user.uid}/profile.jpg`);
         const snapshot = await uploadBytes(storageRef, croppedImage, { contentType: 'image/jpeg' });
@@ -236,7 +234,8 @@ export default function ProfileForm() {
         }
       }
       
-      const profileDobString = userProfile?.dob ? format((userProfile.dob instanceof Timestamp ? userProfile.dob.toDate() : new Date(userProfile.dob)), "yyyy-MM-dd") : '';
+      // Handle date of birth update
+      const profileDobString = userProfile.dob ? format((userProfile.dob instanceof Timestamp ? userProfile.dob.toDate() : new Date(userProfile.dob)), "yyyy-MM-dd") : '';
       if (data.dob !== profileDobString) {
         if (data.dob) {
           updateData.dob = Timestamp.fromDate(new Date(data.dob.replace(/-/g, '/')));
@@ -245,18 +244,18 @@ export default function ProfileForm() {
         }
       }
       
+      // Commit all changes to the user's profile document
       if (Object.keys(updateData).length > 0) {
         await updateDoc(userDocRef, updateData);
-        if (userProfile) {
-            const updatedProfile = { ...userProfile, ...updateData, photoURL: newPhotoURL || userProfile.photoURL };
-            setUserProfile(updatedProfile as UserProfile);
-        }
+        const updatedProfile = { ...userProfile, ...updateData, photoURL: newPhotoURL || userProfile.photoURL };
+        setUserProfile(updatedProfile as UserProfile);
       }
 
       toast({
         title: "Perfil actualizado",
         description: "Tu información ha sido guardada con éxito.",
       });
+
     } catch (error) {
       console.error("Error updating profile: ", error);
       toast({
@@ -266,7 +265,6 @@ export default function ProfileForm() {
       });
     } finally {
       setIsSubmitting(false);
-      form.reset(form.getValues());
       setCroppedImage(null);
       form.setValue('profileImage', null);
     }
@@ -350,7 +348,7 @@ export default function ProfileForm() {
                          </FormDescription>
                       </div>
                       {userProfile?.photoURL && (
-                        <Button variant="destructive" size="icon" onClick={handleDeletePhoto} disabled={isSubmitting}>
+                        <Button type="button" variant="destructive" size="icon" onClick={handleDeletePhoto} disabled={isSubmitting}>
                             <Trash2 className="h-4 w-4" />
                         </Button>
                       )}

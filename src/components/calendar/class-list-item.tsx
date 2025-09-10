@@ -24,7 +24,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { isBefore, parse, endOfWeek, addWeeks, isAfter } from 'date-fns';
+import { isBefore, parse } from 'date-fns';
 import { Anton } from 'next/font/google';
 import { cn } from '@/lib/utils';
 import UserProfileModal from '@/components/profile/user-profile-modal';
@@ -62,12 +62,10 @@ export default function ClassListItem({ classInfo, user, isBookedByUser, onBooki
   // --- Date & Business Logic ---
   const classDateTime = parse(`${classInfo.date} ${classInfo.time}`, 'yyyy-MM-dd HH:mm', new Date());
   const isPastClass = isBefore(classDateTime, new Date());
-  const bookingDeadline = endOfWeek(addWeeks(new Date(), 1), { weekStartsOn: 1 });
-  const isBookingAllowed = !isAfter(classDateTime, bookingDeadline);
+  const isBookingAllowed = !isPastClass;
 
   const getTooltipMessage = () => {
     if (isPastClass) return "Esta clase ya ha finalizado.";
-    if (!isBookingAllowed) return "Solo puedes reservar con hasta una semana de antelación.";
     return null;
   };
 

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -29,9 +30,9 @@ export default function Welcome() {
   const [quote, setQuote] = useState("");
 
   useEffect(() => {
-    // Generate random quote only on the client-side after mount
+    // Generate random quote only on the client-side after mount to avoid hydration errors
     setQuote(motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]);
-  }, []); // Empty dependency array ensures this runs only once
+  }, []); // Empty dependency array ensures this runs only once on the client
 
   return (
     <div className="flex flex-col items-center justify-center h-full w-full bg-background text-foreground">

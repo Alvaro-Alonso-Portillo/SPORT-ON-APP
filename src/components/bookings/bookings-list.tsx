@@ -54,7 +54,7 @@ export default function BookingsList() {
   const [quote, setQuote] = useState("");
 
   useEffect(() => {
-    // Generate random quote only on the client-side after mount
+    // Generate random quote only on the client-side after mount to avoid hydration errors
     setQuote(motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]);
   }, []);
 

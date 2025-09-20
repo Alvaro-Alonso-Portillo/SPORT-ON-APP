@@ -89,7 +89,7 @@ export default function BookingsList() {
           )
           .filter(booking => {
             // Further filter to ensure we only show classes that haven't ended yet today.
-            const classStartDateTime = parseISO(`${booking.classInfo.date}T${booking.classInfo.time}:00`);
+            const classStartDateTime = parseISO(`${booking.classInfo.date}T${booking.classInfo.time}`);
             const classEndDateTime = addMinutes(classStartDateTime, booking.classInfo.duration);
             return classEndDateTime > now;
           });

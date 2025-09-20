@@ -60,7 +60,7 @@ export default function ClassListItem({ classInfo, user, isBookedByUser, onBooki
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
 
   // --- Date & Business Logic ---
-  const classDateTime = parseISO(`${classInfo.date}T${classInfo.time}:00`);
+  const classDateTime = parseISO(`${classInfo.date}T${classInfo.time}`);
   const isPastClass = isBefore(classDateTime, new Date());
   const isBookingAllowed = !isPastClass;
 

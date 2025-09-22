@@ -10,6 +10,7 @@ export const metadata: Metadata = {
   description: 'Gestiona tus reservas de clases con facilidad.',
   manifest: '/manifest.webmanifest',
   icons: {
+    icon: '/favicon.ico',
     shortcut: '/favicon.ico',
     apple: '/apple-icon.png',
   },

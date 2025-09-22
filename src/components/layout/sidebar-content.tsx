@@ -77,7 +77,6 @@ export default function SidebarContent({ onLinkClick }: SidebarContentProps) {
         alt="Sport ON Logo"
         width={180}
         height={48}
-        className="w-[180px] h-auto"
         priority
       />
   );

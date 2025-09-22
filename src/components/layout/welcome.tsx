@@ -43,7 +43,6 @@ export default function Welcome() {
           alt="Sport ON Logo"
           width={320}
           height={85}
-          className="w-full max-w-[320px] h-auto"
           priority
         />
         <p className="mt-4 text-lg md:text-xl text-muted-foreground italic h-7">

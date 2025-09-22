@@ -10,6 +10,7 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   },
   images: {
+    unoptimized: process.env.CI === 'true',
     remotePatterns: [
       {
         protocol: 'https',
@@ -28,10 +29,7 @@ const nextConfig: NextConfig = {
   // This allows the Next.js dev server to accept requests from a different
   // origin. This is necessary for the Studio preview iframe to work correctly.
   experimental: {},
-  allowedDevOrigins: [
-    'https://*.googleusercontent.com',
-    'https://*.cloudworkstations.dev'
-  ],
+  allowedDevOrigins: ['https://*.googleusercontent.com'],
 };
 
 export default nextConfig;

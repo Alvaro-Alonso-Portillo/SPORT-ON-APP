@@ -45,7 +45,7 @@ export default function LoginForm() {
         console.warn("No user document found in Firestore for this user.");
       }
 
-      router.push("/");
+      router.push("/dashboard");
     } catch (error: any) {
       let description = "Por favor, comprueba tus credenciales e inténtalo de nuevo.";
       if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential' || error.code === 'auth/invalid-api-key') {

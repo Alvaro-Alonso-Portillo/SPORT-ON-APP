@@ -7,6 +7,7 @@ import { useAuth } from '@/hooks/use-auth';
 import Welcome from '@/components/layout/welcome';
 import SignupForm from "@/components/auth/signup-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Loader2 } from 'lucide-react';
 
 export default function SignupPage() {
   const { user, loading } = useAuth();
@@ -14,12 +15,22 @@ export default function SignupPage() {
 
   useEffect(() => {
     if (!loading && user) {
-      router.replace('/');
+      router.replace('/dashboard');
     }
   }, [user, loading, router]);
 
-  if (loading || user) {
-    return <Welcome />;
+  if (loading) {
+    return (
+       <div className="flex h-full w-full items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    )
+  }
+  
+  // Si el usuario ya está logueado, se redirigirá. Si no, muestra el formulario.
+  // No mostramos nada si ya hay un usuario para evitar un parpadeo del formulario antes de la redirección.
+  if (user) {
+    return null;
   }
   
   return (

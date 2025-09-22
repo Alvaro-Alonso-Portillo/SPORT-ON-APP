@@ -54,7 +54,6 @@ export default function BookingsList() {
   const [quote, setQuote] = useState("");
 
   useEffect(() => {
-    // Generate random quote only on the client-side after mount to avoid hydration errors
     setQuote(motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)]);
   }, []);
 
@@ -72,7 +71,6 @@ export default function BookingsList() {
         const todayString = format(now, 'yyyy-MM-dd');
         
         const classesRef = collection(db, "classes");
-        // Query for all classes from today onwards.
         const q = query(classesRef, where("date", ">=", todayString));
         
         const querySnapshot = await getDocs(q);
@@ -82,13 +80,11 @@ export default function BookingsList() {
             classInfo: doc.data() as ClassInfo,
         }));
 
-        // Filter on the client-side to find the user's bookings.
         const userBookings = allFutureClasses
           .filter(booking => 
             booking.classInfo.attendees.some(attendee => attendee.uid === user.uid)
           )
           .filter(booking => {
-            // Further filter to ensure we only show classes that haven't ended yet today.
             const classStartDateTime = parseISO(`${booking.classInfo.date}T${booking.classInfo.time}`);
             const classEndDateTime = addMinutes(classStartDateTime, booking.classInfo.duration);
             return classEndDateTime > now;
@@ -157,7 +153,7 @@ export default function BookingsList() {
   
   const handleModify = (booking: PopulatedBooking) => {
     const targetDate = booking.classInfo.date;
-    router.push(`/?date=${targetDate}`);
+    router.push(`/dashboard?date=${targetDate}`);
   };
 
 
@@ -192,7 +188,7 @@ export default function BookingsList() {
           )}
         </AlertDescription>
         <Button asChild>
-          <Link href="/">
+          <Link href="/dashboard">
             <CalendarPlus className="mr-2 h-4 w-4" /> Reservar una clase
           </Link>
         </Button>

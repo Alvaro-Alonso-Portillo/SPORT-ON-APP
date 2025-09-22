@@ -18,6 +18,7 @@ import UserMenu from "./user-menu";
 export default function Header() {
   const { user, loading } = useAuth();
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const homeUrl = user ? "/dashboard" : "/welcome";
 
   return (
     <header className="bg-card shadow-sm sticky top-0 z-40 h-20 flex items-center px-4 md:px-8 border-b">
@@ -36,7 +37,7 @@ export default function Header() {
               </Sheet>
             </div>
           )}
-           <Link href="/" className="hidden sm:block">
+           <Link href={homeUrl} className="hidden sm:block">
              <Image
                 src="/logo.png"
                 alt="Sport ON Logo"
@@ -49,7 +50,7 @@ export default function Header() {
       </div>
 
       <div className="flex-1 flex justify-center sm:hidden">
-          <Link href="/">
+          <Link href={homeUrl}>
              <Image
                 src="/logo.png"
                 alt="Sport ON Logo"

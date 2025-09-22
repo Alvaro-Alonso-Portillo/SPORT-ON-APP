@@ -57,7 +57,7 @@ export default function SignupForm() {
       });
       
       // 4. Redirect on success
-      router.push("/");
+      router.push("/dashboard");
 
     } catch (error: any) {
         console.error('Error de registro no capturado:', error);

@@ -39,7 +39,7 @@ export default function SidebarContent({ onLinkClick }: SidebarContentProps) {
   };
 
   const navLinks = [
-    { href: "/", label: "Calendario", icon: Home },
+    { href: "/dashboard", label: "Calendario", icon: Home },
     { href: "/bookings", label: "Mis Reservas", icon: CalendarDays },
     { href: "/profile", label: "Mi Perfil", icon: UserIcon },
   ];
@@ -108,7 +108,7 @@ export default function SidebarContent({ onLinkClick }: SidebarContentProps) {
   return (
     <div className="flex flex-col h-full bg-card text-card-foreground">
         <div className="p-6 border-b">
-             <Link href="/" onClick={onLinkClick}>
+             <Link href="/dashboard" onClick={onLinkClick}>
                 {logo}
             </Link>
         </div>

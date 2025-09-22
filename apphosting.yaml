@@ -1,0 +1,13 @@
+env:
+  - variable: NEXT_PUBLIC_FIREBASE_API_KEY
+    value: "AIzaSyDPxL5o71a-6DRBeJA25Tfit_c25aK1"
+  - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+    value: "sporton-app.firebaseapp.com"
+  - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    value: "sporton-app"
+  - variable: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+    value: "sporton-app.appspot.com"
+  - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+    value: "1057410220641"
+  - variable: NEXT_PUBLIC_FIREBASE_APP_ID
+    value: "1:1057410220641:web:2f036f014434234234234c"

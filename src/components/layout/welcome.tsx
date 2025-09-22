@@ -41,9 +41,9 @@ export default function Welcome() {
         <Image
           src="/logo.png"
           alt="Sport ON Logo"
-          width={400}
-          height={106}
-          className="w-[320px] h-auto"
+          width={320}
+          height={85}
+          className="h-auto"
           priority
         />
         <p className="mt-4 text-lg md:text-xl text-muted-foreground italic h-7">

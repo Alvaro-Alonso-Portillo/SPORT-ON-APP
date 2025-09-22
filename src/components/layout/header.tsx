@@ -40,9 +40,9 @@ export default function Header() {
              <Image
                 src="/logo.png"
                 alt="Sport ON Logo"
-                width={400}
-                height={106}
-                className="w-[150px] h-auto"
+                width={150}
+                height={40}
+                className="h-auto"
                 priority
               />
           </Link>
@@ -53,9 +53,9 @@ export default function Header() {
              <Image
                 src="/logo.png"
                 alt="Sport ON Logo"
-                width={400}
-                height={106}
-                className="w-[120px] h-auto"
+                width={120}
+                height={32}
+                className="h-auto"
                 priority
               />
           </Link>

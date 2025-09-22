@@ -247,7 +247,8 @@ function WeeklyCalendarInternal() {
                 
                 // Add to new class
                 if (!newClassDoc.exists()) {
-                    transaction.set(newClassDocRef, { ...classInfo, attendees: [newAttendee] });
+                    const { id, ...classDataToSave } = classInfo;
+                    transaction.set(newClassDocRef, { ...classDataToSave, attendees: [newAttendee] });
                 } else {
                      const currentClassData = newClassDoc.data() as ClassInfo;
                     if (currentClassData.attendees.length >= currentClassData.capacity) {
@@ -261,7 +262,9 @@ function WeeklyCalendarInternal() {
                 const classDoc = await transaction.get(classDocRef);
                 
                 if (!classDoc.exists()) {
-                    transaction.set(classDocRef, { ...classInfo, attendees: [newAttendee] });
+                    // Create a clean object for Firestore, excluding the 'id' field
+                    const { id, ...classDataToSave } = classInfo;
+                    transaction.set(classDocRef, { ...classDataToSave, attendees: [newAttendee] });
                 } else {
                     const currentClassData = classDoc.data() as ClassInfo;
                     if (currentClassData.attendees.length >= currentClassData.capacity) {

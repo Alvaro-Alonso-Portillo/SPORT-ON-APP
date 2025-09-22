@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
+import Image from "next/image";
 
 // Motivational quotes for the welcome screen
 const motivationalQuotes = [
@@ -37,14 +38,13 @@ export default function Welcome() {
   return (
     <div className="flex flex-col items-center justify-center h-full w-full bg-background text-foreground">
       <div className="text-center p-4">
-        <img
+        <Image
           src="/logo.png"
           alt="Sport ON Logo"
-          width="320"
-          height="85"
-          loading="eager"
-          style={{ height: 'auto', width: '320px' }}
-          className="mx-auto"
+          width={400}
+          height={106}
+          className="w-[320px] h-auto"
+          priority
         />
         <p className="mt-4 text-lg md:text-xl text-muted-foreground italic h-7">
           {quote}

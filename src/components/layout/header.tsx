@@ -48,7 +48,7 @@ export default function Header() {
           </Link>
       </div>
 
-      <div className="flex-1 text-center sm:hidden">
+      <div className="flex-1 flex justify-center sm:hidden">
           <Link href="/">
              <Image
                 src="/logo.png"

@@ -72,7 +72,14 @@ export default function SidebarContent({ onLinkClick }: SidebarContentProps) {
   }
 
   const logo = (
-     <img src="/logo.png" alt="Sport ON Logo" width="180" style={{ height: 'auto' }} loading="eager" />
+     <Image
+        src="/logo.png"
+        alt="Sport ON Logo"
+        width={400}
+        height={106}
+        className="w-[180px] h-auto"
+        priority
+      />
   );
 
   if (!user || !userProfile) {

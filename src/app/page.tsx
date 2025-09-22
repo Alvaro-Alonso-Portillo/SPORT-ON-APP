@@ -11,18 +11,14 @@ export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
-    // Una vez que la carga de autenticación ha terminado...
-    if (!loading) {
-      // Si el usuario ha iniciado sesión, lo redirigimos a su calendario.
-      if (user) {
-        router.replace('/dashboard');
-      } else {
-      // Si no ha iniciado sesión, lo redirigimos a la página de bienvenida pública.
-        router.replace('/welcome');
-      }
+    // Si la carga ha terminado y el usuario está autenticado, lo redirigimos a su calendario.
+    // La página de bienvenida actúa como la página de inicio pública por defecto.
+    if (!loading && user) {
+      router.replace('/dashboard');
     }
   }, [user, loading, router]);
 
-  // Muestra el componente Welcome como un indicador de carga mientras se decide a dónde redirigir.
+  // Muestra el componente de bienvenida mientras se verifica la sesión
+  // o si el usuario no está autenticado.
   return <Welcome />;
 }

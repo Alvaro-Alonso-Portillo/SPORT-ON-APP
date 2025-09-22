@@ -9,10 +9,6 @@
     ],
     "rewrites": [
       {
-        "source": "/_next/static/chunks/main-app.js",
-        "destination": "/_next/static/chunks/main-app.js.map"
-      },
-      {
         "source": "**",
         "destination": "/index.html"
       }

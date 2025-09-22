@@ -192,84 +192,65 @@ function WeeklyCalendarInternal() {
         });
         return;
     }
-    
-    // Normal user booking a new class (not moving)
-    if (newAttendee && !oldClassId && !isSuperAdmin) {
-      const userHasBookingOnThisDay = userBookings.some(bookingId => 
-          bookingId.startsWith(classInfo.date)
-      );
 
-      if (userHasBookingOnThisDay) {
-          toast({
-              variant: "destructive",
-              title: "Límite de reservas alcanzado",
-              description: "Ya tienes una reserva para este día. No puedes reservar más de una clase diaria.",
-          });
-          setChangingBooking(null);
-          return;
-      }
-    }
-    
     try {
         await runTransaction(db, async (transaction) => {
-            // ADMIN REMOVING A USER or USER CANCELLING
-            if (!newAttendee && attendeeToUpdate) {
-                const classDocRef = doc(db, "classes", classInfo.id);
-                const classDoc = await transaction.get(classDocRef);
-                if (classDoc.exists()) {
-                    const existingAttendee = classDoc.data().attendees.find((a: Attendee) => a.uid === attendeeToUpdate.uid);
-                    if (existingAttendee) {
-                        transaction.update(classDocRef, { attendees: arrayRemove(existingAttendee) });
-                    }
-                }
-                return;
+            // --- FASE DE LECTURA ---
+            let oldClassDoc;
+            let newClassDoc;
+            const newClassDocRef = doc(db, "classes", classInfo.id);
+            newClassDoc = await transaction.get(newClassDocRef);
+            
+            if (oldClassId) {
+                const oldClassDocRef = doc(db, "classes", oldClassId);
+                oldClassDoc = await transaction.get(oldClassDocRef);
             }
 
-            // MOVE BOOKING
-            if (oldClassId && newAttendee && attendeeToUpdate) {
-                const oldClassDocRef = doc(db, "classes", oldClassId);
-                const newClassDocRef = doc(db, "classes", classInfo.id);
-                
-                // Remove from old class
-                const oldClassDoc = await transaction.get(oldClassDocRef);
+            // --- FASE DE ESCRITURA ---
+
+            // CASO: MOVER RESERVA
+            if (oldClassId && newAttendee && attendeeToUpdate && oldClassDoc) {
+                // 1. Eliminar de la clase antigua
                 if (oldClassDoc.exists()) {
                     const attendeeToRemove = oldClassDoc.data().attendees.find((a: Attendee) => a.uid === attendeeToUpdate.uid);
                     if (attendeeToRemove) {
-                        transaction.update(oldClassDocRef, { attendees: arrayRemove(attendeeToRemove) });
+                        transaction.update(oldClassDoc.ref, { attendees: arrayRemove(attendeeToRemove) });
                     }
                 }
                 
-                // Add to new class (ensure it exists before adding)
-                const newClassDoc = await transaction.get(newClassDocRef);
+                // 2. Añadir a la nueva clase (creándola si es necesario)
                 if (!newClassDoc.exists()) {
                     const { id, ...classDataToSave } = classInfo;
-                    transaction.set(newClassDocRef, { ...classDataToSave, attendees: [] });
+                    transaction.set(newClassDocRef, classDataToSave); // Se crea con attendees vacíos por defecto
                 }
-                
-                // Now, safely add the attendee
                 transaction.update(newClassDocRef, { attendees: arrayUnion(newAttendee) });
 
-            } else if (newAttendee) { // BOOK a new class
-                const classDocRef = doc(db, "classes", classInfo.id);
-                const classDoc = await transaction.get(classDocRef);
-                
-                // Step 1: Create the class document if it doesn't exist.
-                if (!classDoc.exists()) {
+            } 
+            // CASO: CANCELAR/ELIMINAR RESERVA
+            else if (!newAttendee && attendeeToUpdate) {
+                if (newClassDoc.exists()) { // Aquí la clase a modificar es newClassDoc
+                    const existingAttendee = newClassDoc.data().attendees.find((a: Attendee) => a.uid === attendeeToUpdate.uid);
+                    if (existingAttendee) {
+                        transaction.update(newClassDocRef, { attendees: arrayRemove(existingAttendee) });
+                    }
+                }
+            }
+            // CASO: NUEVA RESERVA
+            else if (newAttendee) {
+                if (!newClassDoc.exists()) {
                     const { id, ...classDataToSave } = classInfo;
-                    transaction.set(classDocRef, { ...classDataToSave, attendees: [] });
+                    transaction.set(newClassDocRef, classDataToSave);
                 }
                 
-                // Step 2: Add the attendee to the (now guaranteed to exist) class document.
-                const currentClassData = classDoc.exists() ? (classDoc.data() as ClassInfo) : classInfo;
+                const currentClassData = newClassDoc.exists() ? newClassDoc.data() : classInfo;
                 if (currentClassData.attendees.length >= currentClassData.capacity) {
                     throw new Error("La clase está llena. No se pudo completar la reserva.");
                 }
-                if (currentClassData.attendees.some(a => a.uid === newAttendee.uid)) {
-                    // User is already in, do nothing to prevent duplicates.
-                    return; 
+                if (currentClassData.attendees.some((a: Attendee) => a.uid === newAttendee.uid)) {
+                    return; // Ya está inscrito, no hacer nada
                 }
-                
-                transaction.update(classDocRef, { attendees: arrayUnion(newAttendee) });
+
+                transaction.update(newClassDocRef, { attendees: arrayUnion(newAttendee) });
             }
         });
         
@@ -363,5 +344,3 @@ export default function WeeklyCalendar() {
     </React.Suspense>
   );
 }
-
-    

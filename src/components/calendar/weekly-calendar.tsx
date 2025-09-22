@@ -188,16 +188,21 @@ function WeeklyCalendarInternal() {
     const userForCheck = attendeeToUpdate || newAttendee;
     if (!userForCheck) return;
 
-    // RULE 1: Check for existing bookings on the same day for NEW reservations.
+    // RULE: Check for existing bookings on the same day for NEW reservations.
     if (newAttendee && !oldClassId) { // This is a new booking, not a change.
       const classesRef = collection(db, "classes");
-      const q = query(classesRef, 
-        where("date", "==", classInfo.date), 
-        where("attendees", "array-contains", { uid: userForCheck.uid, name: userForCheck.name, photoURL: userForCheck.photoURL || null })
-      );
+      const q = query(classesRef, where("date", "==", classInfo.date));
+      const dayClassesSnapshot = await getDocs(q);
 
-      const existingBookingSnapshot = await getDocs(q);
-      if (!existingBookingSnapshot.empty) {
+      let hasBooking = false;
+      dayClassesSnapshot.forEach(doc => {
+        const classData = doc.data() as ClassInfo;
+        if (classData.attendees.some(a => a.uid === userForCheck.uid)) {
+            hasBooking = true;
+        }
+      });
+
+      if (hasBooking) {
         toast({
             variant: "destructive",
             title: "Límite alcanzado",
@@ -218,7 +223,7 @@ function WeeklyCalendarInternal() {
             if (oldClassId) {
                 oldClassDocRef = doc(db, "classes", oldClassId);
                 oldClassDoc = await transaction.get(oldClassDocRef);
-            } else if (!newAttendee && attendeeToUpdate) { 
+            } else if (attendeeToUpdate) { 
                 // This is a cancellation, the class to modify is the current classInfo.
                 oldClassDocRef = doc(db, "classes", classInfo.id);
                 oldClassDoc = await transaction.get(oldClassDocRef);
@@ -227,27 +232,23 @@ function WeeklyCalendarInternal() {
             // --- WRITE PHASE ---
 
             // CASE: MOVING a reservation
-            if (oldClassId && newAttendee && attendeeToUpdate && oldClassDocRef) {
-                if (oldClassDoc && oldClassDoc.exists()) {
-                    const attendeeToRemove = oldClassDoc.data().attendees.find((a: Attendee) => a.uid === attendeeToUpdate.uid);
-                    if (attendeeToRemove) {
-                        transaction.update(oldClassDocRef, { attendees: arrayRemove(attendeeToRemove) });
-                    }
+            if (oldClassId && newAttendee && attendeeToUpdate && oldClassDocRef && oldClassDoc) {
+                const attendeeInOldClass = oldClassDoc.data()?.attendees.find((a: Attendee) => a.uid === attendeeToUpdate.uid);
+                if (attendeeInOldClass) {
+                    transaction.update(oldClassDoc.ref, { attendees: arrayRemove(attendeeInOldClass) });
                 }
                 
                 if (!newClassDoc.exists()) {
-                    const { id, ...classDataToSave } = classInfo;
+                     const { id, ...classDataToSave } = classInfo;
                     transaction.set(newClassDocRef, { ...classDataToSave, attendees: [] }); 
                 }
                 transaction.update(newClassDocRef, { attendees: arrayUnion(newAttendee) });
             } 
             // CASE: CANCELLING/DELETING a reservation
-            else if (!newAttendee && attendeeToUpdate && oldClassDocRef) {
-                if (oldClassDoc && oldClassDoc.exists()) { 
-                    const existingAttendee = oldClassDoc.data().attendees.find((a: Attendee) => a.uid === attendeeToUpdate.uid);
-                    if (existingAttendee) {
-                        transaction.update(oldClassDocRef, { attendees: arrayRemove(existingAttendee) });
-                    }
+            else if (!newAttendee && attendeeToUpdate && oldClassDocRef && oldClassDoc) {
+                const existingAttendee = oldClassDoc.data()?.attendees.find((a: Attendee) => a.uid === attendeeToUpdate.uid);
+                if (existingAttendee) {
+                    transaction.update(oldClassDoc.ref, { attendees: arrayRemove(existingAttendee) });
                 }
             }
             // CASE: NEW reservation
@@ -359,5 +360,7 @@ export default function WeeklyCalendar() {
     </React.Suspense>
   );
 }
+
+    
 
     

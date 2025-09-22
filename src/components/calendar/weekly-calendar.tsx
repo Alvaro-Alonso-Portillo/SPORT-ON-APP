@@ -196,11 +196,10 @@ function WeeklyCalendarInternal() {
     try {
         await runTransaction(db, async (transaction) => {
             // --- FASE DE LECTURA ---
-            let oldClassDoc;
-            let newClassDoc;
             const newClassDocRef = doc(db, "classes", classInfo.id);
-            newClassDoc = await transaction.get(newClassDocRef);
+            const newClassDoc = await transaction.get(newClassDocRef);
             
+            let oldClassDoc;
             if (oldClassId) {
                 const oldClassDocRef = doc(db, "classes", oldClassId);
                 oldClassDoc = await transaction.get(oldClassDocRef);
@@ -214,6 +213,7 @@ function WeeklyCalendarInternal() {
                 if (oldClassDoc.exists()) {
                     const attendeeToRemove = oldClassDoc.data().attendees.find((a: Attendee) => a.uid === attendeeToUpdate.uid);
                     if (attendeeToRemove) {
+                        console.log(`DEBUG: Removing attendee ${attendeeToRemove.uid} from old class ${oldClassDoc.id}`);
                         transaction.update(oldClassDoc.ref, { attendees: arrayRemove(attendeeToRemove) });
                     }
                 }
@@ -221,17 +221,21 @@ function WeeklyCalendarInternal() {
                 // 2. Añadir a la nueva clase (creándola si es necesario)
                 if (!newClassDoc.exists()) {
                     const { id, ...classDataToSave } = classInfo;
-                    transaction.set(newClassDocRef, classDataToSave); // Se crea con attendees vacíos por defecto
+                    console.log(`DEBUG: Creating new class document ${newClassDocRef.id} with data:`, classDataToSave);
+                    transaction.set(newClassDocRef, { ...classDataToSave, attendees: [] }); 
                 }
+                console.log(`DEBUG: Adding attendee ${newAttendee.uid} to new class ${newClassDocRef.id}`);
                 transaction.update(newClassDocRef, { attendees: arrayUnion(newAttendee) });
 
             } 
             // CASO: CANCELAR/ELIMINAR RESERVA
             else if (!newAttendee && attendeeToUpdate) {
-                if (newClassDoc.exists()) { // Aquí la clase a modificar es newClassDoc
-                    const existingAttendee = newClassDoc.data().attendees.find((a: Attendee) => a.uid === attendeeToUpdate.uid);
+                // If we are cancelling, the 'oldClassId' IS the class to modify
+                if (oldClassDoc && oldClassDoc.exists()) { 
+                    const existingAttendee = oldClassDoc.data().attendees.find((a: Attendee) => a.uid === attendeeToUpdate.uid);
                     if (existingAttendee) {
-                        transaction.update(newClassDocRef, { attendees: arrayRemove(existingAttendee) });
+                        console.log(`DEBUG: Cancelling booking. Removing attendee ${existingAttendee.uid} from class ${oldClassDoc.id}`);
+                        transaction.update(oldClassDoc.ref, { attendees: arrayRemove(existingAttendee) });
                     }
                 }
             }
@@ -239,17 +243,19 @@ function WeeklyCalendarInternal() {
             else if (newAttendee) {
                 if (!newClassDoc.exists()) {
                     const { id, ...classDataToSave } = classInfo;
-                    transaction.set(newClassDocRef, classDataToSave);
+                    console.log(`DEBUG: Creating new class document ${newClassDocRef.id} for new booking with data:`, classDataToSave);
+                    transaction.set(newClassDocRef, { ...classDataToSave, attendees: [] });
                 }
                 
-                const currentClassData = newClassDoc.exists() ? newClassDoc.data() : classInfo;
+                const currentClassData = newClassDoc.exists() ? newClassDoc.data() : { attendees: [], capacity: classInfo.capacity };
                 if (currentClassData.attendees.length >= currentClassData.capacity) {
                     throw new Error("La clase está llena. No se pudo completar la reserva.");
                 }
                 if (currentClassData.attendees.some((a: Attendee) => a.uid === newAttendee.uid)) {
                     return; // Ya está inscrito, no hacer nada
                 }
-
+                
+                console.log(`DEBUG: Creating new booking. Adding attendee ${newAttendee.uid} to class ${newClassDocRef.id}`);
                 transaction.update(newClassDocRef, { attendees: arrayUnion(newAttendee) });
             }
         });
@@ -344,3 +350,5 @@ export default function WeeklyCalendar() {
     </React.Suspense>
   );
 }
+
+    

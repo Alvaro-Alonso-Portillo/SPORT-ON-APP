@@ -26,10 +26,7 @@ export default function UserProfileModal({ attendee, isOpen, onClose }: UserProf
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle className="text-center text-2xl font-bold">{attendee.name}</DialogTitle>
-          <DialogDescription className="text-center">
-            Perfil del Asistente
-          </DialogDescription>
+          <DialogTitle className="text-center text-2xl font-bold pt-4">{attendee.name}</DialogTitle>
         </DialogHeader>
         <div className="flex flex-col items-center justify-center p-4">
           <UserAvatar user={attendee} className="h-48 w-48 text-6xl" />
@@ -38,5 +35,3 @@ export default function UserProfileModal({ attendee, isOpen, onClose }: UserProf
     </Dialog>
   );
 }
-
-    

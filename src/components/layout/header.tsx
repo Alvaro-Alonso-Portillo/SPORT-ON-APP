@@ -43,7 +43,7 @@ export default function Header() {
                 alt="Sport ON Logo"
                 width={150}
                 height={40}
-                style={{ width: 150, height: 'auto' }}
+                className="w-[150px] h-auto"
                 priority
               />
           </Link>
@@ -56,7 +56,7 @@ export default function Header() {
                 alt="Sport ON Logo"
                 width={120}
                 height={32}
-                style={{ width: 120, height: 'auto' }}
+                className="w-[120px] h-auto"
                 priority
               />
           </Link>

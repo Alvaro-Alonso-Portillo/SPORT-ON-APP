@@ -43,6 +43,7 @@ import { Slider } from "@/components/ui/slider";
 import UserAvatar from "../ui/user-avatar";
 
 const profileFormSchema = z.object({
+  name: z.string().min(1, { message: "El nombre no puede estar vacío." }),
   dob: z.string().optional(),
   profileImage: z.any().optional(),
 });
@@ -76,6 +77,7 @@ export default function ProfileForm() {
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
+        name: "",
         dob: "",
     },
   });
@@ -99,6 +101,7 @@ export default function ProfileForm() {
           dobString = format(dobDate, "yyyy-MM-dd");
         }
         form.reset({
+          name: userProfile.name || "",
           dob: dobString,
         });
     }
@@ -192,6 +195,11 @@ export default function ProfileForm() {
       const updateData: Partial<UserProfile> = {};
       let newPhotoURL: string | null = userProfile.photoURL || null;
 
+      // Handle name update
+      if (data.name !== userProfile.name) {
+          updateData.name = data.name;
+      }
+      
       // Handle photo upload
       if (croppedImage) {
         const storageRef = ref(storage, `profile-pictures/${user.uid}/profile.jpg`);
@@ -211,9 +219,16 @@ export default function ProfileForm() {
         await updateDoc(userDocRef, updateData);
       }
       
-      // Update Firebase Auth profile if photo changed
+      // Update Firebase Auth profile if name or photo changed
+      const authProfileUpdates: { displayName?: string, photoURL?: string | null } = {};
+      if (data.name !== user.displayName) {
+          authProfileUpdates.displayName = data.name;
+      }
       if (newPhotoURL !== user.photoURL) {
-         await updateProfile(auth.currentUser, { photoURL: newPhotoURL });
+         authProfileUpdates.photoURL = newPhotoURL;
+      }
+      if (Object.keys(authProfileUpdates).length > 0) {
+          await updateProfile(auth.currentUser, authProfileUpdates);
       }
 
       // Force a re-fetch of the profile from the store to update UI everywhere
@@ -247,7 +262,7 @@ export default function ProfileForm() {
   }
   
   const currentAvatarURL = croppedImage ? URL.createObjectURL(croppedImage) : userProfile.photoURL;
-  const avatarUser = { ...userProfile, photoURL: currentAvatarURL };
+  const avatarUser = { ...userProfile, photoURL: currentAvatarURL, name: form.watch('name') };
 
   return (
     <Form {...form}>
@@ -257,7 +272,7 @@ export default function ProfileForm() {
             <div className="flex items-start gap-4">
               <UserAvatar user={avatarUser} className="h-20 w-20 flex-shrink-0 text-2xl" />
               <div className="flex-1">
-                <CardTitle className="text-2xl">{userProfile.name}</CardTitle>
+                <CardTitle className="text-2xl">{form.watch('name')}</CardTitle>
                 <CardDescription>{userProfile.email}</CardDescription>
                 {quote && (
                   <div className="mt-4 p-3 border-l-4 border-primary bg-accent rounded-r-lg">
@@ -271,6 +286,22 @@ export default function ProfileForm() {
           </CardHeader>
           
             <CardContent className="space-y-6">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nombre de Usuario</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Tu nombre de usuario" {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      Este será el nombre que se muestre en la aplicación.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               <FormField
                 control={form.control}
                 name="dob"
@@ -356,7 +387,7 @@ export default function ProfileForm() {
                 min={1}
                 max={3}
                 step={0.1}
-                onValueChange={(value) => setZoom(value[0])}
+                onValue-change={(value) => setZoom(value[0])}
               />
             </div>
             <DialogFooter>
@@ -369,3 +400,5 @@ export default function ProfileForm() {
     </Form>
   );
 }
+
+    

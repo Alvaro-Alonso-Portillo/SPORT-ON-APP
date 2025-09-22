@@ -9,7 +9,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { db } from "@/lib/firebase";
 import { collection, doc, getDocs, query, runTransaction, where, arrayRemove, arrayUnion } from "firebase/firestore";
 import { Loader2, Calendar as CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react";
-import { format, startOfWeek, addDays, subDays, parseISO, isToday, isTomorrow, endOfWeek, isValid } from 'date-fns';
+import { format, startOfWeek, addDays, subDays, parseISO, isToday, isTomorrow, endOfWeek, isValid, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 import DaySelector from "./day-selector";
@@ -22,6 +22,16 @@ import { Separator } from "../ui/separator";
 const allTimeSlots = [
     "08:00", "09:15", "10:30", "11:45", "13:00", 
     "14:15", "17:00", "18:15", "19:30", "20:45"
+];
+
+// Lista de días festivos en formato 'yyyy-MM-dd'
+const holidays = [
+  "2025-09-22",
+  "2025-10-13",
+  "2025-12-08",
+  "2025-12-25",
+  "2026-01-01",
+  "2026-01-06",
 ];
 
 const generateClassesForDate = (date: Date, existingClasses: ClassInfo[]): ClassInfo[] => {
@@ -125,7 +135,19 @@ function WeeklyCalendarInternal() {
   
   const isDateDisabled = (date: Date) => {
     const dayName = format(date, 'eeee', { locale: es });
-    return dayName === 'sábado' || dayName === 'domingo';
+    const dateString = format(date, 'yyyy-MM-dd');
+
+    // Deshabilitar fines de semana
+    if (dayName === 'sábado' || dayName === 'domingo') {
+      return true;
+    }
+
+    // Deshabilitar días festivos
+    if (holidays.includes(dateString)) {
+      return true;
+    }
+
+    return false;
   };
 
   const handleNextWeek = () => {
@@ -155,6 +177,9 @@ function WeeklyCalendarInternal() {
 
 
   const dailyClasses = useMemo(() => {
+    if (isDateDisabled(currentDate)) {
+        return [];
+    }
     const generated = generateClassesForDate(currentDate, allClasses);
     return generated.sort((a,b) => a.time.localeCompare(b.time));
   }, [currentDate, allClasses]);

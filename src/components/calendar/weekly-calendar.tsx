@@ -193,8 +193,6 @@ function WeeklyCalendarInternal() {
         return;
     }
     
-    const userForCheck = attendeeToUpdate || newAttendee;
-
     // Normal user booking a new class (not moving)
     if (newAttendee && !oldClassId && !isSuperAdmin) {
       const userHasBookingOnThisDay = userBookings.some(bookingId => 
@@ -232,12 +230,8 @@ function WeeklyCalendarInternal() {
                 const oldClassDocRef = doc(db, "classes", oldClassId);
                 const newClassDocRef = doc(db, "classes", classInfo.id);
                 
-                const [oldClassDoc, newClassDoc] = await Promise.all([
-                    transaction.get(oldClassDocRef),
-                    transaction.get(newClassDocRef)
-                ]);
-                
                 // Remove from old class
+                const oldClassDoc = await transaction.get(oldClassDocRef);
                 if (oldClassDoc.exists()) {
                     const attendeeToRemove = oldClassDoc.data().attendees.find((a: Attendee) => a.uid === attendeeToUpdate.uid);
                     if (attendeeToRemove) {
@@ -245,34 +239,37 @@ function WeeklyCalendarInternal() {
                     }
                 }
                 
-                // Add to new class
+                // Add to new class (ensure it exists before adding)
+                const newClassDoc = await transaction.get(newClassDocRef);
                 if (!newClassDoc.exists()) {
                     const { id, ...classDataToSave } = classInfo;
-                    transaction.set(newClassDocRef, { ...classDataToSave, attendees: [newAttendee] });
-                } else {
-                     const currentClassData = newClassDoc.data() as ClassInfo;
-                    if (currentClassData.attendees.length >= currentClassData.capacity) {
-                        throw new Error("La clase de destino está llena. No se pudo completar el cambio.");
-                    }
-                    transaction.update(newClassDocRef, { attendees: arrayUnion(newAttendee) });
+                    transaction.set(newClassDocRef, { ...classDataToSave, attendees: [] });
                 }
+                
+                // Now, safely add the attendee
+                transaction.update(newClassDocRef, { attendees: arrayUnion(newAttendee) });
 
-            } else if (newAttendee) { // BOOK
+            } else if (newAttendee) { // BOOK a new class
                 const classDocRef = doc(db, "classes", classInfo.id);
                 const classDoc = await transaction.get(classDocRef);
                 
+                // Step 1: Create the class document if it doesn't exist.
                 if (!classDoc.exists()) {
-                    // Create a clean object for Firestore, excluding the 'id' field
                     const { id, ...classDataToSave } = classInfo;
-                    transaction.set(classDocRef, { ...classDataToSave, attendees: [newAttendee] });
-                } else {
-                    const currentClassData = classDoc.data() as ClassInfo;
-                    if (currentClassData.attendees.length >= currentClassData.capacity) {
-                        throw new Error("La clase está llena. No se pudo completar la reserva.");
-                    }
-                    if (currentClassData.attendees.some(a => a.uid === newAttendee.uid)) return;
-                    transaction.update(classDocRef, { attendees: arrayUnion(newAttendee) });
+                    transaction.set(classDocRef, { ...classDataToSave, attendees: [] });
                 }
+                
+                // Step 2: Add the attendee to the (now guaranteed to exist) class document.
+                const currentClassData = classDoc.exists() ? (classDoc.data() as ClassInfo) : classInfo;
+                if (currentClassData.attendees.length >= currentClassData.capacity) {
+                    throw new Error("La clase está llena. No se pudo completar la reserva.");
+                }
+                if (currentClassData.attendees.some(a => a.uid === newAttendee.uid)) {
+                    // User is already in, do nothing to prevent duplicates.
+                    return; 
+                }
+                
+                transaction.update(classDocRef, { attendees: arrayUnion(newAttendee) });
             }
         });
         

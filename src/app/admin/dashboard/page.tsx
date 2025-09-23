@@ -14,6 +14,7 @@ import { Loader2, Users, CalendarCheck, Percent, UserPlus, Clock, Divide } from 
 import type { ClassInfo, UserProfile } from '@/types';
 import UserGrowthChart from '@/components/admin/user-growth-chart';
 import PopularHoursChart from '@/components/admin/popular-hours-chart';
+import OccupancyChart from '@/components/admin/occupancy-chart';
 
 export type UserGrowthData = {
   date: string;
@@ -23,6 +24,12 @@ export type UserGrowthData = {
 export type PopularHoursData = {
   time: string;
   Reservas: number;
+}[];
+
+export type OccupancyData = {
+    name: string;
+    value: number;
+    fill: string;
 }[];
 
 export default function AdminDashboardPage() {
@@ -39,6 +46,7 @@ export default function AdminDashboardPage() {
 
   const [userGrowthData, setUserGrowthData] = useState<UserGrowthData>([]);
   const [popularHoursData, setPopularHoursData] = useState<PopularHoursData>([]);
+  const [occupancyData, setOccupancyData] = useState<OccupancyData>([]);
   const [chartsLoading, setChartsLoading] = useState(true);
 
   useEffect(() => {
@@ -77,8 +85,16 @@ export default function AdminDashboardPage() {
             bookingsCount += classData.attendees.length;
             totalCapacity += classData.capacity;
           });
+          
+          const currentOccupancyRate = totalCapacity > 0 ? Math.round((bookingsCount / totalCapacity) * 100) : 0;
           setTodaysBookings(bookingsCount);
-          setOccupancyRate(totalCapacity > 0 ? Math.round((bookingsCount / totalCapacity) * 100) : 0);
+          setOccupancyRate(currentOccupancyRate);
+
+          setOccupancyData([
+            { name: 'Ocupadas', value: currentOccupancyRate, fill: 'hsl(var(--primary))' },
+            { name: 'Libres', value: 100 - currentOccupancyRate, fill: 'hsl(var(--muted))' }
+          ]);
+
 
           // --- Fetch data for charts and advanced metrics ---
           const thirtyDaysAgo = subDays(new Date(), 30);
@@ -171,97 +187,87 @@ export default function AdminDashboardPage() {
         <p className="text-muted-foreground text-sm md:text-base">Un resumen del rendimiento y crecimiento del negocio.</p>
       </div>
       
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-        <Card className="lg:col-span-1 xl:col-span-1">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Usuarios Totales
-            </CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card className="lg:col-span-1">
+          <CardHeader>
+              <CardTitle>Ocupación de Clases (Hoy)</CardTitle>
           </CardHeader>
           <CardContent>
-            {metricsLoading ? (
-              <Skeleton className="h-8 w-20" />
-            ) : (
-              <div className="text-2xl font-bold">{totalUsers}</div>
-            )}
+              {chartsLoading ? (
+                  <Skeleton className="h-[180px] w-full" />
+              ) : (
+                  <OccupancyChart data={occupancyData} occupancyRate={occupancyRate} />
+              )}
           </CardContent>
         </Card>
-        <Card className="lg:col-span-1 xl:col-span-1">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Reservas (Hoy)
-            </CardTitle>
-            <CalendarCheck className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            {metricsLoading ? (
-               <Skeleton className="h-8 w-20" />
-            ) : (
-              <div className="text-2xl font-bold">{todaysBookings}</div>
-            )}
-          </CardContent>
-        </Card>
-        <Card className="lg:col-span-1 xl:col-span-1">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Ocupación (Hoy)
-            </CardTitle>
-            <Percent className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            {metricsLoading ? (
-               <Skeleton className="h-8 w-20" />
-            ) : (
-              <div className="text-2xl font-bold">{occupancyRate}%</div>
-            )}
-          </CardContent>
-        </Card>
-        <Card className="lg:col-span-1 xl:col-span-1">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Nuevos Usuarios (Hoy)
-            </CardTitle>
-            <UserPlus className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            {metricsLoading ? (
-               <Skeleton className="h-8 w-20" />
-            ) : (
-              <div className="text-2xl font-bold">+{newUsersToday}</div>
-            )}
-          </CardContent>
-        </Card>
-        <Card className="lg:col-span-1 xl:col-span-1">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Horario Estrella
-            </CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            {metricsLoading ? (
-               <Skeleton className="h-8 w-32" />
-            ) : (
-              <div className="text-xl font-bold truncate">{mostPopularHour}</div>
-            )}
-          </CardContent>
-        </Card>
-        <Card className="lg:col-span-1 xl:col-span-1">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Reservas / Cliente
-            </CardTitle>
-            <Divide className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            {metricsLoading ? (
-               <Skeleton className="h-8 w-20" />
-            ) : (
-              <div className="text-2xl font-bold">{avgBookingsPerUser}</div>
-            )}
-          </CardContent>
-        </Card>
+        <div className="lg:col-span-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Usuarios Totales
+                </CardTitle>
+                <Users className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                {metricsLoading ? <Skeleton className="h-8 w-20" /> : <div className="text-2xl font-bold">{totalUsers}</div>}
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Reservas (Hoy)
+                </CardTitle>
+                <CalendarCheck className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                {metricsLoading ? <Skeleton className="h-8 w-20" /> : <div className="text-2xl font-bold">{todaysBookings}</div>}
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Ocupación (Hoy)
+                </CardTitle>
+                <Percent className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                {metricsLoading ? <Skeleton className="h-8 w-20" /> : <div className="text-2xl font-bold">{occupancyRate}%</div>}
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Nuevos Usuarios (Hoy)
+                </CardTitle>
+                <UserPlus className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                {metricsLoading ? <Skeleton className="h-8 w-20" /> : <div className="text-2xl font-bold">+{newUsersToday}</div>}
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Horario Estrella
+                </CardTitle>
+                <Clock className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                {metricsLoading ? <Skeleton className="h-8 w-32" /> : <div className="text-xl font-bold truncate">{mostPopularHour}</div>}
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Reservas / Cliente
+                </CardTitle>
+                <Divide className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                {metricsLoading ? <Skeleton className="h-8 w-20" /> : <div className="text-2xl font-bold">{avgBookingsPerUser}</div>}
+              </CardContent>
+            </Card>
+        </div>
       </div>
 
       <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
@@ -294,5 +300,3 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
-
-    

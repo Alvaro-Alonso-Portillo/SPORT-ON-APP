@@ -10,7 +10,7 @@ import { format, subDays, startOfDay, endOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Loader2, Users, CalendarCheck, Percent, UserPlus } from 'lucide-react';
+import { Loader2, Users, CalendarCheck, Percent, UserPlus, Clock, Divide } from 'lucide-react';
 import type { ClassInfo, UserProfile } from '@/types';
 import UserGrowthChart from '@/components/admin/user-growth-chart';
 import PopularHoursChart from '@/components/admin/popular-hours-chart';
@@ -33,6 +33,8 @@ export default function AdminDashboardPage() {
   const [todaysBookings, setTodaysBookings] = useState(0);
   const [occupancyRate, setOccupancyRate] = useState(0);
   const [newUsersToday, setNewUsersToday] = useState(0);
+  const [mostPopularHour, setMostPopularHour] = useState("");
+  const [avgBookingsPerUser, setAvgBookingsPerUser] = useState(0);
   const [metricsLoading, setMetricsLoading] = useState(true);
 
   const [userGrowthData, setUserGrowthData] = useState<UserGrowthData>([]);
@@ -52,7 +54,8 @@ export default function AdminDashboardPage() {
         try {
           // --- Fetch basic metrics ---
           const usersSnapshot = await getDocs(collection(db, 'users'));
-          setTotalUsers(usersSnapshot.size);
+          const totalUserCount = usersSnapshot.size;
+          setTotalUsers(totalUserCount);
 
           const todayStart = startOfDay(new Date());
           const todayEnd = endOfDay(new Date());
@@ -77,7 +80,7 @@ export default function AdminDashboardPage() {
           setTodaysBookings(bookingsCount);
           setOccupancyRate(totalCapacity > 0 ? Math.round((bookingsCount / totalCapacity) * 100) : 0);
 
-          // --- Fetch data for charts ---
+          // --- Fetch data for charts and advanced metrics ---
           const thirtyDaysAgo = subDays(new Date(), 30);
           const sevenDaysAgo = subDays(new Date(), 7);
 
@@ -100,18 +103,42 @@ export default function AdminDashboardPage() {
           });
           setUserGrowthData(formattedUserGrowthData);
 
-          // Popular Hours Data
-          const classesQuery = query(collection(db, 'classes'), where('date', '>=', format(sevenDaysAgo, 'yyyy-MM-dd')));
-          const recentClassesSnapshot = await getDocs(classesQuery);
+          // Popular Hours & Advanced Metrics (requires all classes)
+          const allClassesSnapshot = await getDocs(collection(db, 'classes'));
           const bookingsByHour: Record<string, number> = {};
+          let totalBookingsAllTime = 0;
+          
+          allClassesSnapshot.forEach(doc => {
+            const classData = doc.data() as ClassInfo;
+            const timeSlot = classData.time;
+            const numAttendees = classData.attendees.length;
+            
+            bookingsByHour[timeSlot] = (bookingsByHour[timeSlot] || 0) + numAttendees;
+            totalBookingsAllTime += numAttendees;
+          });
+          
+          // Most Popular Hour (All Time)
+          const popularHourEntry = Object.entries(bookingsByHour).sort((a, b) => b[1] - a[1])[0];
+          if (popularHourEntry) {
+            setMostPopularHour(`${popularHourEntry[0]} (${popularHourEntry[1]} reservas)`);
+          }
+
+          // Average Bookings Per User
+          if (totalUserCount > 0) {
+            setAvgBookingsPerUser(parseFloat((totalBookingsAllTime / totalUserCount).toFixed(1)));
+          }
+
+          // Popular Hours Chart Data (Last 7 days)
+          const recentClassesQuery = query(collection(db, 'classes'), where('date', '>=', format(sevenDaysAgo, 'yyyy-MM-dd')));
+          const recentClassesSnapshot = await getDocs(recentClassesQuery);
+          const recentBookingsByHour: Record<string, number> = {};
           
           recentClassesSnapshot.forEach(doc => {
             const classData = doc.data() as ClassInfo;
-            const timeSlot = classData.time;
-            bookingsByHour[timeSlot] = (bookingsByHour[timeSlot] || 0) + classData.attendees.length;
+            recentBookingsByHour[classData.time] = (recentBookingsByHour[classData.time] || 0) + classData.attendees.length;
           });
 
-          const formattedPopularHoursData = Object.entries(bookingsByHour)
+          const formattedPopularHoursData = Object.entries(recentBookingsByHour)
             .map(([time, count]) => ({ time, Reservas: count }))
             .sort((a, b) => a.time.localeCompare(b.time));
           setPopularHoursData(formattedPopularHoursData);
@@ -144,8 +171,8 @@ export default function AdminDashboardPage() {
         <p className="text-muted-foreground text-sm md:text-base">Un resumen del rendimiento y crecimiento del negocio.</p>
       </div>
       
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        <Card className="lg:col-span-1 xl:col-span-1">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
               Usuarios Totales
@@ -160,7 +187,7 @@ export default function AdminDashboardPage() {
             )}
           </CardContent>
         </Card>
-        <Card>
+        <Card className="lg:col-span-1 xl:col-span-1">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
               Reservas (Hoy)
@@ -175,10 +202,10 @@ export default function AdminDashboardPage() {
             )}
           </CardContent>
         </Card>
-        <Card>
+        <Card className="lg:col-span-1 xl:col-span-1">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Tasa de Ocupación (Hoy)
+              Ocupación (Hoy)
             </CardTitle>
             <Percent className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
@@ -190,7 +217,7 @@ export default function AdminDashboardPage() {
             )}
           </CardContent>
         </Card>
-        <Card>
+        <Card className="lg:col-span-1 xl:col-span-1">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
               Nuevos Usuarios (Hoy)
@@ -205,9 +232,39 @@ export default function AdminDashboardPage() {
             )}
           </CardContent>
         </Card>
+        <Card className="lg:col-span-1 xl:col-span-1">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Horario Estrella
+            </CardTitle>
+            <Clock className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            {metricsLoading ? (
+               <Skeleton className="h-8 w-32" />
+            ) : (
+              <div className="text-xl font-bold truncate">{mostPopularHour}</div>
+            )}
+          </CardContent>
+        </Card>
+        <Card className="lg:col-span-1 xl:col-span-1">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Reservas / Cliente
+            </CardTitle>
+            <Divide className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            {metricsLoading ? (
+               <Skeleton className="h-8 w-20" />
+            ) : (
+              <div className="text-2xl font-bold">{avgBookingsPerUser}</div>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-2">
+      <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
         <Card>
             <CardHeader>
                 <CardTitle>Crecimiento de Usuarios (Últimos 30 días)</CardTitle>
@@ -237,3 +294,5 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
+
+    

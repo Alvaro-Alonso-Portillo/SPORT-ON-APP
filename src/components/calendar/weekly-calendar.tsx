@@ -34,6 +34,8 @@ const holidays = [
   "2026-01-06",
 ];
 
+const afternoonSlots = ["17:00", "18:15", "19:30", "20:45"];
+
 const generateClassesForDate = (date: Date, existingClasses: ClassInfo[]): ClassInfo[] => {
     const dateString = format(date, 'yyyy-MM-dd');
     const dayName = format(date, 'eeee', { locale: es });
@@ -53,6 +55,8 @@ const generateClassesForDate = (date: Date, existingClasses: ClassInfo[]): Class
         if (existingClass) {
             return existingClass;
         }
+        
+        const capacity = afternoonSlots.includes(time) ? 30 : 24;
 
         return {
             id: classId,
@@ -62,7 +66,7 @@ const generateClassesForDate = (date: Date, existingClasses: ClassInfo[]): Class
             day: capitalizedDayName,
             date: dateString,
             duration: 75,
-            capacity: 24,
+            capacity: capacity,
             attendees: [],
         };
     });

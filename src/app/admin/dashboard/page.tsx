@@ -161,13 +161,13 @@ export default function AdminDashboardPage() {
 
           // Format Attendance by Day Chart Data
           const colors = [
-            '#38A3A5', // Primary
-            '#57CC99', // Green
-            '#80ED99', // Light Green
-            '#F4A261', // Orange
-            '#E76F51', // Dark Orange
-            '#2A9D8F', // Teal
-            '#264653', // Dark Blue/Green
+            '#0088FE', // Lunes (Azul)
+            '#00C49F', // Martes (Verde)
+            '#FFBB28', // Miércoles (Amarillo)
+            '#FF8042', // Jueves (Naranja)
+            '#AF19FF', // Viernes (Morado)
+            '#FF1943', // Sábado (Rojo)
+            '#4319FF', // Domingo (Índigo)
           ];
           const weekOrder = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
           const formattedAttendanceData = weekOrder

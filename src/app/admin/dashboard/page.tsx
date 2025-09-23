@@ -10,7 +10,7 @@ import { format, subDays, startOfDay, endOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Loader2, Users, CalendarCheck } from 'lucide-react';
+import { Loader2, Users, CalendarCheck, Percent, UserPlus } from 'lucide-react';
 import type { ClassInfo, UserProfile } from '@/types';
 import UserGrowthChart from '@/components/admin/user-growth-chart';
 import PopularHoursChart from '@/components/admin/popular-hours-chart';
@@ -31,6 +31,8 @@ export default function AdminDashboardPage() {
 
   const [totalUsers, setTotalUsers] = useState(0);
   const [todaysBookings, setTodaysBookings] = useState(0);
+  const [occupancyRate, setOccupancyRate] = useState(0);
+  const [newUsersToday, setNewUsersToday] = useState(0);
   const [metricsLoading, setMetricsLoading] = useState(true);
 
   const [userGrowthData, setUserGrowthData] = useState<UserGrowthData>([]);
@@ -52,15 +54,28 @@ export default function AdminDashboardPage() {
           const usersSnapshot = await getDocs(collection(db, 'users'));
           setTotalUsers(usersSnapshot.size);
 
+          const todayStart = startOfDay(new Date());
+          const todayEnd = endOfDay(new Date());
+          
+          const newUsersQuery = query(collection(db, 'users'), 
+            where('createdAt', '>=', Timestamp.fromDate(todayStart)),
+            where('createdAt', '<=', Timestamp.fromDate(todayEnd))
+          );
+          const newUsersSnapshot = await getDocs(newUsersQuery);
+          setNewUsersToday(newUsersSnapshot.size);
+
           const todayString = format(new Date(), 'yyyy-MM-dd');
           const todayClassesQuery = query(collection(db, 'classes'), where('date', '==', todayString));
           const todayClassesSnapshot = await getDocs(todayClassesQuery);
           let bookingsCount = 0;
+          let totalCapacity = 0;
           todayClassesSnapshot.forEach(doc => {
-            bookingsCount += (doc.data() as ClassInfo).attendees.length;
+            const classData = doc.data() as ClassInfo;
+            bookingsCount += classData.attendees.length;
+            totalCapacity += classData.capacity;
           });
           setTodaysBookings(bookingsCount);
-          setMetricsLoading(false);
+          setOccupancyRate(totalCapacity > 0 ? Math.round((bookingsCount / totalCapacity) * 100) : 0);
 
           // --- Fetch data for charts ---
           const thirtyDaysAgo = subDays(new Date(), 30);
@@ -123,8 +138,11 @@ export default function AdminDashboardPage() {
   }
   
   return (
-    <div className="h-full w-full p-4 md:p-8 space-y-6">
-      <h1 className="font-headline text-2xl md:text-4xl font-bold">Dashboard de Administración</h1>
+    <div className="flex flex-col h-full w-full p-4 md:p-8 space-y-6">
+      <div>
+        <h1 className="font-headline text-2xl md:text-4xl font-bold">Panel de Control</h1>
+        <p className="text-muted-foreground text-sm md:text-base">Un resumen del rendimiento y crecimiento del negocio.</p>
+      </div>
       
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
@@ -145,7 +163,7 @@ export default function AdminDashboardPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Reservas para Hoy
+              Reservas (Hoy)
             </CardTitle>
             <CalendarCheck className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
@@ -157,9 +175,39 @@ export default function AdminDashboardPage() {
             )}
           </CardContent>
         </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Tasa de Ocupación (Hoy)
+            </CardTitle>
+            <Percent className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            {metricsLoading ? (
+               <Skeleton className="h-8 w-20" />
+            ) : (
+              <div className="text-2xl font-bold">{occupancyRate}%</div>
+            )}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Nuevos Usuarios (Hoy)
+            </CardTitle>
+            <UserPlus className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            {metricsLoading ? (
+               <Skeleton className="h-8 w-20" />
+            ) : (
+              <div className="text-2xl font-bold">+{newUsersToday}</div>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-2">
         <Card>
             <CardHeader>
                 <CardTitle>Crecimiento de Usuarios (Últimos 30 días)</CardTitle>

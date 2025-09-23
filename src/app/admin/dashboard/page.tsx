@@ -6,15 +6,16 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { collection, getDocs, query, where, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { format, subDays, startOfDay, endOfDay } from 'date-fns';
+import { format, subDays, startOfDay, endOfDay, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Loader2, Users, CalendarCheck, Percent, UserPlus, Clock, Divide } from 'lucide-react';
+import { Loader2, Users, CalendarCheck, Percent, UserPlus, Clock } from 'lucide-react';
 import type { ClassInfo, UserProfile } from '@/types';
 import UserGrowthChart from '@/components/admin/user-growth-chart';
 import PopularHoursChart from '@/components/admin/popular-hours-chart';
 import OccupancyChart from '@/components/admin/occupancy-chart';
+import AttendanceByDayChart from '@/components/admin/attendance-by-day-chart';
 
 export type UserGrowthData = {
   date: string;
@@ -32,6 +33,13 @@ export type OccupancyData = {
     fill: string;
 }[];
 
+export type AttendanceByDayData = {
+    name: string;
+    asistentes: number;
+    fill: string;
+};
+
+
 export default function AdminDashboardPage() {
   const { user, loading: authLoading, isSuperAdmin } = useAuth();
   const router = useRouter();
@@ -41,12 +49,12 @@ export default function AdminDashboardPage() {
   const [occupancyRate, setOccupancyRate] = useState(0);
   const [newUsersToday, setNewUsersToday] = useState(0);
   const [mostPopularHour, setMostPopularHour] = useState("");
-  const [avgBookingsPerUser, setAvgBookingsPerUser] = useState(0);
   const [metricsLoading, setMetricsLoading] = useState(true);
 
   const [userGrowthData, setUserGrowthData] = useState<UserGrowthData>([]);
   const [popularHoursData, setPopularHoursData] = useState<PopularHoursData>([]);
   const [occupancyData, setOccupancyData] = useState<OccupancyData>([]);
+  const [attendanceByDayData, setAttendanceByDayData] = useState<AttendanceByDayData[]>([]);
   const [chartsLoading, setChartsLoading] = useState(true);
 
   useEffect(() => {
@@ -119,45 +127,68 @@ export default function AdminDashboardPage() {
           });
           setUserGrowthData(formattedUserGrowthData);
 
-          // Popular Hours & Advanced Metrics (requires all classes)
+          // Most Popular Hour (All Time)
           const allClassesSnapshot = await getDocs(collection(db, 'classes'));
           const bookingsByHour: Record<string, number> = {};
-          let totalBookingsAllTime = 0;
           
           allClassesSnapshot.forEach(doc => {
             const classData = doc.data() as ClassInfo;
             const timeSlot = classData.time;
             const numAttendees = classData.attendees.length;
-            
             bookingsByHour[timeSlot] = (bookingsByHour[timeSlot] || 0) + numAttendees;
-            totalBookingsAllTime += numAttendees;
           });
           
-          // Most Popular Hour (All Time)
           const popularHourEntry = Object.entries(bookingsByHour).sort((a, b) => b[1] - a[1])[0];
           if (popularHourEntry) {
             setMostPopularHour(`${popularHourEntry[0]} (${popularHourEntry[1]} reservas)`);
           }
+          
 
-          // Average Bookings Per User
-          if (totalUserCount > 0) {
-            setAvgBookingsPerUser(parseFloat((totalBookingsAllTime / totalUserCount).toFixed(1)));
-          }
-
-          // Popular Hours Chart Data (Last 7 days)
+          // Data for charts (Last 7 days)
           const recentClassesQuery = query(collection(db, 'classes'), where('date', '>=', format(sevenDaysAgo, 'yyyy-MM-dd')));
           const recentClassesSnapshot = await getDocs(recentClassesQuery);
           const recentBookingsByHour: Record<string, number> = {};
-          
+          const attendanceByDay: Record<string, number> = { 'Lunes': 0, 'Martes': 0, 'Miércoles': 0, 'Jueves': 0, 'Viernes': 0, 'Sábado': 0, 'Domingo': 0 };
+
           recentClassesSnapshot.forEach(doc => {
             const classData = doc.data() as ClassInfo;
+            // Popular Hours
             recentBookingsByHour[classData.time] = (recentBookingsByHour[classData.time] || 0) + classData.attendees.length;
+
+            // Attendance by Day
+            const classDate = parseISO(classData.date);
+            const dayName = format(classDate, 'EEEE', { locale: es });
+            const capitalizedDayName = dayName.charAt(0).toUpperCase() + dayName.slice(1);
+            if(attendanceByDay.hasOwnProperty(capitalizedDayName)) {
+                attendanceByDay[capitalizedDayName] += classData.attendees.length;
+            }
           });
 
+          // Format Popular Hours Chart Data
           const formattedPopularHoursData = Object.entries(recentBookingsByHour)
             .map(([time, count]) => ({ time, Reservas: count }))
             .sort((a, b) => a.time.localeCompare(b.time));
           setPopularHoursData(formattedPopularHoursData);
+
+          // Format Attendance by Day Chart Data
+          const colors = [
+            'hsl(var(--primary))',
+            'hsl(var(--primary) / 0.9)',
+            'hsl(var(--primary) / 0.8)',
+            'hsl(var(--primary) / 0.7)',
+            'hsl(var(--primary) / 0.6)',
+            'hsl(var(--primary) / 0.5)',
+            'hsl(var(--primary) / 0.4)',
+          ];
+          const weekOrder = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+          const formattedAttendanceData = weekOrder
+            .map((day, index) => ({
+                name: day,
+                asistentes: attendanceByDay[day],
+                fill: colors[index % colors.length]
+            }))
+            .filter(d => d.asistentes > 0);
+          setAttendanceByDayData(formattedAttendanceData);
 
 
         } catch (error) {
@@ -256,17 +287,6 @@ export default function AdminDashboardPage() {
                 {metricsLoading ? <Skeleton className="h-8 w-32" /> : <div className="text-xl font-bold truncate">{mostPopularHour}</div>}
               </CardContent>
             </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Reservas / Cliente
-                </CardTitle>
-                <Divide className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                {metricsLoading ? <Skeleton className="h-8 w-20" /> : <div className="text-2xl font-bold">{avgBookingsPerUser}</div>}
-              </CardContent>
-            </Card>
         </div>
       </div>
 
@@ -283,7 +303,21 @@ export default function AdminDashboardPage() {
                 )}
             </CardContent>
         </Card>
-        <Card>
+         <Card>
+            <CardHeader>
+                <CardTitle>Afluencia por Día (Últimos 7 días)</CardTitle>
+            </CardHeader>
+            <CardContent>
+                {chartsLoading ? (
+                    <Skeleton className="h-[350px] w-full" />
+                ) : (
+                    <AttendanceByDayChart data={attendanceByDayData} />
+                )}
+            </CardContent>
+        </Card>
+      </div>
+       <div className="grid gap-6 md:grid-cols-1">
+         <Card>
             <CardHeader>
                 <CardTitle>Horarios Más Populares (Últimos 7 días)</CardTitle>
             </CardHeader>
@@ -295,7 +329,7 @@ export default function AdminDashboardPage() {
                 )}
             </CardContent>
         </Card>
-      </div>
+       </div>
 
     </div>
   );

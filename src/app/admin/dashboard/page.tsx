@@ -160,13 +160,21 @@ export default function AdminDashboardPage() {
           setPopularHoursData(formattedPopularHoursData);
 
           // Format Attendance by Day Chart Data
-          const primaryColor = 'hsl(174 99% 40%)'; // Assuming this is the HSL of your primary color
+          const softColorPalette = [
+            '#8884d8', // Lavanda suave
+            '#82ca9d', // Menta
+            '#ffc658', // Amarillo suave
+            '#ff8042', // Naranja suave
+            '#a4de6c', // Verde lima
+            '#d0ed57', // Amarillo verdoso
+            '#ff7300', // Naranja
+          ];
           const weekOrder = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
           const formattedAttendanceData = weekOrder
             .map((day, index) => ({
                 name: day,
                 asistentes: attendanceByDay[day],
-                fill: `hsl(174, 99%, ${40 - index * 3}%)` // Generates shades of the primary color
+                fill: softColorPalette[index % softColorPalette.length]
             }))
             .filter(d => d.asistentes > 0);
           setAttendanceByDayData(formattedAttendanceData);

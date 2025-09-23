@@ -14,7 +14,8 @@
     "cap:sync": "npm run build && npx cap sync",
     "cap:open:android": "npx cap open android",
     "cap:open:ios": "npx cap open ios",
-    "set-superadmin": "node scripts/set-superadmin.js"
+    "set-superadmin": "node scripts/set-superadmin.js",
+    "update-capacity": "node scripts/update-afternoon-capacity.js"
   },
   "dependencies": {
     "@genkit-ai/googleai": "^1.14.1",

@@ -1,14 +1,12 @@
 
 "use client"
 
-import { Bar, BarChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
+import { Bar, BarChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import type { PopularHoursData } from '@/app/admin/dashboard/page';
 
 interface PopularHoursChartProps {
     data: PopularHoursData;
 }
-
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#AF19FF', '#FF1919', '#19B2FF', '#FFC400', '#D400FF', '#FF6B00'];
 
 export default function PopularHoursChart({ data }: PopularHoursChartProps) {
     return (
@@ -46,12 +44,9 @@ export default function PopularHoursChart({ data }: PopularHoursChartProps) {
                     <Legend />
                     <Bar 
                         dataKey="Reservas" 
+                        fill="hsl(var(--primary))" 
                         radius={[4, 4, 0, 0]}
-                    >
-                       {data.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                    </Bar>
+                    />
                 </BarChart>
             </ResponsiveContainer>
         </div>

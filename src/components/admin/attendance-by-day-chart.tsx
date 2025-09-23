@@ -1,12 +1,26 @@
 
 "use client"
 
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, Label } from 'recharts';
 import type { AttendanceByDayData } from '@/app/admin/dashboard/page';
 
 interface AttendanceByDayChartProps {
     data: AttendanceByDayData[];
 }
+
+const RADIAN = Math.PI / 180;
+const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, index, payload }: any) => {
+    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+    const x = cx + radius * Math.cos(-midAngle * RADIAN);
+    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+
+    return (
+        <text x={x} y={y} fill="white" textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central" className="font-bold text-sm">
+            {`${payload.asistentes}`}
+        </text>
+    );
+};
+
 
 export default function AttendanceByDayChart({ data }: AttendanceByDayChartProps) {
     if (!data || data.length === 0) {
@@ -38,13 +52,14 @@ export default function AttendanceByDayChart({ data }: AttendanceByDayChartProps
                         nameKey="name"
                         cx="50%"
                         cy="50%"
-                        innerRadius={80}
-                        outerRadius={120}
+                        innerRadius={60}
+                        outerRadius={110}
                         paddingAngle={2}
                         labelLine={false}
+                        label={renderCustomizedLabel}
                     >
                         {data.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.fill} />
+                            <Cell key={`cell-${index}`} fill={entry.fill} stroke={entry.fill} />
                         ))}
                     </Pie>
                 </PieChart>

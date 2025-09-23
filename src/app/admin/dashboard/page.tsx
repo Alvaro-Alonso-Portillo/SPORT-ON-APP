@@ -10,7 +10,7 @@ import { format, subDays, startOfDay, endOfDay, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Loader2, Users, CalendarCheck, Percent, UserPlus, Clock } from 'lucide-react';
+import { Loader2, Users, CalendarCheck, Percent, Clock, Divide } from 'lucide-react';
 import type { ClassInfo, UserProfile } from '@/types';
 import UserGrowthChart from '@/components/admin/user-growth-chart';
 import PopularHoursChart from '@/components/admin/popular-hours-chart';
@@ -47,7 +47,6 @@ export default function AdminDashboardPage() {
   const [totalUsers, setTotalUsers] = useState(0);
   const [todaysBookings, setTodaysBookings] = useState(0);
   const [occupancyRate, setOccupancyRate] = useState(0);
-  const [newUsersToday, setNewUsersToday] = useState(0);
   const [mostPopularHour, setMostPopularHour] = useState("");
   const [metricsLoading, setMetricsLoading] = useState(true);
 
@@ -72,16 +71,6 @@ export default function AdminDashboardPage() {
           const usersSnapshot = await getDocs(collection(db, 'users'));
           const totalUserCount = usersSnapshot.size;
           setTotalUsers(totalUserCount);
-
-          const todayStart = startOfDay(new Date());
-          const todayEnd = endOfDay(new Date());
-          
-          const newUsersQuery = query(collection(db, 'users'), 
-            where('createdAt', '>=', Timestamp.fromDate(todayStart)),
-            where('createdAt', '<=', Timestamp.fromDate(todayEnd))
-          );
-          const newUsersSnapshot = await getDocs(newUsersQuery);
-          setNewUsersToday(newUsersSnapshot.size);
 
           const todayString = format(new Date(), 'yyyy-MM-dd');
           const todayClassesQuery = query(collection(db, 'classes'), where('date', '==', todayString));
@@ -172,13 +161,13 @@ export default function AdminDashboardPage() {
 
           // Format Attendance by Day Chart Data
           const colors = [
-            'hsl(var(--primary))',
-            'hsl(var(--primary) / 0.9)',
-            'hsl(var(--primary) / 0.8)',
-            'hsl(var(--primary) / 0.7)',
-            'hsl(var(--primary) / 0.6)',
-            'hsl(var(--primary) / 0.5)',
-            'hsl(var(--primary) / 0.4)',
+            '#38A3A5', // Primary
+            '#57CC99', // Green
+            '#80ED99', // Light Green
+            '#F4A261', // Orange
+            '#E76F51', // Dark Orange
+            '#2A9D8F', // Teal
+            '#264653', // Dark Blue/Green
           ];
           const weekOrder = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
           const formattedAttendanceData = weekOrder
@@ -231,7 +220,7 @@ export default function AdminDashboardPage() {
               )}
           </CardContent>
         </Card>
-        <div className="lg:col-span-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="lg:col-span-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">
@@ -265,21 +254,10 @@ export default function AdminDashboardPage() {
                 {metricsLoading ? <Skeleton className="h-8 w-20" /> : <div className="text-2xl font-bold">{occupancyRate}%</div>}
               </CardContent>
             </Card>
-            <Card>
+            <Card className="sm:col-span-2 lg:col-span-2">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">
-                  Nuevos Usuarios (Hoy)
-                </CardTitle>
-                <UserPlus className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                {metricsLoading ? <Skeleton className="h-8 w-20" /> : <div className="text-2xl font-bold">+{newUsersToday}</div>}
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Horario Estrella
+                  Horario Estrella (Histórico)
                 </CardTitle>
                 <Clock className="h-4 w-4 text-muted-foreground" />
               </CardHeader>

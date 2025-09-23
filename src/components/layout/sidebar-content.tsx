@@ -4,7 +4,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from 'next/navigation'
-import { Home, CalendarDays, User as UserIcon, LogOut, LogIn } from "lucide-react";
+import { Home, CalendarDays, User as UserIcon, LogOut, LogIn, LayoutDashboard } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
@@ -19,7 +19,7 @@ interface SidebarContentProps {
 }
 
 export default function SidebarContent({ onLinkClick }: SidebarContentProps) {
-  const { user, userProfile, loading } = useAuth();
+  const { user, userProfile, loading, isSuperAdmin } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
   const { toast } = useToast();
@@ -42,6 +42,10 @@ export default function SidebarContent({ onLinkClick }: SidebarContentProps) {
     { href: "/dashboard", label: "Calendario", icon: Home },
     { href: "/bookings", label: "Mis Reservas", icon: CalendarDays },
     { href: "/profile", label: "Mi Perfil", icon: UserIcon },
+  ];
+  
+  const adminLinks = [
+    { href: "/admin/dashboard", label: "Panel de Control", icon: LayoutDashboard },
   ];
 
   if (loading) {
@@ -135,6 +139,25 @@ export default function SidebarContent({ onLinkClick }: SidebarContentProps) {
                     {link.label}
                 </Link>
             ))}
+            {isSuperAdmin && (
+              <>
+                <div className="my-4 border-t border-border -mx-4"></div>
+                {adminLinks.map(link => (
+                  <Link
+                      key={link.href}
+                      href={link.href}
+                      onClick={onLinkClick}
+                      className={cn(
+                          "flex items-center gap-3 rounded-lg px-3 py-3 text-muted-foreground transition-all hover:text-primary text-base font-medium",
+                          pathname === link.href && "bg-accent text-primary"
+                      )}
+                  >
+                      <link.icon className="h-5 w-5" />
+                      {link.label}
+                  </Link>
+                ))}
+              </>
+            )}
         </nav>
         <div className="mt-auto p-4 border-t">
             <Button variant="ghost" onClick={handleSignOut} className="w-full justify-start p-3">

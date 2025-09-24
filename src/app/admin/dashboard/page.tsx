@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { collection, getDocs, query, where, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { format, subDays, startOfDay, endOfDay, parseISO, isPast } from 'date-fns';
+import { format, subDays, startOfDay, endOfDay, parseISO, isPast, startOfMonth, endOfMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -124,14 +124,19 @@ export default function AdminDashboardPage() {
           });
           setUserGrowthData(formattedUserGrowthData);
 
-          // Top Clients (All Time)
-          const allClassesSnapshot = await getDocs(collection(db, 'classes'));
+          // Top Clients (Current Month)
+          const now = new Date();
+          const startOfCurrentMonth = startOfMonth(now);
+          const endOfCurrentMonth = endOfMonth(now);
+          const monthlyClassesQuery = query(collection(db, 'classes'), 
+              where('date', '>=', format(startOfCurrentMonth, 'yyyy-MM-dd')),
+              where('date', '<=', format(endOfCurrentMonth, 'yyyy-MM-dd'))
+          );
+          const monthlyClassesSnapshot = await getDocs(monthlyClassesQuery);
           const attendanceCounts: Record<string, { uid: string; name: string; count: number; photoURL?: string }> = {};
           
-          allClassesSnapshot.forEach(doc => {
+          monthlyClassesSnapshot.forEach(doc => {
             const classData = doc.data() as ClassInfo;
-            
-            // Top Clients Logic
             const classDateTime = parseISO(`${classData.date}T${classData.time}`);
             if (isPast(classDateTime)) {
                 classData.attendees.forEach(attendee => {
@@ -321,7 +326,7 @@ export default function AdminDashboardPage() {
         </Card>
          <Card>
             <CardHeader>
-                <CardTitle>Clientes Fieles (Ranking Histórico)</CardTitle>
+                <CardTitle>Ranking de Clientes (Este Mes)</CardTitle>
             </CardHeader>
             <CardContent>
                 {chartsLoading ? (
@@ -336,5 +341,3 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
-
-  

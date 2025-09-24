@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { collection, getDocs, query, where, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { format, subDays, startOfDay, endOfDay, parseISO, isPast, startOfMonth, endOfMonth, addMonths, subMonths, getYear, getMonth, setYear, setMonth } from 'fns';
+import { format, subDays, startOfDay, endOfDay, parseISO, isPast, startOfMonth, endOfMonth, addMonths, subMonths, getYear, getMonth, setYear, setMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';

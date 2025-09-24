@@ -10,7 +10,7 @@ import { format, subDays, startOfDay, endOfDay, parseISO, isPast, startOfMonth, 
 import { es } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Loader2, Users, CalendarCheck, Percent, Clock, ChevronLeft, ChevronRight, Divide } from 'lucide-react';
+import { Loader2, Users, CalendarCheck, Percent, Clock, ChevronLeft, ChevronRight, Divide, CalendarIcon } from 'lucide-react';
 import type { ClassInfo, UserProfile } from '@/types';
 import UserGrowthChart from '@/components/admin/user-growth-chart';
 import PopularHoursChart from '@/components/admin/popular-hours-chart';
@@ -247,16 +247,22 @@ export default function AdminDashboardPage() {
     setSelectedMonth(newDate);
   };
   
-  const monthOptions = Array.from({ length: 12 }, (_, i) => ({
-    value: i.toString(),
-    label: format(new Date(0, i), 'MMMM', { locale: es }),
-  }));
+  const monthOptions = Array.from({ length: 12 }, (_, i) => {
+    const monthName = format(new Date(0, i), 'MMMM', { locale: es });
+    return {
+        value: i.toString(),
+        label: monthName.charAt(0).toUpperCase() + monthName.slice(1),
+    }
+  });
 
   const currentYear = new Date().getFullYear();
   const yearOptions = Array.from({ length: currentYear - 2023 }, (_, i) => ({
     value: (2024 + i).toString(),
     label: (2024 + i).toString(),
   }));
+  
+  const formattedMonthTitle = format(selectedMonth, 'MMMM yyyy', { locale: es });
+  const capitalizedMonthTitle = formattedMonthTitle.charAt(0).toUpperCase() + formattedMonthTitle.slice(1);
 
   if (authLoading || !isSuperAdmin) {
     return (
@@ -366,16 +372,18 @@ export default function AdminDashboardPage() {
             <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                 <CardTitle className="text-base md:text-lg whitespace-nowrap">
                   Ranking de Clientes 
-                  <span className="text-primary font-bold capitalize text-lg md:text-xl ml-2">{format(selectedMonth, 'MMMM yyyy', { locale: es })}</span>
+                  <span className="text-primary font-bold text-lg md:text-xl ml-2">{capitalizedMonthTitle}</span>
                 </CardTitle>
                 <div className="flex items-center gap-2 w-full sm:w-auto">
                   <Select value={getMonth(selectedMonth).toString()} onValueChange={handleMonthChange}>
-                    <SelectTrigger className="w-full sm:w-[130px]">
-                        <SelectValue placeholder="Mes" />
+                    <SelectTrigger className="w-full sm:w-auto p-2 h-10">
+                        <SelectValue asChild>
+                           <CalendarIcon className="h-4 w-4" />
+                        </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                         {monthOptions.map(option => (
-                            <SelectItem key={option.value} value={option.value} className="capitalize">
+                            <SelectItem key={option.value} value={option.value}>
                                 {option.label}
                             </SelectItem>
                         ))}
@@ -408,5 +416,3 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
-
-    

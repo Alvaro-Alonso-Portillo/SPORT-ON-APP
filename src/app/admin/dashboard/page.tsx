@@ -10,7 +10,7 @@ import { format, subDays, startOfDay, endOfDay, parseISO, isPast } from 'date-fn
 import { es } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Loader2, Users, CalendarCheck, Percent, Clock, Divide } from 'lucide-react';
+import { Loader2, Users, CalendarCheck, Percent, Clock } from 'lucide-react';
 import type { ClassInfo, UserProfile } from '@/types';
 import UserGrowthChart from '@/components/admin/user-growth-chart';
 import PopularHoursChart from '@/components/admin/popular-hours-chart';
@@ -152,8 +152,7 @@ export default function AdminDashboardPage() {
           });
           
           const sortedClients = Object.values(attendanceCounts)
-            .sort((a, b) => b.count - a.count)
-            .slice(0, 5);
+            .sort((a, b) => b.count - a.count);
           setTopClientsData(sortedClients);
           
 
@@ -244,7 +243,7 @@ export default function AdminDashboardPage() {
               )}
           </CardContent>
         </Card>
-        <div className="lg:col-span-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="lg:col-span-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">
@@ -322,7 +321,7 @@ export default function AdminDashboardPage() {
         </Card>
          <Card>
             <CardHeader>
-                <CardTitle>Top 5 Clientes Fieles</CardTitle>
+                <CardTitle>Clientes Fieles (Ranking Histórico)</CardTitle>
             </CardHeader>
             <CardContent>
                 {chartsLoading ? (
@@ -337,3 +336,5 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
+
+  

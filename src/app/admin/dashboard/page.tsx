@@ -1,22 +1,24 @@
 
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { collection, getDocs, query, where, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { format, subDays, startOfDay, endOfDay, parseISO, isPast, startOfMonth, endOfMonth } from 'date-fns';
+import { format, subDays, startOfDay, endOfDay, parseISO, isPast, startOfMonth, endOfMonth, addMonths, subMonths } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Loader2, Users, CalendarCheck, Percent, Clock } from 'lucide-react';
+import { Loader2, Users, CalendarCheck, Percent, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { ClassInfo, UserProfile } from '@/types';
 import UserGrowthChart from '@/components/admin/user-growth-chart';
 import PopularHoursChart from '@/components/admin/popular-hours-chart';
 import OccupancyChart from '@/components/admin/occupancy-chart';
 import AttendanceByDayChart from '@/components/admin/attendance-by-day-chart';
 import TopClientsList from '@/components/admin/top-clients-list';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 export type UserGrowthData = {
   date: string;
@@ -59,10 +61,56 @@ export default function AdminDashboardPage() {
 
   const [userGrowthData, setUserGrowthData] = useState<UserGrowthData>([]);
   const [popularHoursData, setPopularHoursData] = useState<PopularHoursData>([]);
-  const [occupancyData, setOccupancyData] = useState<OccupancyData>([]);
+  const [occupancyData, setOccupancyData] = useState<OccupancyData[]>([]);
   const [attendanceByDayData, setAttendanceByDayData] = useState<AttendanceByDayData[]>([]);
   const [topClientsData, setTopClientsData] = useState<TopClientData[]>([]);
   const [chartsLoading, setChartsLoading] = useState(true);
+
+  const [selectedMonth, setSelectedMonth] = useState(new Date());
+  const [topClientsLoading, setTopClientsLoading] = useState(true);
+
+  const fetchTopClients = useCallback(async (month: Date) => {
+    setTopClientsLoading(true);
+    try {
+        const startOfSelectedMonth = startOfMonth(month);
+        const endOfSelectedMonth = endOfMonth(month);
+        const monthlyClassesQuery = query(collection(db, 'classes'), 
+            where('date', '>=', format(startOfSelectedMonth, 'yyyy-MM-dd')),
+            where('date', '<=', format(endOfSelectedMonth, 'yyyy-MM-dd'))
+        );
+        const monthlyClassesSnapshot = await getDocs(monthlyClassesQuery);
+        const attendanceCounts: Record<string, { uid: string; name: string; count: number; photoURL?: string }> = {};
+        
+        monthlyClassesSnapshot.forEach(doc => {
+          const classData = doc.data() as ClassInfo;
+          const classDateTime = parseISO(`${classData.date}T${classData.time}`);
+          if (isPast(classDateTime)) {
+              classData.attendees.forEach(attendee => {
+                  if (attendee.status === 'asistido') {
+                      if (attendanceCounts[attendee.uid]) {
+                          attendanceCounts[attendee.uid].count++;
+                      } else {
+                          attendanceCounts[attendee.uid] = {
+                              uid: attendee.uid,
+                              name: attendee.name,
+                              count: 1,
+                              photoURL: attendee.photoURL
+                          };
+                      }
+                  }
+              });
+          }
+        });
+        
+        const sortedClients = Object.values(attendanceCounts)
+          .sort((a, b) => b.count - a.count);
+        setTopClientsData(sortedClients);
+    } catch (error) {
+        console.error("Error fetching top clients:", error);
+    } finally {
+        setTopClientsLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     if (!authLoading && !isSuperAdmin) {
@@ -123,44 +171,7 @@ export default function AdminDashboardPage() {
             return { date: dateKey, Nuevos: usersByDay[dateKey] || 0 };
           });
           setUserGrowthData(formattedUserGrowthData);
-
-          // Top Clients (Current Month)
-          const now = new Date();
-          const startOfCurrentMonth = startOfMonth(now);
-          const endOfCurrentMonth = endOfMonth(now);
-          const monthlyClassesQuery = query(collection(db, 'classes'), 
-              where('date', '>=', format(startOfCurrentMonth, 'yyyy-MM-dd')),
-              where('date', '<=', format(endOfCurrentMonth, 'yyyy-MM-dd'))
-          );
-          const monthlyClassesSnapshot = await getDocs(monthlyClassesQuery);
-          const attendanceCounts: Record<string, { uid: string; name: string; count: number; photoURL?: string }> = {};
           
-          monthlyClassesSnapshot.forEach(doc => {
-            const classData = doc.data() as ClassInfo;
-            const classDateTime = parseISO(`${classData.date}T${classData.time}`);
-            if (isPast(classDateTime)) {
-                classData.attendees.forEach(attendee => {
-                    if (attendee.status === 'asistido') {
-                        if (attendanceCounts[attendee.uid]) {
-                            attendanceCounts[attendee.uid].count++;
-                        } else {
-                            attendanceCounts[attendee.uid] = {
-                                uid: attendee.uid,
-                                name: attendee.name,
-                                count: 1,
-                                photoURL: attendee.photoURL
-                            };
-                        }
-                    }
-                });
-            }
-          });
-          
-          const sortedClients = Object.values(attendanceCounts)
-            .sort((a, b) => b.count - a.count);
-          setTopClientsData(sortedClients);
-          
-
           // Data for charts (Last 7 days)
           const recentClassesQuery = query(collection(db, 'classes'), where('date', '>=', format(sevenDaysAgo, 'yyyy-MM-dd')));
           const recentClassesSnapshot = await getDocs(recentClassesQuery);
@@ -219,6 +230,12 @@ export default function AdminDashboardPage() {
       fetchAllData();
     }
   }, [user, authLoading, isSuperAdmin, router]);
+
+  useEffect(() => {
+    if (isSuperAdmin) {
+        fetchTopClients(selectedMonth);
+    }
+  }, [isSuperAdmin, selectedMonth, fetchTopClients]);
 
   if (authLoading || !isSuperAdmin) {
     return (
@@ -310,7 +327,7 @@ export default function AdminDashboardPage() {
                 )}
             </CardContent>
         </Card>
-      </div>
+       </div>
        <div className="grid gap-6 md:grid-cols-2">
          <Card>
             <CardHeader>
@@ -325,11 +342,22 @@ export default function AdminDashboardPage() {
             </CardContent>
         </Card>
          <Card>
-            <CardHeader>
-                <CardTitle>Ranking de Clientes (Este Mes)</CardTitle>
+            <CardHeader className="flex items-center justify-between">
+                <CardTitle className="text-base md:text-lg whitespace-nowrap">
+                  Ranking de Clientes 
+                  <span className="text-primary font-bold capitalize text-lg md:text-xl"> ({format(selectedMonth, 'MMMM yyyy', { locale: es })})</span>
+                </CardTitle>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="icon" onClick={() => setSelectedMonth(subMonths(selectedMonth, 1))}>
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <Button variant="outline" size="icon" onClick={() => setSelectedMonth(addMonths(selectedMonth, 1))}>
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
             </CardHeader>
             <CardContent>
-                {chartsLoading ? (
+                {topClientsLoading ? (
                     <Skeleton className="h-[350px] w-full" />
                 ) : (
                     <TopClientsList data={topClientsData} />
@@ -341,3 +369,5 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
+
+    

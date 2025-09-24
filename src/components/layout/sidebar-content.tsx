@@ -4,7 +4,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from 'next/navigation'
-import { Home, CalendarDays, User as UserIcon, LogOut, LogIn, LayoutDashboard } from "lucide-react";
+import { Home, CalendarDays, User as UserIcon, LogOut, LogIn, LayoutDashboard, UserCheck } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
@@ -46,6 +46,7 @@ export default function SidebarContent({ onLinkClick }: SidebarContentProps) {
   
   const adminLinks = [
     { href: "/admin/dashboard", label: "Panel de Control", icon: LayoutDashboard },
+    { href: "/admin/attendance", label: "Gestión de Asistencia", icon: UserCheck },
   ];
 
   if (loading) {
@@ -149,7 +150,7 @@ export default function SidebarContent({ onLinkClick }: SidebarContentProps) {
                       onClick={onLinkClick}
                       className={cn(
                           "flex items-center gap-3 rounded-lg px-3 py-3 text-muted-foreground transition-all hover:text-primary text-base font-medium",
-                          pathname === link.href && "bg-accent text-primary"
+                          pathname.startsWith(link.href) && "bg-accent text-primary"
                       )}
                   >
                       <link.icon className="h-5 w-5" />
@@ -168,3 +169,5 @@ export default function SidebarContent({ onLinkClick }: SidebarContentProps) {
     </div>
   );
 }
+
+    

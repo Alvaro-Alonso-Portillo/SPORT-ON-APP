@@ -1,10 +1,13 @@
 
 import type { Timestamp } from "firebase/firestore";
 
+export type AttendeeStatus = 'reservado' | 'asistido';
+
 export interface Attendee {
   uid: string;
   name: string;
   photoURL?: string;
+  status: AttendeeStatus;
 }
 
 export interface ClassInfo {
@@ -36,3 +39,5 @@ export interface UserProfile {
     bio?: string;
     photoURL?: string;
 }
+
+    

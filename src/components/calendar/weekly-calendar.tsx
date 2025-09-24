@@ -188,7 +188,7 @@ function WeeklyCalendarInternal() {
     return generated.sort((a,b) => a.time.localeCompare(b.time));
   }, [currentDate, allClasses]);
 
-  const handleBookingUpdate = async (classInfo: ClassInfo, newAttendee: Attendee | null, oldClassId?: string, attendeeToUpdate?: Attendee) => {
+  const handleBookingUpdate = async (classInfo: ClassInfo, newAttendee: Omit<Attendee, 'status'> | null, oldClassId?: string, attendeeToUpdate?: Attendee) => {
     const userForCheck = attendeeToUpdate || newAttendee;
     if (!userForCheck) return;
 
@@ -218,7 +218,6 @@ function WeeklyCalendarInternal() {
 
     try {
         await runTransaction(db, async (transaction) => {
-            // --- READ PHASE ---
             const newClassDocRef = doc(db, "classes", classInfo.id);
             const newClassDoc = await transaction.get(newClassDocRef);
             
@@ -228,15 +227,13 @@ function WeeklyCalendarInternal() {
                 oldClassDocRef = doc(db, "classes", oldClassId);
                 oldClassDoc = await transaction.get(oldClassDocRef);
             } else if (attendeeToUpdate) { 
-                // This is a cancellation, the class to modify is the current classInfo.
                 oldClassDocRef = doc(db, "classes", classInfo.id);
                 oldClassDoc = await transaction.get(oldClassDocRef);
             }
 
-            // --- WRITE PHASE ---
+            const attendeeWithStatus: Attendee | null = newAttendee ? { ...newAttendee, status: 'reservado' } : null;
 
-            // CASE: MOVING a reservation
-            if (oldClassId && newAttendee && attendeeToUpdate && oldClassDocRef && oldClassDoc) {
+            if (oldClassId && attendeeWithStatus && attendeeToUpdate && oldClassDocRef && oldClassDoc) {
                 const attendeeInOldClass = oldClassDoc.data()?.attendees.find((a: Attendee) => a.uid === attendeeToUpdate.uid);
                 if (attendeeInOldClass) {
                     transaction.update(oldClassDoc.ref, { attendees: arrayRemove(attendeeInOldClass) });
@@ -246,17 +243,15 @@ function WeeklyCalendarInternal() {
                      const { id, ...classDataToSave } = classInfo;
                     transaction.set(newClassDocRef, { ...classDataToSave, attendees: [] }); 
                 }
-                transaction.update(newClassDocRef, { attendees: arrayUnion(newAttendee) });
+                transaction.update(newClassDocRef, { attendees: arrayUnion(attendeeWithStatus) });
             } 
-            // CASE: CANCELLING/DELETING a reservation
-            else if (!newAttendee && attendeeToUpdate && oldClassDocRef && oldClassDoc) {
+            else if (!attendeeWithStatus && attendeeToUpdate && oldClassDocRef && oldClassDoc) {
                 const existingAttendee = oldClassDoc.data()?.attendees.find((a: Attendee) => a.uid === attendeeToUpdate.uid);
                 if (existingAttendee) {
                     transaction.update(oldClassDoc.ref, { attendees: arrayRemove(existingAttendee) });
                 }
             }
-            // CASE: NEW reservation
-            else if (newAttendee) {
+            else if (attendeeWithStatus) {
                  if (!newClassDoc.exists()) {
                     const { id, ...classDataToSave } = classInfo;
                     transaction.set(newClassDocRef, { ...classDataToSave, attendees: [] });
@@ -266,11 +261,11 @@ function WeeklyCalendarInternal() {
                 if (currentClassData.attendees.length >= currentClassData.capacity) {
                     throw new Error("La clase está llena. No se pudo completar la reserva.");
                 }
-                if (currentClassData.attendees.some((a: Attendee) => a.uid === newAttendee.uid)) {
+                if (currentClassData.attendees.some((a: Attendee) => a.uid === attendeeWithStatus.uid)) {
                     return; // Already enrolled, do nothing.
                 }
                 
-                transaction.update(newClassDocRef, { attendees: arrayUnion(newAttendee) });
+                transaction.update(newClassDocRef, { attendees: arrayUnion(attendeeWithStatus) });
             }
         });
         
@@ -290,7 +285,7 @@ function WeeklyCalendarInternal() {
             title: "Error en la reserva",
             description: error.message || "No se pudo actualizar la reserva. Por favor, inténtalo de nuevo.",
         });
-        await fetchClasses(); // Refetch even on error to get the latest state
+        await fetchClasses();
     } finally {
         setChangingBooking(null);
     }
@@ -364,7 +359,5 @@ export default function WeeklyCalendar() {
     </React.Suspense>
   );
 }
-
-    
 
     

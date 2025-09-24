@@ -42,7 +42,7 @@ interface ClassListItemProps {
   classInfo: ClassInfo;
   user: User | null;
   isBookedByUser: boolean;
-  onBookingUpdate: (classInfo: ClassInfo, newAttendee: Attendee | null, oldClassId?: string, attendeeToUpdate?: Attendee) => Promise<void>;
+  onBookingUpdate: (classInfo: ClassInfo, newAttendee: Omit<Attendee, 'status'> | null, oldClassId?: string, attendeeToUpdate?: Attendee) => Promise<void>;
   changingBooking: { classId: string, attendee: Attendee } | null;
   setChangingBooking: (booking: { classId: string, attendee: Attendee } | null) => void;
 }
@@ -86,7 +86,7 @@ export default function ClassListItem({ classInfo, user, isBookedByUser, onBooki
     const userForBooking = isBookingForOther ? selectedUser : user;
     const displayName = isBookingForOther ? selectedUser.name : user.displayName;
     
-    const newAttendee: Attendee = {
+    const newAttendee: Omit<Attendee, 'status'> = {
       uid: userForBooking.uid,
       name: displayName || userForBooking.email?.split('@')[0] || "Usuario",
       ...(userForBooking.photoURL && { photoURL: userForBooking.photoURL }),
@@ -107,7 +107,8 @@ export default function ClassListItem({ classInfo, user, isBookedByUser, onBooki
     const attendeeData: Attendee = {
         uid: user.uid,
         name: user.displayName || 'Usuario',
-        ...(user.photoURL && { photoURL: user.photoURL })
+        ...(user.photoURL && { photoURL: user.photoURL }),
+        status: 'reservado' // Status is required
     };
 
     await onBookingUpdate(classInfo, null, undefined, attendeeData);
@@ -209,10 +210,11 @@ export default function ClassListItem({ classInfo, user, isBookedByUser, onBooki
     }
 
     if (isBookedByUser) {
+      const currentUserAttendee = classInfo.attendees.find(a => a.uid === user!.uid);
       return (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2 w-full md:w-auto">
             <Button 
-                onClick={isCurrentUserBeingChanged ? () => setChangingBooking(null) : () => handleStartChange({ uid: user!.uid, name: user!.displayName || 'user', photoURL: user!.photoURL || undefined })} 
+                onClick={isCurrentUserBeingChanged ? () => setChangingBooking(null) : () => currentUserAttendee && handleStartChange(currentUserAttendee)} 
                 variant={isCurrentUserBeingChanged ? "ghost" : "default"} 
                 disabled={isBooking || isCancelling || (!!changingBooking && !isCurrentUserBeingChanged) || !isBookingAllowed} className="md:w-32"
             >
@@ -373,3 +375,5 @@ export default function ClassListItem({ classInfo, user, isBookedByUser, onBooki
     </>
   );
 }
+
+    

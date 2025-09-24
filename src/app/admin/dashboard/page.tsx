@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { collection, getDocs, query, where, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { format, subDays, startOfDay, endOfDay, parseISO } from 'date-fns';
+import { format, subDays, startOfDay, endOfDay, parseISO, isPast } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -16,6 +16,7 @@ import UserGrowthChart from '@/components/admin/user-growth-chart';
 import PopularHoursChart from '@/components/admin/popular-hours-chart';
 import OccupancyChart from '@/components/admin/occupancy-chart';
 import AttendanceByDayChart from '@/components/admin/attendance-by-day-chart';
+import TopClientsList from '@/components/admin/top-clients-list';
 
 export type UserGrowthData = {
   date: string;
@@ -39,6 +40,13 @@ export type AttendanceByDayData = {
     fill: string;
 };
 
+export type TopClientData = {
+  uid: string;
+  name: string;
+  count: number;
+  photoURL?: string;
+};
+
 
 export default function AdminDashboardPage() {
   const { user, loading: authLoading, isSuperAdmin } = useAuth();
@@ -54,6 +62,7 @@ export default function AdminDashboardPage() {
   const [popularHoursData, setPopularHoursData] = useState<PopularHoursData>([]);
   const [occupancyData, setOccupancyData] = useState<OccupancyData>([]);
   const [attendanceByDayData, setAttendanceByDayData] = useState<AttendanceByDayData[]>([]);
+  const [topClientsData, setTopClientsData] = useState<TopClientData[]>([]);
   const [chartsLoading, setChartsLoading] = useState(true);
 
   useEffect(() => {
@@ -116,21 +125,46 @@ export default function AdminDashboardPage() {
           });
           setUserGrowthData(formattedUserGrowthData);
 
-          // Most Popular Hour (All Time)
+          // Most Popular Hour & Top Clients (All Time)
           const allClassesSnapshot = await getDocs(collection(db, 'classes'));
           const bookingsByHour: Record<string, number> = {};
+          const attendanceCounts: Record<string, { uid: string; name: string; count: number; photoURL?: string }> = {};
           
           allClassesSnapshot.forEach(doc => {
             const classData = doc.data() as ClassInfo;
             const timeSlot = classData.time;
             const numAttendees = classData.attendees.length;
             bookingsByHour[timeSlot] = (bookingsByHour[timeSlot] || 0) + numAttendees;
+            
+            // Top Clients Logic
+            const classDateTime = parseISO(`${classData.date}T${classData.time}`);
+            if (isPast(classDateTime)) {
+                classData.attendees.forEach(attendee => {
+                    if (attendee.status === 'asistido') {
+                        if (attendanceCounts[attendee.uid]) {
+                            attendanceCounts[attendee.uid].count++;
+                        } else {
+                            attendanceCounts[attendee.uid] = {
+                                uid: attendee.uid,
+                                name: attendee.name,
+                                count: 1,
+                                photoURL: attendee.photoURL
+                            };
+                        }
+                    }
+                });
+            }
           });
           
           const popularHourEntry = Object.entries(bookingsByHour).sort((a, b) => b[1] - a[1])[0];
           if (popularHourEntry) {
             setMostPopularHour(`${popularHourEntry[0]} (${popularHourEntry[1]} reservas)`);
           }
+          
+          const sortedClients = Object.values(attendanceCounts)
+            .sort((a, b) => b.count - a.count)
+            .slice(0, 5);
+          setTopClientsData(sortedClients);
           
 
           // Data for charts (Last 7 days)
@@ -294,7 +328,7 @@ export default function AdminDashboardPage() {
             </CardContent>
         </Card>
       </div>
-       <div className="grid gap-6 md:grid-cols-1">
+       <div className="grid gap-6 md:grid-cols-2">
          <Card>
             <CardHeader>
                 <CardTitle>Horarios Más Populares (Últimos 7 días)</CardTitle>
@@ -304,6 +338,18 @@ export default function AdminDashboardPage() {
                     <Skeleton className="h-[350px] w-full" />
                 ) : (
                     <PopularHoursChart data={popularHoursData} />
+                )}
+            </CardContent>
+        </Card>
+         <Card>
+            <CardHeader>
+                <CardTitle>Top 5 Clientes Fieles</CardTitle>
+            </CardHeader>
+            <CardContent>
+                {chartsLoading ? (
+                    <Skeleton className="h-[350px] w-full" />
+                ) : (
+                    <TopClientsList data={topClientsData} />
                 )}
             </CardContent>
         </Card>

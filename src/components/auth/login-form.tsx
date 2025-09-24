@@ -89,7 +89,15 @@ export default function LoginForm() {
           />
         </div>
         <div className="grid gap-2">
-          <Label htmlFor="password">Contraseña</Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="password">Contraseña</Label>
+               <Link
+                href="/recuperar-contrasena"
+                className="text-sm text-primary hover:underline"
+              >
+                ¿Has olvidado tu contraseña?
+              </Link>
+            </div>
           <div className="relative">
             <Input
               id="password"

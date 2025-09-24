@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { collection, getDocs, query, where, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { format, subDays, startOfDay, endOfDay, parseISO, isPast, startOfMonth, endOfMonth, addMonths, subMonths, getYear, getMonth, setYear, setMonth } from 'date-fns';
+import { format, subDays, startOfDay, endOfDay, parseISO, isPast, startOfMonth, endOfMonth, addMonths, subMonths, getYear, getMonth, setYear, setMonth } from 'fns';
 import { es } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -238,31 +238,19 @@ export default function AdminDashboardPage() {
   }, [isSuperAdmin, selectedMonth, fetchTopClients]);
   
   const handleMonthChange = (monthValue: string) => {
-    const newDate = setMonth(selectedMonth, parseInt(monthValue));
-    setSelectedMonth(newDate);
-  };
-
-  const handleYearChange = (yearValue: string) => {
-    const newDate = setYear(selectedMonth, parseInt(yearValue));
+    const newDate = parseISO(monthValue);
     setSelectedMonth(newDate);
   };
   
-  const monthOptions = Array.from({ length: 12 }, (_, i) => {
-    const monthName = format(new Date(0, i), 'MMMM', { locale: es });
+  const monthOptions = Array.from({ length: 25 }, (_, i) => {
+    const date = subMonths(new Date(), 12 - i);
+    const monthName = format(date, 'MMMM yyyy', { locale: es });
     return {
-        value: i.toString(),
+        value: startOfMonth(date).toISOString(),
         label: monthName.charAt(0).toUpperCase() + monthName.slice(1),
     }
   });
 
-  const currentYear = new Date().getFullYear();
-  const yearOptions = Array.from({ length: currentYear - 2023 }, (_, i) => ({
-    value: (2024 + i).toString(),
-    label: (2024 + i).toString(),
-  }));
-  
-  const formattedMonthTitle = format(selectedMonth, 'MMMM yyyy', { locale: es });
-  const capitalizedMonthTitle = formattedMonthTitle.charAt(0).toUpperCase() + formattedMonthTitle.slice(1);
 
   if (authLoading || !isSuperAdmin) {
     return (
@@ -371,30 +359,18 @@ export default function AdminDashboardPage() {
          <Card>
             <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                 <CardTitle className="text-base md:text-lg whitespace-nowrap">
-                  Ranking de Clientes 
-                  <span className="text-primary font-bold text-lg md:text-xl ml-2">{capitalizedMonthTitle}</span>
+                  Ranking de Clientes
                 </CardTitle>
                 <div className="flex items-center gap-2 w-full sm:w-auto">
-                  <Select value={getMonth(selectedMonth).toString()} onValueChange={handleMonthChange}>
-                    <SelectTrigger className="w-full sm:w-auto p-2 h-10">
-                        <SelectValue asChild>
-                           <CalendarIcon className="h-4 w-4" />
-                        </SelectValue>
+                   <Select 
+                      value={startOfMonth(selectedMonth).toISOString()} 
+                      onValueChange={handleMonthChange}
+                    >
+                    <SelectTrigger className="w-full sm:w-[200px]">
+                        <SelectValue placeholder="Seleccionar mes" />
                     </SelectTrigger>
                     <SelectContent>
                         {monthOptions.map(option => (
-                            <SelectItem key={option.value} value={option.value}>
-                                {option.label}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                  <Select value={getYear(selectedMonth).toString()} onValueChange={handleYearChange}>
-                    <SelectTrigger className="w-full sm:w-[90px]">
-                        <SelectValue placeholder="Año" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {yearOptions.map(option => (
                             <SelectItem key={option.value} value={option.value}>
                                 {option.label}
                             </SelectItem>
@@ -416,3 +392,5 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
+
+    

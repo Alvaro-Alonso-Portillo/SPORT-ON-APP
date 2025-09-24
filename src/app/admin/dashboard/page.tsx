@@ -6,18 +6,18 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { collection, getDocs, query, where, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { format, subDays, startOfDay, endOfDay, parseISO, isPast, startOfMonth, endOfMonth, addMonths, subMonths } from 'date-fns';
+import { format, subDays, startOfDay, endOfDay, parseISO, isPast, startOfMonth, endOfMonth, addMonths, subMonths, getYear, getMonth, setYear, setMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Loader2, Users, CalendarCheck, Percent, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Loader2, Users, CalendarCheck, Percent, Clock, ChevronLeft, ChevronRight, Divide } from 'lucide-react';
 import type { ClassInfo, UserProfile } from '@/types';
 import UserGrowthChart from '@/components/admin/user-growth-chart';
 import PopularHoursChart from '@/components/admin/popular-hours-chart';
 import OccupancyChart from '@/components/admin/occupancy-chart';
 import AttendanceByDayChart from '@/components/admin/attendance-by-day-chart';
 import TopClientsList from '@/components/admin/top-clients-list';
-import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 
 export type UserGrowthData = {
@@ -28,7 +28,7 @@ export type UserGrowthData = {
 export type PopularHoursData = {
   time: string;
   Reservas: number;
-}[];
+};
 
 export type OccupancyData = {
     name: string;
@@ -60,7 +60,7 @@ export default function AdminDashboardPage() {
   const [metricsLoading, setMetricsLoading] = useState(true);
 
   const [userGrowthData, setUserGrowthData] = useState<UserGrowthData>([]);
-  const [popularHoursData, setPopularHoursData] = useState<PopularHoursData>([]);
+  const [popularHoursData, setPopularHoursData] = useState<PopularHoursData[]>([]);
   const [occupancyData, setOccupancyData] = useState<OccupancyData[]>([]);
   const [attendanceByDayData, setAttendanceByDayData] = useState<AttendanceByDayData[]>([]);
   const [topClientsData, setTopClientsData] = useState<TopClientData[]>([]);
@@ -200,13 +200,13 @@ export default function AdminDashboardPage() {
 
           // Format Attendance by Day Chart Data
           const softColorPalette = [
-            '#8884d8', // Lavanda suave
-            '#82ca9d', // Menta
-            '#ffc658', // Amarillo suave
-            '#ff8042', // Naranja suave
-            '#a4de6c', // Verde lima
-            '#d0ed57', // Amarillo verdoso
-            '#ff7300', // Naranja
+            '#a1c9f4', // Azul suave
+            '#b2e2a4', // Menta
+            '#ffb482', // Melocotón
+            '#d6bcf0', // Lavanda
+            '#f9cb9c', // Naranja suave
+            '#f4c7c3', // Rosa suave
+            '#fff2a5', // Amarillo suave
           ];
           const weekOrder = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
           const formattedAttendanceData = weekOrder
@@ -236,6 +236,27 @@ export default function AdminDashboardPage() {
         fetchTopClients(selectedMonth);
     }
   }, [isSuperAdmin, selectedMonth, fetchTopClients]);
+  
+  const handleMonthChange = (monthValue: string) => {
+    const newDate = setMonth(selectedMonth, parseInt(monthValue));
+    setSelectedMonth(newDate);
+  };
+
+  const handleYearChange = (yearValue: string) => {
+    const newDate = setYear(selectedMonth, parseInt(yearValue));
+    setSelectedMonth(newDate);
+  };
+  
+  const monthOptions = Array.from({ length: 12 }, (_, i) => ({
+    value: i.toString(),
+    label: format(new Date(0, i), 'MMMM', { locale: es }),
+  }));
+
+  const currentYear = new Date().getFullYear();
+  const yearOptions = Array.from({ length: currentYear - 2023 }, (_, i) => ({
+    value: (2024 + i).toString(),
+    label: (2024 + i).toString(),
+  }));
 
   if (authLoading || !isSuperAdmin) {
     return (
@@ -342,18 +363,36 @@ export default function AdminDashboardPage() {
             </CardContent>
         </Card>
          <Card>
-            <CardHeader className="flex items-center justify-between">
+            <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                 <CardTitle className="text-base md:text-lg whitespace-nowrap">
                   Ranking de Clientes 
-                  <span className="text-primary font-bold capitalize text-lg md:text-xl"> ({format(selectedMonth, 'MMMM yyyy', { locale: es })})</span>
+                  <span className="text-primary font-bold capitalize text-lg md:text-xl ml-2">{format(selectedMonth, 'MMMM yyyy', { locale: es })}</span>
                 </CardTitle>
-                <div className="flex items-center gap-2">
-                  <Button variant="outline" size="icon" onClick={() => setSelectedMonth(subMonths(selectedMonth, 1))}>
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                  <Button variant="outline" size="icon" onClick={() => setSelectedMonth(addMonths(selectedMonth, 1))}>
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <Select value={getMonth(selectedMonth).toString()} onValueChange={handleMonthChange}>
+                    <SelectTrigger className="w-full sm:w-[130px]">
+                        <SelectValue placeholder="Mes" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {monthOptions.map(option => (
+                            <SelectItem key={option.value} value={option.value} className="capitalize">
+                                {option.label}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                  <Select value={getYear(selectedMonth).toString()} onValueChange={handleYearChange}>
+                    <SelectTrigger className="w-full sm:w-[90px]">
+                        <SelectValue placeholder="Año" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {yearOptions.map(option => (
+                            <SelectItem key={option.value} value={option.value}>
+                                {option.label}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
                 </div>
             </CardHeader>
             <CardContent>

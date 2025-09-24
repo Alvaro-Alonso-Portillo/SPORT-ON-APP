@@ -55,7 +55,6 @@ export default function AdminDashboardPage() {
   const [totalUsers, setTotalUsers] = useState(0);
   const [todaysBookings, setTodaysBookings] = useState(0);
   const [occupancyRate, setOccupancyRate] = useState(0);
-  const [mostPopularHour, setMostPopularHour] = useState("");
   const [metricsLoading, setMetricsLoading] = useState(true);
 
   const [userGrowthData, setUserGrowthData] = useState<UserGrowthData>([]);
@@ -125,16 +124,12 @@ export default function AdminDashboardPage() {
           });
           setUserGrowthData(formattedUserGrowthData);
 
-          // Most Popular Hour & Top Clients (All Time)
+          // Top Clients (All Time)
           const allClassesSnapshot = await getDocs(collection(db, 'classes'));
-          const bookingsByHour: Record<string, number> = {};
           const attendanceCounts: Record<string, { uid: string; name: string; count: number; photoURL?: string }> = {};
           
           allClassesSnapshot.forEach(doc => {
             const classData = doc.data() as ClassInfo;
-            const timeSlot = classData.time;
-            const numAttendees = classData.attendees.length;
-            bookingsByHour[timeSlot] = (bookingsByHour[timeSlot] || 0) + numAttendees;
             
             // Top Clients Logic
             const classDateTime = parseISO(`${classData.date}T${classData.time}`);
@@ -155,11 +150,6 @@ export default function AdminDashboardPage() {
                 });
             }
           });
-          
-          const popularHourEntry = Object.entries(bookingsByHour).sort((a, b) => b[1] - a[1])[0];
-          if (popularHourEntry) {
-            setMostPopularHour(`${popularHourEntry[0]} (${popularHourEntry[1]} reservas)`);
-          }
           
           const sortedClients = Object.values(attendanceCounts)
             .sort((a, b) => b.count - a.count)
@@ -254,7 +244,7 @@ export default function AdminDashboardPage() {
               )}
           </CardContent>
         </Card>
-        <div className="lg:col-span-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="lg:col-span-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">
@@ -286,17 +276,6 @@ export default function AdminDashboardPage() {
               </CardHeader>
               <CardContent>
                 {metricsLoading ? <Skeleton className="h-8 w-20" /> : <div className="text-2xl font-bold">{occupancyRate}%</div>}
-              </CardContent>
-            </Card>
-            <Card className="sm:col-span-2 lg:col-span-2">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Horario Estrella (Histórico)
-                </CardTitle>
-                <Clock className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                {metricsLoading ? <Skeleton className="h-8 w-32" /> : <div className="text-xl font-bold truncate">{mostPopularHour}</div>}
               </CardContent>
             </Card>
         </div>

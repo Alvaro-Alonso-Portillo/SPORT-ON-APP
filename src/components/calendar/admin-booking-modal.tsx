@@ -58,10 +58,14 @@ export default function AdminBookingModal({ isOpen, onClose, onConfirm }: AdminB
 
   const filteredUsers = useMemo(() => {
     if (!searchTerm) return users;
-    return users.filter(user => 
-        user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    return users.filter(user => {
+      if (!user || !user.name || !user.email) return false;
+      const lowerCaseSearchTerm = searchTerm.toLowerCase();
+      return (
+        user.name.toLowerCase().includes(lowerCaseSearchTerm) ||
+        user.email.toLowerCase().includes(lowerCaseSearchTerm)
+      );
+    });
   }, [searchTerm, users]);
 
   const handleConfirm = () => {

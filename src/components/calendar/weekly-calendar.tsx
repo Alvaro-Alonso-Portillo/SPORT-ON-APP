@@ -29,6 +29,7 @@ const saturdayTimeSlots = ["09:00", "10:15", "11:30", "12:45"];
 // Lista de días festivos en formato 'yyyy-MM-dd'
 const holidays = [
   "2025-09-22",
+  "2025-10-04",
   "2025-10-13",
   "2025-12-08",
   "2025-12-25",

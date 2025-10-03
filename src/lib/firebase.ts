@@ -18,17 +18,19 @@ let db: Firestore;
 let storage: FirebaseStorage;
 
 // Initialize Firebase only on the client side
-if (typeof window !== 'undefined' && !getApps().length) {
-  app = initializeApp(firebaseConfig);
-  auth = getAuth(app);
-  db = getFirestore(app);
-  storage = getStorage(app);
-} else if (getApps().length > 0) {
-  app = getApp();
-  auth = getAuth(app);
-  db = getFirestore(app);
-  storage = getStorage(app);
+if (typeof window !== 'undefined') {
+    if (!getApps().length) {
+        app = initializeApp(firebaseConfig);
+    } else {
+        app = getApp();
+    }
+    auth = getAuth(app);
+    db = getFirestore(app);
+    storage = getStorage(app);
+} else {
+    // Handling for server-side rendering (optional, if you need it)
 }
+
 
 // @ts-ignore
 export { app, auth, db, storage };

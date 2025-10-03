@@ -24,6 +24,8 @@ const allTimeSlots = [
     "14:15", "17:00", "18:15", "19:30", "20:45"
 ];
 
+const saturdayTimeSlots = ["09:00", "10:15", "11:30", "12:45"];
+
 // Lista de días festivos en formato 'yyyy-MM-dd'
 const holidays = [
   "2025-09-22",
@@ -41,12 +43,19 @@ const generateClassesForDate = (date: Date, existingClasses: ClassInfo[]): Class
     const dayName = format(date, 'eeee', { locale: es });
     const capitalizedDayName = dayName.charAt(0).toUpperCase() + dayName.slice(1);
 
-    if (capitalizedDayName === "Sábado" || capitalizedDayName === "Domingo") return [];
-    
-    let timeSlotsForDay = [...allTimeSlots];
-    if (capitalizedDayName === "Viernes") {
-        timeSlotsForDay = timeSlotsForDay.filter(time => time !== "20:45");
+    let timeSlotsForDay: string[] = [];
+
+    if (capitalizedDayName === "Sábado") {
+        timeSlotsForDay = saturdayTimeSlots;
+    } else if (capitalizedDayName !== "Domingo") {
+        timeSlotsForDay = [...allTimeSlots];
+        if (capitalizedDayName === "Viernes") {
+            timeSlotsForDay = timeSlotsForDay.filter(time => time !== "20:45");
+        }
     }
+    
+    if (timeSlotsForDay.length === 0) return [];
+
 
     return timeSlotsForDay.map(time => {
         const classId = `${dateString}-${time.replace(':', '')}`;
@@ -141,9 +150,14 @@ function WeeklyCalendarInternal() {
     const dayName = format(date, 'eeee', { locale: es });
     const dateString = format(date, 'yyyy-MM-dd');
 
-    // Deshabilitar fines de semana
-    if (dayName === 'sábado' || dayName === 'domingo') {
+    // Deshabilitar domingos
+    if (dayName === 'domingo') {
       return true;
+    }
+
+    // Deshabilitar sábados antes de octubre 2025
+    if (dayName === 'sábado' && date < new Date('2025-10-01T00:00:00')) {
+        return true;
     }
 
     // Deshabilitar días festivos

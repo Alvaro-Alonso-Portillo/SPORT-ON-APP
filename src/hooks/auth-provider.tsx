@@ -28,7 +28,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     return () => unsubscribe();
-  }, [setUser, fetchUserProfile, clearUser, setShowPhotoMotivationModal]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return <>{children}</>;
 }

@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Trash2 } from "lucide-react";
+import { Loader2, Trash2, ImagePlus } from "lucide-react";
 import type { UserProfile } from "@/types";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -39,6 +39,7 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Slider } from "@/components/ui/slider";
 import UserAvatar from "../ui/user-avatar";
 
@@ -286,6 +287,15 @@ export default function ProfileForm() {
           </CardHeader>
           
             <CardContent className="space-y-6">
+              {!userProfile.photoURL && !croppedImage && (
+                <Alert>
+                  <ImagePlus className="h-4 w-4" />
+                  <AlertTitle>¡Dale vida a tu perfil!</AlertTitle>
+                  <AlertDescription>
+                    Añadir una foto ayuda a que los entrenadores y compañeros te reconozcan. ¡Es un paso rápido para sentirte parte de la comunidad!
+                  </AlertDescription>
+                </Alert>
+              )}
               <FormField
                 control={form.control}
                 name="name"

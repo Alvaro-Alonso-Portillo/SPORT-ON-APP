@@ -397,7 +397,7 @@ export default function ProfileForm() {
                 min={1}
                 max={3}
                 step={0.1}
-                onValue-change={(value) => setZoom(value[0])}
+                onValueChange={(value) => setZoom(value[0])}
               />
             </div>
             <DialogFooter>

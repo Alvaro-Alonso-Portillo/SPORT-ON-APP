@@ -287,15 +287,6 @@ export default function ProfileForm() {
           </CardHeader>
           
             <CardContent className="space-y-6">
-              {!userProfile.photoURL && !croppedImage && (
-                <Alert>
-                  <ImagePlus className="h-4 w-4" />
-                  <AlertTitle>¡Dale vida a tu perfil!</AlertTitle>
-                  <AlertDescription>
-                    Añadir una foto ayuda a que los entrenadores y compañeros te reconozcan. ¡Es un paso rápido para sentirte parte de la comunidad!
-                  </AlertDescription>
-                </Alert>
-              )}
               <FormField
                 control={form.control}
                 name="name"

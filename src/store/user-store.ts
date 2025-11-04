@@ -10,7 +10,7 @@ interface UserState {
   isLoading: boolean;
   isSuperAdmin: boolean;
   setUser: (user: User | null) => void;
-  fetchUserProfile: (uid: string) => Promise<void>;
+  fetchUserProfile: (uid: string) => Promise<UserProfile | null>;
   clearUser: () => void;
   setUserProfile: (profile: UserProfile | null) => void;
 }
@@ -37,13 +37,17 @@ export const useUserStore = create<UserState>((set, get) => ({
       const docRef = doc(db, 'users', uid);
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
-        set({ userProfile: docSnap.data() as UserProfile, isLoading: false });
+        const profile = docSnap.data() as UserProfile;
+        set({ userProfile: profile, isLoading: false });
+        return profile;
       } else {
         set({ userProfile: null, isLoading: false });
+        return null;
       }
     } catch (error) {
       console.error("Failed to fetch user profile:", error);
       set({ userProfile: null, isLoading: false });
+      return null;
     }
   },
   clearUser: () => set({ user: null, userProfile: null, isLoading: false, isSuperAdmin: false }),

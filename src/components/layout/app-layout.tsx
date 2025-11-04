@@ -3,6 +3,7 @@
 import Header from "./header";
 import Sidebar from "./sidebar";
 import { AuthProvider } from "@/hooks/auth-provider";
+import PhotoMotivationModal from "../profile/photo-motivation-modal";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -16,6 +17,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </main>
         </div>
       </div>
+      <PhotoMotivationModal />
     </AuthProvider>
   );
 }

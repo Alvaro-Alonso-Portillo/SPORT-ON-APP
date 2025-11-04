@@ -9,10 +9,12 @@ interface UserState {
   userProfile: UserProfile | null;
   isLoading: boolean;
   isSuperAdmin: boolean;
+  showPhotoMotivationModal: boolean;
   setUser: (user: User | null) => void;
   fetchUserProfile: (uid: string) => Promise<UserProfile | null>;
   clearUser: () => void;
   setUserProfile: (profile: UserProfile | null) => void;
+  setShowPhotoMotivationModal: (show: boolean) => void;
 }
 
 export const useUserStore = create<UserState>((set, get) => ({
@@ -20,6 +22,7 @@ export const useUserStore = create<UserState>((set, get) => ({
   userProfile: null,
   isLoading: true,
   isSuperAdmin: false,
+  showPhotoMotivationModal: false,
   setUser: (user) => {
     set({ user });
     if (user) {
@@ -52,4 +55,5 @@ export const useUserStore = create<UserState>((set, get) => ({
   },
   clearUser: () => set({ user: null, userProfile: null, isLoading: false, isSuperAdmin: false }),
   setUserProfile: (profile) => set({ userProfile: profile }),
+  setShowPhotoMotivationModal: (show) => set({ showPhotoMotivationModal: show }),
 }));

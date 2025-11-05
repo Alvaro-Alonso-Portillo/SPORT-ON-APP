@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, type ReactNode } from "react";
@@ -28,8 +29,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     return () => unsubscribe();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [setUser, fetchUserProfile, clearUser, setShowPhotoMotivationModal]);
 
   return <>{children}</>;
 }

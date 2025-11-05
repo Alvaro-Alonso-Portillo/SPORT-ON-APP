@@ -212,15 +212,21 @@ export default function ClassListItem({ classInfo, user, isBookedByUser, onBooki
     if (isBookedByUser) {
       const currentUserAttendee = classInfo.attendees.find(a => a.uid === user!.uid);
       return (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 w-full md:w-auto">
+        <div className="flex flex-wrap gap-2 w-full justify-end">
             <Button 
                 onClick={isCurrentUserBeingChanged ? () => setChangingBooking(null) : () => currentUserAttendee && handleStartChange(currentUserAttendee)} 
                 variant={isCurrentUserBeingChanged ? "ghost" : "default"} 
-                disabled={isBooking || isCancelling || (!!changingBooking && !isCurrentUserBeingChanged) || !isBookingAllowed} className="md:w-32"
+                disabled={isBooking || isCancelling || (!!changingBooking && !isCurrentUserBeingChanged) || !isBookingAllowed} 
+                className="w-full sm:w-auto flex-grow sm:flex-grow-0"
             >
                 {isCurrentUserBeingChanged ? "Cancelar cambio" : "Cambiar"}
             </Button>
-            <Button variant="destructive" onClick={() => setShowCancelConfirm(true)} disabled={isBooking || isCancelling || !!changingBooking || !isBookingAllowed}>
+            <Button 
+                variant="destructive" 
+                onClick={() => setShowCancelConfirm(true)} 
+                disabled={isBooking || isCancelling || !!changingBooking || !isBookingAllowed}
+                className="w-full sm:w-auto flex-grow sm:flex-grow-0"
+            >
                 Cancelar
             </Button>
         </div>

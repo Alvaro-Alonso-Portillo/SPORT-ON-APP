@@ -83,6 +83,7 @@ export default function SidebarContent({ onLinkClick }: SidebarContentProps) {
         width={180}
         height={48}
         priority
+        style={{ height: 'auto' }}
       />
   );
 
@@ -169,5 +170,3 @@ export default function SidebarContent({ onLinkClick }: SidebarContentProps) {
     </div>
   );
 }
-
-    

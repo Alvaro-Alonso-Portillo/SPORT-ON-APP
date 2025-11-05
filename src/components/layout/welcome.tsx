@@ -44,6 +44,7 @@ export default function Welcome() {
           width={320}
           height={85}
           priority
+          style={{ height: 'auto' }}
         />
         <p className="mt-4 text-lg md:text-xl text-muted-foreground italic h-7">
           {quote}

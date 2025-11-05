@@ -44,6 +44,7 @@ export default function Header() {
                 width={150}
                 height={40}
                 priority
+                style={{ height: 'auto' }}
               />
           </Link>
       </div>
@@ -56,6 +57,7 @@ export default function Header() {
                 width={120}
                 height={32}
                 priority
+                style={{ height: 'auto' }}
               />
           </Link>
       </div>

@@ -73,7 +73,8 @@ export default function ClassListItem({ classInfo, user, isBookedByUser, onBooki
   // --- End of Date & Business Logic ---
 
   const handleBookClass = async (selectedUser?: UserProfile) => {
-    if (!user || !isBookingAllowed) return;
+    const currentUser = user; // from useAuth()
+    if (!currentUser || !isBookingAllowed) return;
 
     if (isSuperAdmin && !selectedUser && !changingBooking) {
       setIsBookingModalOpen(true);
@@ -83,8 +84,14 @@ export default function ClassListItem({ classInfo, user, isBookedByUser, onBooki
     setIsBooking(true);
     
     const isBookingForOther = isSuperAdmin && selectedUser;
-    const userForBooking = isBookingForOther ? selectedUser : user;
-    const displayName = isBookingForOther ? selectedUser.name : user.displayName;
+    const userForBooking = isBookingForOther ? selectedUser : currentUser;
+
+    if (!userForBooking) {
+      setIsBooking(false);
+      return;
+    }
+    
+    const displayName = isBookingForOther ? selectedUser.name : currentUser.displayName;
     
     const newAttendee: Omit<Attendee, 'status'> = {
       uid: userForBooking.uid,

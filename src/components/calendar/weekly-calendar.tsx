@@ -46,8 +46,15 @@ const generateClassesForDate = (date: Date, existingClasses: ClassInfo[]): Class
 
     if (capitalizedDayName !== "Sábado" && capitalizedDayName !== "Domingo") {
         timeSlotsForDay = [...allTimeSlots];
+        
         if (capitalizedDayName === "Viernes") {
             timeSlotsForDay = timeSlotsForDay.filter(time => time !== "20:45");
+        }
+        
+        // Excluir horarios de tarde para el 24 y 31 de diciembre
+        const monthDay = format(date, 'MM-dd');
+        if (monthDay === '12-24' || monthDay === '12-31') {
+            timeSlotsForDay = timeSlotsForDay.filter(time => !afternoonSlots.includes(time));
         }
     }
     
@@ -365,5 +372,3 @@ export default function WeeklyCalendar() {
     </React.Suspense>
   );
 }
-
-    

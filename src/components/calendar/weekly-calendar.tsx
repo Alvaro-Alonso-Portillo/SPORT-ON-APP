@@ -41,6 +41,7 @@ const generateClassesForDate = (date: Date, existingClasses: ClassInfo[]): Class
     const dateString = format(date, 'yyyy-MM-dd');
     const dayName = format(date, 'eeee', { locale: es });
     const capitalizedDayName = dayName.charAt(0).toUpperCase() + dayName.slice(1);
+    const monthDay = format(date, 'MM-dd');
 
     let timeSlotsForDay: string[] = [];
 
@@ -52,9 +53,14 @@ const generateClassesForDate = (date: Date, existingClasses: ClassInfo[]): Class
         }
         
         // Excluir horarios de tarde para el 24 y 31 de diciembre
-        const monthDay = format(date, 'MM-dd');
         if (monthDay === '12-24' || monthDay === '12-31') {
             timeSlotsForDay = timeSlotsForDay.filter(time => !afternoonSlots.includes(time));
+        }
+
+        // Excluir horarios para el 5 de enero
+        if (monthDay === '01-05') {
+            const morningSlotsToRemove = ["14:15"];
+            timeSlotsForDay = timeSlotsForDay.filter(time => !afternoonSlots.includes(time) && !morningSlotsToRemove.includes(time));
         }
     }
     
@@ -372,3 +378,5 @@ export default function WeeklyCalendar() {
     </React.Suspense>
   );
 }
+
+    

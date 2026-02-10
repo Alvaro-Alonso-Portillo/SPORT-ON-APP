@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -36,6 +35,8 @@ const holidays = [
   "2026-04-02",
   "2026-04-03",
   "2026-05-01",
+  "2026-06-05",
+  "2026-09-21",
   "2026-10-12",
   "2026-11-02",
   "2026-12-08",
@@ -385,5 +386,3 @@ export default function WeeklyCalendar() {
     </React.Suspense>
   );
 }
-
-    

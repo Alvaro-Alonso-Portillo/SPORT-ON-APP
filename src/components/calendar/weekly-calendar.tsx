@@ -55,7 +55,7 @@ const generateClassesForDate = (date: Date, existingClasses: ClassInfo[]): Class
 
     // Special case for April 2, 2026
     if (dateString === '2026-04-02') {
-        timeSlotsForDay = ["08:00", "09:15", "10:30", "11:45", "13:00", "14:15", "15:15"];
+        timeSlotsForDay = ["08:00", "09:15", "10:30", "11:45", "13:00", "14:15"];
     } else if (capitalizedDayName !== "Sábado" && capitalizedDayName !== "Domingo") {
         timeSlotsForDay = [...allTimeSlots];
         

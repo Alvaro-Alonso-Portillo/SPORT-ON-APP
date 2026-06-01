@@ -35,7 +35,6 @@ const holidays = [
   "2026-01-06",
   "2026-04-03",
   "2026-05-01",
-  "2026-06-05",
   "2026-09-21",
   "2026-10-12",
   "2026-11-02",
@@ -56,6 +55,10 @@ const generateClassesForDate = (date: Date, existingClasses: ClassInfo[]): Class
     // Special case for April 2, 2026
     if (dateString === '2026-04-02') {
         timeSlotsForDay = ["08:00", "09:15", "10:30", "11:45", "13:00", "14:15"];
+    } else if (dateString === '2026-06-04') {
+        timeSlotsForDay = ["09:15", "10:30", "11:45", "13:00"];
+    } else if (dateString === '2026-06-05') {
+        timeSlotsForDay = ["08:00", "09:15", "10:30", "11:45"];
     } else if (capitalizedDayName !== "Sábado" && capitalizedDayName !== "Domingo") {
         timeSlotsForDay = [...allTimeSlots];
         

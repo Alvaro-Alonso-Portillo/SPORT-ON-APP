@@ -15,6 +15,7 @@
     "cap:open:android": "npx cap open android",
     "cap:open:ios": "npx cap open ios",
     "set-superadmin": "node scripts/set-superadmin.js",
+    "remove-superadmin": "node scripts/remove-superadmin.js",
     "update-capacity": "node scripts/update-afternoon-capacity.js"
   },
   "dependencies": {

@@ -35,6 +35,22 @@ const holidays = [
   "2026-01-06",
   "2026-04-03",
   "2026-05-01",
+  "2026-08-01",
+  "2026-08-02",
+  "2026-08-03",
+  "2026-08-04",
+  "2026-08-05",
+  "2026-08-06",
+  "2026-08-07",
+  "2026-08-08",
+  "2026-08-09",
+  "2026-08-10",
+  "2026-08-11",
+  "2026-08-12",
+  "2026-08-13",
+  "2026-08-14",
+  "2026-08-15",
+  "2026-08-16",
   "2026-09-21",
   "2026-10-12",
   "2026-11-02",
@@ -175,6 +191,7 @@ function WeeklyCalendarInternal() {
   const isDateDisabled = (date: Date) => {
     const dayName = format(date, 'eeee', { locale: es });
     const dateString = format(date, 'yyyy-MM-dd');
+    const monthDay = format(date, 'MM-dd');
 
     // Deshabilitar domingos y sábados
     if (dayName === 'domingo' || dayName === 'sábado') {
@@ -183,6 +200,11 @@ function WeeklyCalendarInternal() {
 
     // Deshabilitar días festivos
     if (holidays.includes(dateString)) {
+      return true;
+    }
+
+    // Deshabilitar del 1 de agosto al 16 de agosto (incluido)
+    if (monthDay >= '08-01' && monthDay <= '08-16') {
       return true;
     }
 

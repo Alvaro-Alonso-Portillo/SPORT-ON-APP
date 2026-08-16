@@ -83,6 +83,11 @@ const generateClassesForDate = (date: Date, existingClasses: ClassInfo[]): Class
         if (capitalizedDayName === "Viernes") {
             timeSlotsForDay = timeSlotsForDay.filter(time => time !== "20:45");
         }
+
+        // Excluir última hora (20:45) para el 18 y 20 de agosto de 2026
+        if (dateString === '2026-08-18' || dateString === '2026-08-20') {
+            timeSlotsForDay = timeSlotsForDay.filter(time => time !== "20:45");
+        }
         
         // Excluir horarios de tarde para el 24 y 31 de diciembre
         if (monthDay === '12-24' || monthDay === '12-31') {

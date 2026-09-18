@@ -40,4 +40,12 @@ export interface UserProfile {
     photoURL?: string;
 }
 
-    
+export interface CalendarOverride {
+    id?: string; // date string 'YYYY-MM-DD'
+    date: string; // 'YYYY-MM-DD'
+    isOpen: boolean;
+    slots?: string[]; // Array de horas activas 'HH:mm'
+    reason?: string;
+    updatedAt?: string | Timestamp;
+    updatedBy?: string;
+}

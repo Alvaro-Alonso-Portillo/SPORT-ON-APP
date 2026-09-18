@@ -1,0 +1,33 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Reglas para la colección de USUARIOS
+    match /users/{userId} {
+      allow create: if request.auth.uid == userId;
+      allow read, update: if request.auth.uid == userId || request.auth.token.role == 'superadmin';
+    }
+
+    // Reglas para la colección de CLASES
+    match /classes/{classId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow delete: if request.auth.token.role == 'superadmin';
+      allow update: if request.auth.token.role == 'superadmin' || 
+                      (request.auth.uid != null && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['attendees']));
+    }
+
+    // Reglas para RESERVAS
+    match /reservas/{reservaId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth.uid == request.resource.data.userId || request.auth.token.role == 'superadmin';
+      allow update, delete: if request.auth.uid == resource.data.userId || request.auth.token.role == 'superadmin';
+    }
+
+    // Reglas para GESTIÓN DE HORARIOS / EXCEPCIONES DE CALENDARIO
+    match /calendar_overrides/{overrideId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+  }
+}

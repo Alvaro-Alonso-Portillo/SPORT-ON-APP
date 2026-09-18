@@ -4,7 +4,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from 'next/navigation'
-import { Home, CalendarDays, User as UserIcon, LogOut, LogIn, LayoutDashboard, UserCheck } from "lucide-react";
+import { Home, CalendarDays, User as UserIcon, LogOut, LogIn, LayoutDashboard, UserCheck, CalendarClock } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
@@ -47,6 +47,7 @@ export default function SidebarContent({ onLinkClick }: SidebarContentProps) {
   const adminLinks = [
     { href: "/admin/dashboard", label: "Panel de Control", icon: LayoutDashboard },
     { href: "/admin/attendance", label: "Gestión de Asistencia", icon: UserCheck },
+    { href: "/admin/horarios", label: "Gestión de Horarios", icon: CalendarClock },
   ];
 
   if (loading) {

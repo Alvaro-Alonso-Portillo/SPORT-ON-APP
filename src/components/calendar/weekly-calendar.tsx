@@ -4,7 +4,7 @@
 import * as React from "react";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useSearchParams } from 'next/navigation'
-import type { ClassInfo, Attendee } from "@/types";
+import type { ClassInfo, Attendee, CalendarOverride } from "@/types";
 import { useAuth } from "@/hooks/use-auth";
 import { db } from "@/lib/firebase";
 import { collection, doc, getDocs, query, runTransaction, where, arrayRemove, arrayUnion } from "firebase/firestore";
@@ -19,89 +19,42 @@ import { Button } from "../ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "../ui/separator";
 
-const allTimeSlots = [
-    "08:00", "09:15", "10:30", "11:45", "13:00", 
-    "14:15", "17:00", "18:15", "19:30", "20:45"
-];
+import { 
+  ALL_TIME_SLOTS, 
+  AFTERNOON_SLOTS, 
+  getDefaultSlotsForDate, 
+  isDefaultDateDisabled, 
+  getCalendarOverridesForRange 
+} from "@/lib/calendar-config";
 
-// Lista de días festivos en formato 'yyyy-MM-dd'
-const holidays = [
-  "2025-09-22",
-  "2025-10-04",
-  "2025-10-13",
-  "2025-12-08",
-  "2025-12-25",
-  "2026-01-01",
-  "2026-01-06",
-  "2026-04-03",
-  "2026-05-01",
-  "2026-08-01",
-  "2026-08-02",
-  "2026-08-03",
-  "2026-08-04",
-  "2026-08-05",
-  "2026-08-06",
-  "2026-08-07",
-  "2026-08-08",
-  "2026-08-09",
-  "2026-08-10",
-  "2026-08-11",
-  "2026-08-12",
-  "2026-08-13",
-  "2026-08-14",
-  "2026-08-15",
-  "2026-08-16",
-  "2026-10-12",
-  "2026-11-02",
-  "2026-12-08",
-  "2026-12-25",
-];
-
-const afternoonSlots = ["17:00", "18:15", "19:30", "20:45"];
-
-const generateClassesForDate = (date: Date, existingClasses: ClassInfo[]): ClassInfo[] => {
+const generateClassesForDate = (
+    date: Date, 
+    existingClasses: ClassInfo[], 
+    override?: CalendarOverride
+): ClassInfo[] => {
     const dateString = format(date, 'yyyy-MM-dd');
     const dayName = format(date, 'eeee', { locale: es });
     const capitalizedDayName = dayName.charAt(0).toUpperCase() + dayName.slice(1);
-    const monthDay = format(date, 'MM-dd');
+
+    // Si hay una regla explícita y está cerrado, no hay clases
+    if (override && !override.isOpen) {
+        return [];
+    }
 
     let timeSlotsForDay: string[] = [];
 
-    // Special case for April 2, 2026
-    if (dateString === '2026-04-02') {
-        timeSlotsForDay = ["08:00", "09:15", "10:30", "11:45", "13:00", "14:15"];
-    } else if (dateString === '2026-06-03') {
-        timeSlotsForDay = ["08:00", "09:15", "10:30", "11:45", "13:00", "14:15", "17:00", "18:15", "19:30"];
-    } else if (dateString === '2026-06-04') {
-        timeSlotsForDay = ["09:15", "10:30", "11:45", "13:00"];
-    } else if (dateString === '2026-06-05') {
-        timeSlotsForDay = ["08:00", "09:15", "10:30", "11:45"];
-    } else if (capitalizedDayName !== "Sábado" && capitalizedDayName !== "Domingo") {
-        timeSlotsForDay = [...allTimeSlots];
-        
-        if (capitalizedDayName === "Viernes") {
-            timeSlotsForDay = timeSlotsForDay.filter(time => time !== "20:45");
-        }
-
-        // Excluir última hora (20:45) para el 18 y 20 de agosto de 2026
-        if (dateString === '2026-08-18' || dateString === '2026-08-20') {
-            timeSlotsForDay = timeSlotsForDay.filter(time => time !== "20:45");
-        }
-        
-        // Excluir horarios de tarde para el 24 y 31 de diciembre
-        if (monthDay === '12-24' || monthDay === '12-31') {
-            timeSlotsForDay = timeSlotsForDay.filter(time => !afternoonSlots.includes(time));
-        }
-
-        // Excluir horarios para el 5 de enero
-        if (monthDay === '01-05') {
-            const morningSlotsToRemove = ["14:15"];
-            timeSlotsForDay = timeSlotsForDay.filter(time => !afternoonSlots.includes(time) && !morningSlotsToRemove.includes(time));
-        }
+    // Si hay una regla explícita con horas personalizadas
+    if (override && override.slots && override.slots.length > 0) {
+        timeSlotsForDay = override.slots;
+    } else if (override && override.isOpen) {
+        // Día abierto explícitamente (ej: domingo abierto) sin horas recortadas -> usar horas completas
+        timeSlotsForDay = [...ALL_TIME_SLOTS];
+    } else {
+        // Horario por defecto según calendario base
+        timeSlotsForDay = getDefaultSlotsForDate(date);
     }
     
     if (timeSlotsForDay.length === 0) return [];
-
 
     return timeSlotsForDay.map(time => {
         const classId = `${dateString}-${time.replace(':', '')}`;
@@ -111,7 +64,7 @@ const generateClassesForDate = (date: Date, existingClasses: ClassInfo[]): Class
             return existingClass;
         }
         
-        const capacity = afternoonSlots.includes(time) ? 30 : 24;
+        const capacity = AFTERNOON_SLOTS.includes(time) ? 30 : 24;
 
         return {
             id: classId,
@@ -145,6 +98,7 @@ function WeeklyCalendarInternal() {
   };
 
   const [allClasses, setAllClasses] = useState<ClassInfo[]>([]);
+  const [calendarOverrides, setCalendarOverrides] = useState<Record<string, CalendarOverride>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [currentDate, setCurrentDate] = useState(getInitialDate);
   const [changingBooking, setChangingBooking] = useState<{ classId: string, attendee: Attendee } | null>(null);
@@ -155,16 +109,25 @@ function WeeklyCalendarInternal() {
   const fetchClasses = useCallback(async () => {
     setIsLoading(true);
     try {
+        const startDateStr = format(startOfCurrentWeek, 'yyyy-MM-dd');
+        const endDateStr = format(endOfCurrentWeek, 'yyyy-MM-dd');
+
         const classesRef = collection(db, 'classes');
         const q = query(classesRef, 
-            where('date', '>=', format(startOfCurrentWeek, 'yyyy-MM-dd')),
-            where('date', '<=', format(endOfCurrentWeek, 'yyyy-MM-dd'))
+            where('date', '>=', startDateStr),
+            where('date', '<=', endDateStr)
         );
-        const querySnapshot = await getDocs(q);
+
+        const [querySnapshot, overrides] = await Promise.all([
+            getDocs(q),
+            getCalendarOverridesForRange(startDateStr, endDateStr)
+        ]);
+
         const fetchedClasses = querySnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }) as ClassInfo);
         setAllClasses(fetchedClasses);
+        setCalendarOverrides(overrides);
     } catch (error) {
-        console.error("Error fetching classes:", error);
+        console.error("Error fetching classes and calendar overrides:", error);
         toast({
             variant: "destructive",
             title: "Error",
@@ -192,28 +155,18 @@ function WeeklyCalendarInternal() {
     return Array.from({ length: 7 }).map((_, i) => addDays(startOfCurrentWeek, i));
   }, [startOfCurrentWeek]);
   
-  const isDateDisabled = (date: Date) => {
-    const dayName = format(date, 'eeee', { locale: es });
+  const isDateDisabled = useCallback((date: Date) => {
     const dateString = format(date, 'yyyy-MM-dd');
-    const monthDay = format(date, 'MM-dd');
+    const override = calendarOverrides[dateString];
 
-    // Deshabilitar domingos y sábados
-    if (dayName === 'domingo' || dayName === 'sábado') {
-      return true;
+    // Si el administrador ha configurado una regla para este día, esa regla manda
+    if (override) {
+      return !override.isOpen;
     }
 
-    // Deshabilitar días festivos
-    if (holidays.includes(dateString)) {
-      return true;
-    }
-
-    // Deshabilitar del 1 de agosto al 16 de agosto (incluido)
-    if (monthDay >= '08-01' && monthDay <= '08-16') {
-      return true;
-    }
-
-    return false;
-  };
+    // Si no hay regla, aplicar las reglas estándar del centro
+    return isDefaultDateDisabled(date).disabled;
+  }, [calendarOverrides]);
 
   const handleNextWeek = () => {
     setCurrentDate(addDays(startOfCurrentWeek, 7));
@@ -245,9 +198,11 @@ function WeeklyCalendarInternal() {
     if (isDateDisabled(currentDate)) {
         return [];
     }
-    const generated = generateClassesForDate(currentDate, allClasses);
+    const dateString = format(currentDate, 'yyyy-MM-dd');
+    const override = calendarOverrides[dateString];
+    const generated = generateClassesForDate(currentDate, allClasses, override);
     return generated.sort((a,b) => a.time.localeCompare(b.time));
-  }, [currentDate, allClasses]);
+  }, [currentDate, allClasses, isDateDisabled, calendarOverrides]);
 
   const handleBookingUpdate = async (classInfo: ClassInfo, newAttendee: Omit<Attendee, 'status'> | null, oldClassId?: string, attendeeToUpdate?: Attendee) => {
     const userForCheck = attendeeToUpdate || newAttendee;
@@ -390,7 +345,7 @@ function WeeklyCalendarInternal() {
         <TimeSelector dailyClasses={dailyClasses} />
       </header>
       
-      <main className="flex-1 space-y-4">
+      <main className="flex-1 space-y-2 sm:space-y-2.5">
         { dailyClasses.length > 0 ? (
             dailyClasses.map(classInfo => (
                 <ClassListItem 
@@ -404,8 +359,15 @@ function WeeklyCalendarInternal() {
                 />
             ))
          ) : (
-          <div className="text-center py-10 bg-card rounded-lg shadow-sm">
-            <p className="text-muted-foreground">No hay clases programadas o disponibles para este día.</p>
+          <div className="text-center py-12 bg-card rounded-lg shadow-sm border p-6 space-y-1">
+            <p className="text-muted-foreground font-medium">
+              {calendarOverrides[format(currentDate, 'yyyy-MM-dd')]?.reason 
+                ? `Cerrado: ${calendarOverrides[format(currentDate, 'yyyy-MM-dd')].reason}`
+                : "No hay clases programadas o disponibles para este día."}
+            </p>
+            {isDateDisabled(currentDate) && !calendarOverrides[format(currentDate, 'yyyy-MM-dd')]?.reason && (
+              <p className="text-xs text-muted-foreground/80">Este día se encuentra cerrado según el horario habitual.</p>
+            )}
           </div>
         )}
       </main>

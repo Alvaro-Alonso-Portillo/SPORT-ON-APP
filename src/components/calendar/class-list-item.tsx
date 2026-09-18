@@ -298,47 +298,83 @@ export default function ClassListItem({ classInfo, user, isBookedByUser, onBooki
 
         {/* SECCIÓN DESPLEGABLE: Lista de Alumnos Apuntados */}
         {isExpanded && classInfo.attendees.length > 0 && (
-          <div className="border-t bg-muted/20 px-3 py-2.5 sm:px-4 rounded-b-xl animate-in fade-in-50 duration-150">
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
+          <div className="border-t bg-muted/20 p-3 sm:p-4 rounded-b-xl animate-in fade-in-50 duration-150">
+            <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-y-3 gap-x-2 sm:gap-4">
               {classInfo.attendees.map((attendee) => (
                 <div 
                   key={attendee.uid}
-                  className="flex items-center justify-between gap-1.5 p-1.5 rounded-lg bg-background border shadow-2xs group"
+                  className="relative group flex flex-col items-center text-center"
                 >
                   <button 
                     type="button"
                     onClick={() => handleOpenAdminActionModal(attendee)}
-                    className="flex items-center gap-1.5 truncate text-left focus:outline-none flex-1"
+                    className="relative rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 transition-transform active:scale-95 group-hover:scale-105"
+                    title={isSuperAdmin ? `Gestionar reserva de ${attendee.name}` : attendee.name}
                   >
-                    <UserAvatar user={attendee} className="h-6 w-6 rounded-full shrink-0" />
-                    <span className="text-xs font-medium truncate text-foreground">
-                      {attendee.name}
-                    </span>
+                    <UserAvatar 
+                      user={attendee} 
+                      className="h-12 w-12 sm:h-14 sm:w-14 rounded-xl text-sm sm:text-base font-bold shadow-xs border border-border/50" 
+                    />
+
+                    {/* Indicador sutil para admin en móvil */}
+                    {isSuperAdmin && (
+                      <span className="sm:hidden absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-background border shadow-xs text-muted-foreground">
+                        <Pencil className="h-2.5 w-2.5" />
+                      </span>
+                    )}
+
+                    {/* Acciones flotantes de Admin en desktop / hover */}
+                    {isSuperAdmin && (
+                      <div className="absolute -top-1.5 -right-1.5 hidden sm:flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity bg-background border shadow-xs rounded-full p-0.5 z-10">
+                        <span 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleStartChange(attendee);
+                          }}
+                          className="p-1 hover:text-primary rounded-full hover:bg-muted cursor-pointer"
+                          title="Modificar"
+                        >
+                          <Pencil className="h-3 w-3" />
+                        </span>
+                        <span 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setAttendeeToRemove(attendee);
+                          }}
+                          className="p-1 hover:text-destructive rounded-full hover:bg-muted cursor-pointer"
+                          title="Eliminar"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </span>
+                      </div>
+                    )}
                   </button>
 
-                  {/* Acciones de Admin en cada alumno */}
-                  {isSuperAdmin && (
-                    <div className="flex items-center gap-0.5 shrink-0 opacity-80 group-hover:opacity-100">
-                      <button 
-                        type="button"
-                        onClick={() => handleStartChange(attendee)}
-                        className="p-1 hover:text-primary rounded"
-                        title="Modificar"
-                      >
-                        <Pencil className="h-3 w-3" />
-                      </button>
-                      <button 
-                        type="button"
-                        onClick={() => setAttendeeToRemove(attendee)}
-                        className="p-1 hover:text-destructive rounded"
-                        title="Eliminar"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </button>
-                    </div>
-                  )}
+                  <span 
+                    className="text-xs font-medium text-foreground mt-1.5 truncate max-w-[70px] sm:max-w-[82px] text-center"
+                    title={attendee.name}
+                  >
+                    {attendee.name}
+                  </span>
                 </div>
               ))}
+
+              {/* Botón rápido en la cuadrícula para que el admin añada alumno si hay plazas */}
+              {isSuperAdmin && !isPastClass && freeSlots > 0 && (
+                <div className="flex flex-col items-center text-center">
+                  <button
+                    type="button"
+                    onClick={() => setIsBookingModalOpen(true)}
+                    className="h-12 w-12 sm:h-14 sm:w-14 rounded-xl border-2 border-dashed border-primary/40 hover:border-primary hover:bg-primary/5 flex items-center justify-center text-primary/70 hover:text-primary transition-all active:scale-95"
+                    title="Añadir alumno manualmente"
+                  >
+                    <UserPlus className="h-5 w-5" />
+                  </button>
+                  <span className="text-xs font-medium text-muted-foreground mt-1.5 truncate max-w-[70px]">
+                    Añadir
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         )}
